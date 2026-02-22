@@ -8,8 +8,10 @@ export default function AdminDashboardLayout({
   return (
     <div className="flex min-h-screen bg-white">
       <AdminSidebar />
-      <div className="flex-1 p-10 overflow-auto">
-        {children}
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-5xl mx-auto p-8 md:p-10">
+          {children}
+        </div>
       </div>
     </div>
   )

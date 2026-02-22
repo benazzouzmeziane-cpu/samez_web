@@ -55,7 +55,7 @@ export default function CreateDevisButton({ name, email, phone }: Props) {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="text-xs px-3 py-1 border border-gray-200 text-gray-500 hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
+      className="text-xs px-3 py-1 rounded-full bg-[var(--accent-light)] text-[var(--accent-dark)] font-medium hover:bg-[var(--accent)] hover:text-white transition-colors disabled:opacity-50"
     >
       {loading ? '...' : 'Créer un devis'}
     </button>

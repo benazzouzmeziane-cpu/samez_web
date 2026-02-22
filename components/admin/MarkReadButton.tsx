@@ -15,7 +15,7 @@ export default function MarkReadButton({ id }: { id: string }) {
   return (
     <button
       onClick={handleMark}
-      className="text-xs text-gray-400 hover:text-black underline underline-offset-2 transition-colors"
+      className="text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-400 hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
     >
       Marquer lu
     </button>

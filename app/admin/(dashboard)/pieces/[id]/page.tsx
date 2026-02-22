@@ -38,11 +38,14 @@ export default async function PieceDetailPage({
     <div>
       <div className="flex items-start justify-between mb-1">
         <div>
+          <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-2">
+            {piece.type === 'devis' ? 'Devis' : 'Facture'}
+          </p>
           <h1 className="text-2xl font-semibold tracking-tight">
             {piece.number}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5 capitalize">
-            {piece.type} — {piece.clients?.name ?? 'Sans client'}
+          <p className="text-sm text-gray-500 mt-0.5">
+            {piece.clients?.name ?? 'Sans client'} — {totalTTC.toFixed(2)} € TTC
           </p>
         </div>
         <PiecePDFButton

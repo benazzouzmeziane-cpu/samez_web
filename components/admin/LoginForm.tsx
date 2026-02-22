@@ -31,11 +31,16 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-6">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight mb-1">
-          same<span>&apos;</span>z
-        </h1>
+    <div className="flex min-h-screen items-center justify-center bg-[#fafafa] px-6">
+      <div className="w-full max-w-sm bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
+            <span className="text-white text-sm font-bold">s</span>
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            same<span>&apos;</span>z
+          </h1>
+        </div>
         <p className="text-sm text-gray-500 mb-8">Console admin</p>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -47,7 +52,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoFocus
-              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-black transition-colors"
+              className="w-full px-4 py-3 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
               placeholder="contact@samez.fr"
             />
           </div>
@@ -58,7 +63,7 @@ export default function AdminLoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-black transition-colors"
+              className="w-full px-4 py-3 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
               placeholder="••••••••"
             />
           </div>
@@ -68,7 +73,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>

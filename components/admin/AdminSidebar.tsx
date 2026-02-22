@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faGauge, faEnvelope, faFileInvoice, faArrowRightFromBracket, faPlus } from '@fortawesome/free-solid-svg-icons'
 
 const navItems = [
-  { href: '/admin', label: 'Dashboard', exact: true },
-  { href: '/admin/contacts', label: 'Messages' },
-  { href: '/admin/pieces', label: 'Pièces commerciales' },
+  { href: '/admin', label: 'Dashboard', icon: faGauge, exact: true },
+  { href: '/admin/contacts', label: 'Messages', icon: faEnvelope },
+  { href: '/admin/pieces', label: 'Pièces', icon: faFileInvoice },
 ]
 
 export default function AdminSidebar() {
@@ -21,12 +23,26 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className="w-56 shrink-0 border-r border-gray-100 min-h-screen flex flex-col py-8 px-4">
-      <Link href="/" className="text-lg font-semibold tracking-tight mb-8 block px-2">
-        same<span>&apos;</span>z
+    <aside className="w-60 shrink-0 bg-[#fafafa] border-r border-gray-100 min-h-screen flex flex-col py-6 px-3">
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2 px-3 mb-8">
+        <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
+          <span className="text-white text-sm font-bold">s</span>
+        </div>
+        <span className="text-base font-semibold tracking-tight">same&apos;z</span>
       </Link>
 
-      <nav className="flex-1 space-y-0.5">
+      {/* Quick action */}
+      <Link
+        href="/admin/pieces/nouvelle"
+        className="flex items-center gap-2 px-3 py-2.5 mb-6 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors"
+      >
+        <FontAwesomeIcon icon={faPlus} className="w-3.5 h-3.5" />
+        Nouvelle pièce
+      </Link>
+
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
           const active = item.exact
             ? pathname === item.href
@@ -35,22 +51,28 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`block px-3 py-2 text-sm rounded transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all ${
                 active
-                  ? 'bg-black text-white font-medium'
-                  : 'text-gray-600 hover:text-black hover:bg-gray-50'
+                  ? 'bg-white text-black font-medium shadow-sm border border-gray-100'
+                  : 'text-gray-500 hover:text-black hover:bg-white/60'
               }`}
             >
+              <FontAwesomeIcon
+                icon={item.icon}
+                className={`w-4 h-4 ${active ? 'text-[var(--accent)]' : ''}`}
+              />
               {item.label}
             </Link>
           )
         })}
       </nav>
 
+      {/* Déconnexion */}
       <button
         onClick={handleSignOut}
-        className="mt-auto text-left px-3 py-2 text-sm text-gray-400 hover:text-black transition-colors"
+        className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-white/60 mt-4"
       >
+        <FontAwesomeIcon icon={faArrowRightFromBracket} className="w-4 h-4" />
         Déconnexion
       </button>
     </aside>

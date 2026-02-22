@@ -14,7 +14,7 @@ export default function PiecePDFButton({
   return (
     <button
       onClick={handleDownload}
-      className="px-5 py-2 border border-gray-200 text-sm text-gray-700 hover:border-black hover:text-black transition-colors flex items-center gap-2"
+      className="px-5 py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors flex items-center gap-2"
     >
       <svg
         width="14"

@@ -191,15 +191,17 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {/* En-tête */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="p-6 bg-[#fafafa] rounded-xl border border-gray-100">
+        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">Informations</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1.5">Type</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as 'facture' | 'devis')}
-            className="w-full px-3 py-2.5 border border-gray-200 text-sm outline-none focus:border-black bg-white"
+            className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] bg-white"
           >
             <option value="facture">Facture</option>
             <option value="devis">Devis</option>
@@ -210,7 +212,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 text-sm outline-none focus:border-black bg-white"
+            className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] bg-white"
           >
             <option value="brouillon">Brouillon</option>
             <option value="envoyée">Envoyée</option>
@@ -224,7 +226,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 text-sm outline-none focus:border-black"
+            className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)]"
           />
         </div>
         <div>
@@ -233,20 +235,21 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 text-sm outline-none focus:border-black"
+            className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)]"
           />
         </div>
       </div>
+      </div>
 
       {/* Client */}
-      <div className="border-t border-gray-100 pt-8">
-        <h2 className="text-sm font-semibold mb-4">Client</h2>
-        <div className="flex gap-4 mb-4">
+      <div className="p-6 bg-[#fafafa] rounded-xl border border-gray-100">
+        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">Client</h2>
+        <div className="flex gap-3 mb-4">
           <button
             type="button"
             onClick={() => setUseNewClient(false)}
-            className={`text-sm px-4 py-1.5 border transition-colors ${
-              !useNewClient ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'
+            className={`text-sm px-4 py-1.5 rounded-full border transition-colors ${
+              !useNewClient ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-gray-200 text-gray-500 hover:border-[var(--accent)]'
             }`}
           >
             Client existant
@@ -254,8 +257,8 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           <button
             type="button"
             onClick={() => setUseNewClient(true)}
-            className={`text-sm px-4 py-1.5 border transition-colors ${
-              useNewClient ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'
+            className={`text-sm px-4 py-1.5 rounded-full border transition-colors ${
+              useNewClient ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-gray-200 text-gray-500 hover:border-[var(--accent)]'
             }`}
           >
             Nouveau client
@@ -266,7 +269,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           <select
             value={selectedClientId}
             onChange={(e) => setSelectedClientId(e.target.value)}
-            className="w-full max-w-sm px-3 py-2.5 border border-gray-200 text-sm outline-none focus:border-black bg-white"
+            className="w-full max-w-sm px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] bg-white"
           >
             <option value="">— Sélectionner un client —</option>
             {clients.map((c) => (
@@ -289,7 +292,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
                   value={newClient[field] ?? ''}
                   onChange={(e) => setNewClient((prev) => ({ ...prev, [field]: e.target.value }))}
                   placeholder={placeholder}
-                  className="w-full px-3 py-2.5 border border-gray-200 text-sm outline-none focus:border-black"
+                  className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)]"
                 />
               </div>
             ))}
@@ -298,8 +301,8 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
       </div>
 
       {/* Lignes de prestation */}
-      <div className="border-t border-gray-100 pt-8">
-        <h2 className="text-sm font-semibold mb-4">Prestations</h2>
+      <div className="p-6 bg-[#fafafa] rounded-xl border border-gray-100">
+        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">Prestations</h2>
 
         <div className="mb-2 grid grid-cols-12 gap-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
           <div className="col-span-6">Description</div>
@@ -317,7 +320,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
                   value={line.description}
                   onChange={(e) => updateLine(i, 'description', e.target.value)}
                   placeholder="Description de la prestation"
-                  className="w-full px-3 py-2 border border-gray-200 text-sm outline-none focus:border-black"
+                  className="w-full px-3 py-2 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)]"
                 />
               </div>
               <div className="col-span-2">
@@ -327,7 +330,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
                   step="0.5"
                   value={line.quantity}
                   onChange={(e) => updateLine(i, 'quantity', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-200 text-sm outline-none focus:border-black text-right"
+                  className="w-full px-3 py-2 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] text-right"
                 />
               </div>
               <div className="col-span-2">
@@ -337,7 +340,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
                   step="0.01"
                   value={line.unit_price}
                   onChange={(e) => updateLine(i, 'unit_price', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-200 text-sm outline-none focus:border-black text-right"
+                  className="w-full px-3 py-2 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] text-right"
                 />
               </div>
               <div className="col-span-1 text-right text-sm font-medium pr-2">
@@ -368,8 +371,8 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
       </div>
 
       {/* Totaux */}
-      <div className="border-t border-gray-100 pt-6 flex justify-end">
-        <div className="w-64 space-y-2">
+      <div className="flex justify-end">
+        <div className="w-72 p-5 bg-[#fafafa] rounded-xl border border-gray-100 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Total HT</span>
             <span className="font-medium">{totalHT.toFixed(2)} €</span>
@@ -398,33 +401,33 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
       </div>
 
       {/* Notes */}
-      <div className="border-t border-gray-100 pt-6">
-        <label className="block text-xs font-medium text-gray-500 mb-1.5">Notes / Conditions</label>
+      <div className="p-6 bg-[#fafafa] rounded-xl border border-gray-100">
+        <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Notes / Conditions</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder="Conditions de paiement, mentions légales..."
-          className="w-full px-3 py-2.5 border border-gray-200 text-sm outline-none focus:border-black resize-none"
+          className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] resize-none bg-white"
         />
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2 border-t border-gray-100">
+      <div className="flex gap-3 pt-4">
         <button
           type="button"
           onClick={() => handleSave(true)}
           disabled={saving}
-          className="px-6 py-2.5 bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50"
+          className="px-6 py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
         >
           {saving ? 'Sauvegarde...' : mode === 'create' ? 'Créer la pièce' : 'Enregistrer'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="px-6 py-2.5 border border-gray-200 text-sm text-gray-600 hover:border-black hover:text-black transition-colors"
+          className="px-6 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
         >
           Annuler
         </button>
