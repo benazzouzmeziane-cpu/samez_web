@@ -9,6 +9,8 @@ const tags = [
   'Outils internes',
   'Extensions Chrome',
   'Applications métiers',
+  'sites web',
+  'app mobile',
 ]
 
 export default function Hero() {
