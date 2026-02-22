@@ -124,6 +124,13 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
         clientId = created.id
       }
 
+      // Si le type a changé, adapter le préfixe du numéro (DEV↔FAC)
+      let finalNumber = piece?.number ?? generateNumber()
+      if (piece?.number && piece.type !== type) {
+        const newPrefix = type === 'facture' ? 'FAC' : 'DEV'
+        finalNumber = finalNumber.replace(/^(DEV|FAC)/, newPrefix)
+      }
+
       const piecePayload = {
         type,
         status,
@@ -132,7 +139,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
         tva_rate: tvaRate,
         notes: notes || null,
         client_id: clientId || null,
-        number: piece?.number ?? generateNumber(),
+        number: finalNumber,
       }
 
       let pieceId = piece?.id
