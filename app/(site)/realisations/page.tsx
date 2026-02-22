@@ -3,24 +3,39 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: "Réalisations — same'z",
-  description: "Projets réalisés par same'z — cartes digitales, outils NFC, sites marchands.",
+  description: "Projets réalisés par same'z — automatisation, outils internes, extensions Chrome, applications métiers.",
 }
 
 const projects = [
   {
-    title: 'Carte digitale professionnelle',
-    category: 'Carte digitale',
-    description: 'Carte identité numérique avec QR code, liens réseaux et coordonnées, mise à jour en temps réel.',
+    title: 'Automatisation CRM & facturation',
+    category: 'Automatisation',
+    description: 'Workflow automatisé connectant CRM, facturation et relances clients. Gain de 15h/semaine pour l\'équipe commerciale.',
   },
   {
-    title: 'Application NFC événementielle',
-    category: 'Outil NFC',
-    description: 'Badges NFC programmés pour un événement : accès, partage de contacts et redirection vers une landing page.',
+    title: 'Dashboard d\'analyse de conversion',
+    category: 'Analyse de conversion',
+    description: 'Tableau de bord temps réel avec tracking avancé, funnel analysis et alertes automatiques sur les KPIs critiques.',
   },
   {
-    title: 'Site e-commerce sur mesure',
-    category: 'Site marchand',
-    description: 'Boutique en ligne complète avec gestion des stocks, paiement CB et tableau de bord vendeur.',
+    title: 'Extension Chrome de prospection',
+    category: 'Extension Chrome',
+    description: 'Extension sur mesure pour extraire et enrichir des données prospects directement depuis le navigateur, avec export CRM.',
+  },
+  {
+    title: 'Application de gestion logistique',
+    category: 'Application métier',
+    description: 'Application web complète de suivi des expéditions, gestion des stocks et tableaux de bord opérationnels en temps réel.',
+  },
+  {
+    title: 'Outil interne de planification',
+    category: 'Outil interne',
+    description: 'Interface de planification d\'équipe avec gestion des disponibilités, attribution automatique des tâches et reporting.',
+  },
+  {
+    title: 'Bot d\'automatisation e-commerce',
+    category: 'Automatisation',
+    description: 'Système automatisé de repricing, synchronisation multi-plateformes et alertes de stock pour une boutique en ligne.',
   },
 ]
 

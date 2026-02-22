@@ -17,7 +17,7 @@ export default function Footer() {
               same<span>&apos;</span>z
             </p>
             <p className="text-sm text-gray-500 max-w-xs">
-              Solutions digitales — cartes digitales, outils NFC, sites marchands.
+              Solutions logicielles sur mesure — automatisation, analyse de conversion, outils internes.
             </p>
           </div>
 

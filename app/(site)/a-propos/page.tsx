@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: "À propos — same'z",
-  description: "same'z — Qui sommes-nous ? Solutions digitales indépendantes : cartes digitales, NFC, sites web.",
+  description: "same'z — Développeur indépendant spécialisé en automatisation, outils internes et solutions logicielles sur mesure.",
 }
 
 export default function AProposPage() {
@@ -17,21 +17,22 @@ export default function AProposPage() {
 
         <div className="space-y-6 text-gray-600 leading-relaxed">
           <p className="text-xl text-gray-800 font-light">
-            Solutions digitales indépendantes, conçues avec soin pour les professionnels et les entrepreneurs.
+            Développeur indépendant spécialisé dans les solutions logicielles sur mesure pour les entreprises et les entrepreneurs.
           </p>
 
           <p>
-            Chez same&apos;z, je conçois des outils numériques simples et efficaces :
-            cartes digitales, systèmes NFC, sites marchands et interfaces web sur mesure.
+            Chez same&apos;z, je développe des outils qui résolvent des problèmes concrets :
+            automatisation de processus, analyse de conversion, extensions Chrome,
+            outils internes et applications métiers complètes.
           </p>
 
           <p>
-            L&apos;objectif est toujours le même — livrer des solutions épurées qui fonctionnent
-            vraiment, sans surcharge technique inutile.
+            L&apos;objectif est toujours le même — des solutions robustes qui font gagner du temps
+            et augmentent vos revenus, sans complexité inutile.
           </p>
 
           <p>
-            Chaque projet est suivi personnellement, de la conception à la mise en ligne.
+            Chaque projet est suivi personnellement, du cahier des charges à la mise en production.
           </p>
         </div>
 

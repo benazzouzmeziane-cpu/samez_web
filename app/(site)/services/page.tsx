@@ -3,37 +3,37 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: "Services — same'z",
-  description: "Cartes digitales, outils NFC, sites marchands. Découvrez les solutions digitales de same'z.",
+  description: "Automatisation, analyse de conversion, outils internes, extensions Chrome et applications métiers sur mesure.",
 }
 
 const services = [
   {
     number: '01',
-    title: 'Carte digitale',
+    title: 'Automatisation intelligente',
     description:
-      'Votre identité professionnelle en version numérique. Partagez vos coordonnées, réseaux sociaux et liens en un seul geste.',
-    details: ['QR Code personnalisé', 'Mise à jour en temps réel', 'Compatible tous appareils'],
+      'Éliminez les tâches répétitives et gagnez du temps. Je conçois des workflows automatisés qui connectent vos outils et fluidifient vos processus.',
+    details: ['Automatisation de processus métiers', 'Intégration API & webhooks', 'Bots et scripts sur mesure'],
   },
   {
     number: '02',
-    title: 'Outil NFC',
+    title: 'Analyse de conversion',
     description:
-      'Carte ou badge NFC programmé sur mesure. Un simple contact suffit pour transférer vos informations ou déclencher une action.',
-    details: ['Encodage personnalisé', 'Carte ou badge NFC physique', 'Reprogrammable'],
+      'Comprenez ce qui convertit et ce qui bloque. Tableaux de bord, tracking avancé et recommandations actionnables pour augmenter vos revenus.',
+    details: ['Tracking & analytics avancé', 'Tableaux de bord sur mesure', 'A/B testing & optimisation'],
   },
   {
     number: '03',
-    title: 'Site marchand',
+    title: 'Outils internes & extensions Chrome',
     description:
-      'Boutique en ligne complète, rapide à prendre en main. Gestion des produits, commandes et paiements en toute autonomie.',
-    details: ['Paiement sécurisé', 'Gestion des stocks', 'Interface admin intuitive'],
+      'Des outils sur mesure pour votre équipe : dashboards, extensions navigateur, interfaces d\'administration. Conçus pour s\'intégrer dans votre quotidien.',
+    details: ['Extensions Chrome personnalisées', 'Dashboards & back-offices', 'Outils de productivité'],
   },
   {
     number: '04',
-    title: 'Interface web',
+    title: 'Applications métiers',
     description:
-      'Site vitrine ou application web sur mesure, épuré et performant. Du projet à la mise en ligne, je gère tout.',
-    details: ['Design sur mesure', 'Responsive mobile', 'Optimisé SEO'],
+      'Applications web robustes, taillées pour votre activité. Du cahier des charges à la mise en production, je gère l\'ensemble du développement.',
+    details: ['Applications web sur mesure', 'Sites marchands & SaaS', 'API & intégrations tierces'],
   },
 ]
 
@@ -46,7 +46,7 @@ export default function ServicesPage() {
           Ce que je fais
         </h1>
         <p className="text-xl text-gray-500 font-light max-w-2xl">
-          Des outils digitaux simples, efficaces et taillés pour votre activité.
+          Des solutions logicielles robustes qui font gagner du temps et augmentent vos revenus.
         </p>
       </div>
 

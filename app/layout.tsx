@@ -9,8 +9,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "same'z — Solutions digitales",
-  description: "same'z — Cartes digitales, outils NFC, sites marchands sur mesure. Contactez-nous pour vos projets digitaux.",
+  title: "same'z — Solutions logicielles sur mesure",
+  description: "same'z — Automatisation, analyse de conversion, outils internes, extensions Chrome et applications métiers. Des solutions robustes qui font gagner du temps.",
 }
 
 export default function RootLayout({
