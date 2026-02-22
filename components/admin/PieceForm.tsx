@@ -38,6 +38,8 @@ type Props = {
   piece?: PieceData
   clients: Client[]
   mode: 'create' | 'edit'
+  initialType?: 'facture' | 'devis'
+  initialClientId?: string
 }
 
 const emptyLine = (): PieceLine => ({
@@ -47,11 +49,11 @@ const emptyLine = (): PieceLine => ({
   order_index: 0,
 })
 
-export default function PieceForm({ piece, clients, mode }: Props) {
+export default function PieceForm({ piece, clients, mode, initialType, initialClientId }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
-  const [type, setType] = useState<'facture' | 'devis'>(piece?.type ?? 'facture')
+  const [type, setType] = useState<'facture' | 'devis'>(piece?.type ?? initialType ?? 'facture')
   const [status, setStatus] = useState(piece?.status ?? 'brouillon')
   const [date, setDate] = useState(piece?.date ?? new Date().toISOString().split('T')[0])
   const [dueDate, setDueDate] = useState(piece?.due_date ?? '')
@@ -60,14 +62,14 @@ export default function PieceForm({ piece, clients, mode }: Props) {
   const [lines, setLines] = useState<PieceLine[]>(
     piece?.piece_lines?.length ? piece.piece_lines : [emptyLine()]
   )
-  const [selectedClientId, setSelectedClientId] = useState(piece?.client_id ?? '')
+  const [selectedClientId, setSelectedClientId] = useState(piece?.client_id ?? initialClientId ?? '')
   const [newClient, setNewClient] = useState<Omit<Client, 'id'>>({
     name: '',
     email: '',
     phone: '',
     address: '',
   })
-  const [useNewClient, setUseNewClient] = useState(!piece?.client_id)
+  const [useNewClient, setUseNewClient] = useState(!piece?.client_id && !initialClientId)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 

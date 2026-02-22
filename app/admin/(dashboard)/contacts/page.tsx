@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import MarkReadButton from '@/components/admin/MarkReadButton'
+import CreateDevisButton from '@/components/admin/CreateDevisButton'
 
 export default async function AdminContactsPage() {
   const supabase = await createClient()
@@ -52,6 +53,11 @@ export default async function AdminContactsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
+                  <CreateDevisButton
+                    name={contact.name}
+                    email={contact.email}
+                    phone={contact.phone}
+                  />
                   <p className="text-xs text-gray-400">
                     {new Date(contact.created_at).toLocaleDateString('fr-FR', {
                       day: '2-digit',
