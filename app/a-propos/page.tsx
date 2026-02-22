@@ -39,8 +39,8 @@ export default function AProposPage() {
           <div className="p-6 border border-gray-100">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Contact</p>
             <div className="space-y-1">
-              <a href="mailto:presta@samez.fr" className="block text-sm hover:text-gray-600 transition-colors">
-                presta@samez.fr
+              <a href="mailto:contact@samez.fr" className="block text-sm hover:text-gray-600 transition-colors">
+                contact@samez.fr
               </a>
               <a href="tel:0752087416" className="block text-sm hover:text-gray-600 transition-colors">
                 07 52 08 74 16

@@ -51,7 +51,7 @@ export default function ContactForm() {
             Parlons de votre projet
           </h2>
           <p className="text-gray-500 mb-10">
-            Réponse sous 24h — <a href="mailto:presta@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">presta@samez.fr</a>
+            Réponse sous 24h — <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
           </p>
 
           {status === 'success' ? (
@@ -118,7 +118,7 @@ export default function ContactForm() {
 
               {status === 'error' && (
                 <p className="text-sm text-red-500">
-                  Une erreur est survenue. Réessayez ou écrivez directement à presta@samez.fr
+                  Une erreur est survenue. Réessayez ou écrivez directement à contact@samez.fr
                 </p>
               )}
 

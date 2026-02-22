@@ -23,8 +23,8 @@ export default function Footer() {
 
           <div className="flex flex-col gap-2">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Contact</p>
-            <a href="mailto:presta@samez.fr" className="text-sm text-gray-600 hover:text-black transition-colors">
-              presta@samez.fr
+            <a href="mailto:contact@samez.fr" className="text-sm text-gray-600 hover:text-black transition-colors">
+              contact@samez.fr
             </a>
             <a href="tel:0752087416" className="text-sm text-gray-600 hover:text-black transition-colors">
               07 52 08 74 16

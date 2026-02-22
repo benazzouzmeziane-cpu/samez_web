@@ -220,7 +220,7 @@ export default function PieceDocument({
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.headerLabel}>Email</Text>
-            <Text style={styles.headerValue}>presta@samez.fr</Text>
+            <Text style={styles.headerValue}>contact@samez.fr</Text>
             <Text style={styles.headerLabel}>Téléphone</Text>
             <Text style={styles.headerValue}>07 52 08 74 16</Text>
           </View>
@@ -305,7 +305,7 @@ export default function PieceDocument({
         )}
 
         {/* Footer */}
-        <Text style={styles.footer}>same&apos;z — presta@samez.fr — 07 52 08 74 16</Text>
+        <Text style={styles.footer}>same&apos;z — contact@samez.fr — 07 52 08 74 16</Text>
       </Page>
     </Document>
   )

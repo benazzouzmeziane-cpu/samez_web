@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
               required
               autoFocus
               className="w-full px-4 py-3 border border-gray-200 text-sm outline-none focus:border-black transition-colors"
-              placeholder="presta@samez.fr"
+              placeholder="contact@samez.fr"
             />
           </div>
           <div>
