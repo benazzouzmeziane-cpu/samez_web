@@ -41,7 +41,7 @@ export default function ServicesPage() {
   return (
     <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
       <div className="mb-16">
-        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Services</p>
+        <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">Services</p>
         <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4">
           Ce que je fais
         </h1>
@@ -54,7 +54,7 @@ export default function ServicesPage() {
         {services.map((s) => (
           <div key={s.number} className="py-10 grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-1">
-              <span className="text-sm text-gray-400 font-mono">{s.number}</span>
+              <span className="text-sm text-[var(--accent)] font-mono font-semibold">{s.number}</span>
             </div>
             <div className="md:col-span-5">
               <h2 className="text-xl font-semibold mb-3">{s.title}</h2>
@@ -64,7 +64,7 @@ export default function ServicesPage() {
               <ul className="space-y-1.5">
                 {s.details.map((d) => (
                   <li key={d} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="w-1 h-1 bg-black rounded-full inline-block flex-shrink-0" />
+                    <span className="w-1 h-1 bg-[var(--accent)] rounded-full inline-block flex-shrink-0" />
                     {d}
                   </li>
                 ))}
@@ -78,7 +78,7 @@ export default function ServicesPage() {
         <p className="text-lg text-gray-600 mb-4">Un projet en tête ?</p>
         <Link
           href="/#contact"
-          className="inline-block px-8 py-3 bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors"
+          className="inline-block px-8 py-3.5 bg-[var(--accent)] text-white text-sm font-medium rounded-full hover:bg-[var(--accent-dark)] transition-colors"
         >
           Prendre contact
         </Link>

@@ -22,7 +22,7 @@ export default function Footer() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Contact</p>
+            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-1">Contact</p>
             <a href="mailto:contact@samez.fr" className="text-sm text-gray-600 hover:text-black transition-colors">
               contact@samez.fr
             </a>
@@ -32,14 +32,14 @@ export default function Footer() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Navigation</p>
+            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-1">Navigation</p>
             <Link href="/services" className="text-sm text-gray-600 hover:text-black transition-colors">Services</Link>
             <Link href="/realisations" className="text-sm text-gray-600 hover:text-black transition-colors">Réalisations</Link>
             <Link href="/a-propos" className="text-sm text-gray-600 hover:text-black transition-colors">À propos</Link>
           </div>
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Légal</p>
+            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-1">Légal</p>
             <Link href="/mentions-legales" className="text-sm text-gray-600 hover:text-black transition-colors">Mentions légales</Link>
             <Link href="/cgv" className="text-sm text-gray-600 hover:text-black transition-colors">CGV</Link>
           </div>

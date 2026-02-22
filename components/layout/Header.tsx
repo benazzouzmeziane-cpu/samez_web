@@ -26,7 +26,7 @@ export default function Header() {
 
         {/* Nav desktop */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map(link => (
+          {navLinks.slice(0, -1).map(link => (
             <Link
               key={link.href}
               href={link.href}
@@ -35,6 +35,12 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/#contact"
+            className="text-sm px-5 py-2 bg-[var(--accent)] text-white rounded-full hover:bg-[var(--accent-dark)] transition-colors font-medium"
+          >
+            Contact
+          </Link>
         </nav>
 
         {/* Burger mobile */}

@@ -43,7 +43,7 @@ export default function RealisationsPage() {
   return (
     <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
       <div className="mb-16">
-        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">Réalisations</p>
+        <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">Réalisations</p>
         <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4">
           Projets clients
         </h1>
@@ -52,10 +52,10 @@ export default function RealisationsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-100 border border-gray-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {projects.map((p) => (
-          <div key={p.title} className="bg-white p-8">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">
+          <div key={p.title} className="bg-white p-8 rounded-2xl border border-gray-100 hover:border-[var(--accent)] hover:shadow-lg hover:shadow-emerald-50 transition-all duration-300">
+            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-4">
               {p.category}
             </p>
             <h2 className="text-lg font-semibold mb-3 leading-snug">{p.title}</h2>
@@ -70,7 +70,7 @@ export default function RealisationsPage() {
         </p>
         <Link
           href="/#contact"
-          className="inline-block px-8 py-3 bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors"
+          className="inline-block px-8 py-3.5 bg-[var(--accent)] text-white text-sm font-medium rounded-full hover:bg-[var(--accent-dark)] transition-colors"
         >
           Discutons-en
         </Link>

@@ -10,7 +10,7 @@ export default function AProposPage() {
   return (
     <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
       <div className="max-w-3xl">
-        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">À propos</p>
+        <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">À propos</p>
         <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-8">
           same<span>&apos;</span>z
         </h1>
@@ -37,8 +37,8 @@ export default function AProposPage() {
         </div>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 border border-gray-100">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Contact</p>
+          <div className="p-6 border border-gray-100 rounded-xl hover:border-[var(--accent)] transition-colors">
+            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-3">Contact</p>
             <div className="space-y-1">
               <a href="mailto:contact@samez.fr" className="block text-sm hover:text-gray-600 transition-colors">
                 contact@samez.fr
@@ -48,8 +48,8 @@ export default function AProposPage() {
               </a>
             </div>
           </div>
-          <div className="p-6 border border-gray-100">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Disponibilité</p>
+          <div className="p-6 border border-gray-100 rounded-xl hover:border-[var(--accent)] transition-colors">
+            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-3">Disponibilité</p>
             <p className="text-sm text-gray-600">Réponse sous 24h — du lundi au vendredi</p>
           </div>
         </div>
@@ -57,7 +57,7 @@ export default function AProposPage() {
         <div className="mt-10">
           <Link
             href="/#contact"
-            className="inline-block px-8 py-3 bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors"
+            className="inline-block px-8 py-3.5 bg-[var(--accent)] text-white text-sm font-medium rounded-full hover:bg-[var(--accent-dark)] transition-colors"
           >
             Démarrer un projet
           </Link>

@@ -45,7 +45,7 @@ export default function ContactForm() {
     <section id="contact" className="py-20 px-6 bg-[#f5f5f7]">
       <div className="max-w-6xl mx-auto">
         <div className="max-w-2xl">
-          <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
+          <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-3">
             Contact
           </p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">
@@ -74,7 +74,7 @@ export default function ContactForm() {
                   <input
                     {...register('name')}
                     placeholder="Jean Dupont"
-                    className="w-full px-4 py-3 border border-gray-200 bg-white text-sm outline-none focus:border-black transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
                   />
                   {errors.name && (
                     <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
@@ -86,7 +86,7 @@ export default function ContactForm() {
                     {...register('email')}
                     type="email"
                     placeholder="jean@exemple.fr"
-                    className="w-full px-4 py-3 border border-gray-200 bg-white text-sm outline-none focus:border-black transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
                   />
                   {errors.email && (
                     <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
@@ -100,7 +100,7 @@ export default function ContactForm() {
                   {...register('phone')}
                   type="tel"
                   placeholder="06 xx xx xx xx"
-                  className="w-full px-4 py-3 border border-gray-200 bg-white text-sm outline-none focus:border-black transition-colors"
+                  className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
                 />
               </div>
 
@@ -110,7 +110,7 @@ export default function ContactForm() {
                   {...register('message')}
                   rows={5}
                   placeholder="Décrivez votre projet..."
-                  className="w-full px-4 py-3 border border-gray-200 bg-white text-sm outline-none focus:border-black transition-colors resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors resize-none"
                 />
                 {errors.message && (
                   <p className="mt-1 text-xs text-red-500">{errors.message.message}</p>
@@ -121,7 +121,7 @@ export default function ContactForm() {
                 <input
                   {...register('createAccount')}
                   type="checkbox"
-                  className="mt-0.5 w-4 h-4 accent-black cursor-pointer"
+                  className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
                 />
                 <span className="text-sm text-gray-600">
                   Créer mon compte client pour faciliter mes futurs échanges
@@ -137,7 +137,7 @@ export default function ContactForm() {
               <button
                 type="submit"
                 disabled={status === 'sending'}
-                className="self-start px-8 py-3 bg-black text-white text-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="self-start px-8 py-3.5 bg-[var(--accent)] text-white text-sm font-medium rounded-full hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === 'sending' ? 'Envoi...' : 'Envoyer le message'}
               </button>
