@@ -37,6 +37,12 @@ export default function Footer() {
             <Link href="/realisations" className="text-sm text-gray-600 hover:text-black transition-colors">Réalisations</Link>
             <Link href="/a-propos" className="text-sm text-gray-600 hover:text-black transition-colors">À propos</Link>
           </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Légal</p>
+            <Link href="/mentions-legales" className="text-sm text-gray-600 hover:text-black transition-colors">Mentions légales</Link>
+            <Link href="/cgv" className="text-sm text-gray-600 hover:text-black transition-colors">CGV</Link>
+          </div>
         </div>
 
         <div className="mt-10 pt-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-2">
