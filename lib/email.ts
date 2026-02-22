@@ -1,4 +1,14 @@
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.hostinger.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+})
 
 export async function sendContactEmail(data: {
   name: string
@@ -6,11 +16,9 @@ export async function sendContactEmail(data: {
   phone?: string
   message: string
 }) {
-  const resend = new Resend(process.env.RESEND_API_KEY)
-
-  await resend.emails.send({
-    from: "same'z <noreply@samez.fr>",
-    to: process.env.CONTACT_EMAIL || 'presta@samez.fr',
+  await transporter.sendMail({
+    from: `same'z <${process.env.SMTP_USER}>`,
+    to: process.env.SMTP_USER || 'contact@samez.fr',
     replyTo: data.email,
     subject: `Nouveau message de ${data.name} — same'z`,
     html: `
