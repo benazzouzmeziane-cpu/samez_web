@@ -2,25 +2,28 @@
 
 import Link from 'next/link'
 import ScrollReveal from '@/components/ui/ScrollReveal'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBolt, faChartLine, faPuzzlePiece, faRocket } from '@fortawesome/free-solid-svg-icons'
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
-const services = [
+const services: { icon: IconDefinition; title: string; description: string }[] = [
   {
-    icon: '⚡',
+    icon: faBolt,
     title: 'Automatisation',
     description: 'Éliminez les tâches répétitives. Workflows automatisés, intégrations API, bots sur mesure.',
   },
   {
-    icon: '📊',
+    icon: faChartLine,
     title: 'Analyse de conversion',
     description: 'Tracking avancé, dashboards temps réel, A/B testing. Comprenez ce qui convertit.',
   },
   {
-    icon: '🧩',
+    icon: faPuzzlePiece,
     title: 'Outils internes & extensions',
     description: 'Extensions Chrome, back-offices, outils de productivité taillés pour votre équipe.',
   },
   {
-    icon: '🚀',
+    icon: faRocket,
     title: 'Applications métiers',
     description: 'Apps web robustes du cahier des charges à la production. SaaS, marketplace, API.',
   },
@@ -46,7 +49,9 @@ export default function ServicesPreview() {
           {services.map((s, i) => (
             <ScrollReveal key={s.title} delay={i * 0.1}>
               <div className="group bg-white p-7 rounded-2xl border border-gray-100 hover:border-[var(--accent)] hover:shadow-lg hover:shadow-emerald-50 transition-all duration-300 h-full">
-                <div className="text-3xl mb-4">{s.icon}</div>
+                <div className="w-10 h-10 rounded-xl bg-[var(--accent-light)] flex items-center justify-center mb-4 group-hover:bg-[var(--accent)] transition-colors">
+                  <FontAwesomeIcon icon={s.icon} className="w-5 h-5 text-[var(--accent)] group-hover:text-white transition-colors" />
+                </div>
                 <h3 className="text-lg font-semibold mb-2 group-hover:text-[var(--accent)] transition-colors">
                   {s.title}
                 </h3>
