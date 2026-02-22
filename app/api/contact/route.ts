@@ -8,6 +8,7 @@ const schema = z.object({
   email: z.string().email(),
   phone: z.string().optional(),
   message: z.string().min(10),
+  createAccount: z.boolean().optional(),
 })
 
 export async function POST(request: Request) {
@@ -16,7 +17,32 @@ export async function POST(request: Request) {
     const data = schema.parse(body)
 
     const supabase = await createServiceClient()
-    const { error } = await supabase.from('contacts').insert([data])
+    const { error } = await supabase.from('contacts').insert([{
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      message: data.message,
+    }])
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
+
+    // Créer le compte client si demandé
+    if (data.createAccount) {
+      const { error: clientError } = await supabase.from('clients').upsert(
+        [{
+          name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+        }],
+        { onConflict: 'email' }
+      )
+      if (clientError) {
+        console.error('Client creation error (non-blocking):', clientError)
+      }
+    }
 
     if (error) {
       console.error('Supabase error:', error)

@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS contacts (
 CREATE TABLE IF NOT EXISTS clients (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
-  email TEXT,
+  email TEXT UNIQUE,
   phone TEXT,
   address TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()

@@ -10,6 +10,7 @@ const schema = z.object({
   email: z.string().email('Email invalide'),
   phone: z.string().optional(),
   message: z.string().min(10, 'Message trop court (10 caractères min.)'),
+  createAccount: z.boolean().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -115,6 +116,17 @@ export default function ContactForm() {
                   <p className="mt-1 text-xs text-red-500">{errors.message.message}</p>
                 )}
               </div>
+
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  {...register('createAccount')}
+                  type="checkbox"
+                  className="mt-0.5 w-4 h-4 accent-black cursor-pointer"
+                />
+                <span className="text-sm text-gray-600">
+                  Créer mon compte client pour faciliter mes futurs échanges
+                </span>
+              </label>
 
               {status === 'error' && (
                 <p className="text-sm text-red-500">
