@@ -8,6 +8,7 @@ const STATUS_LABELS: Record<string, string> = {
   envoyée: 'Envoyée',
   payée: 'Payée',
   annulée: 'Annulée',
+  'en retard': 'En retard',
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -15,6 +16,7 @@ const STATUS_STYLES: Record<string, string> = {
   envoyée: 'bg-blue-50 text-blue-600',
   payée: 'bg-emerald-50 text-emerald-600',
   annulée: 'bg-red-50 text-red-400',
+  'en retard': 'bg-orange-50 text-orange-600',
 }
 
 export default async function AdminPiecesPage() {
@@ -52,6 +54,7 @@ export default async function AdminPiecesPage() {
                 <th className="text-left py-3.5 px-5 font-medium text-gray-400 text-xs uppercase tracking-wider">Type</th>
                 <th className="text-left py-3.5 px-5 font-medium text-gray-400 text-xs uppercase tracking-wider">Client</th>
                 <th className="text-left py-3.5 px-5 font-medium text-gray-400 text-xs uppercase tracking-wider">Date</th>
+                <th className="text-left py-3.5 px-5 font-medium text-gray-400 text-xs uppercase tracking-wider">Échéance</th>
                 <th className="text-left py-3.5 px-5 font-medium text-gray-400 text-xs uppercase tracking-wider">Statut</th>
                 <th className="text-right py-3.5 px-5 font-medium text-gray-400 text-xs uppercase tracking-wider">Actions</th>
               </tr>
@@ -63,30 +66,45 @@ export default async function AdminPiecesPage() {
                 type: string
                 status: string
                 date: string
+                due_date: string | null
                 clients: { name: string } | null
-              }) => (
-                <tr key={p.id} className="border-b border-gray-100 last:border-0 bg-white hover:bg-gray-50/50 transition-colors">
-                  <td className="py-3.5 px-5 font-mono text-xs font-medium">{p.number}</td>
-                  <td className="py-3.5 px-5 capitalize text-gray-600">{p.type}</td>
-                  <td className="py-3.5 px-5 text-gray-600">{p.clients?.name ?? <span className="text-gray-300">—</span>}</td>
-                  <td className="py-3.5 px-5 text-gray-500">
-                    {new Date(p.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </td>
-                  <td className="py-3.5 px-5">
-                    <span className={`inline-block px-2.5 py-0.5 text-xs font-medium rounded-full ${STATUS_STYLES[p.status] ?? ''}`}>
-                      {STATUS_LABELS[p.status] ?? p.status}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-5 text-right">
-                    <Link
-                      href={`/admin/pieces/${p.id}`}
-                      className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-dark)] transition-colors"
-                    >
-                      Ouvrir →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              }) => {
+                const today = new Date().toISOString().split('T')[0]
+                const isOverdue = p.type === 'facture' && p.due_date && p.due_date < today && p.status !== 'payée' && p.status !== 'annulée'
+                const displayStatus = isOverdue ? 'en retard' : p.status
+                const clientName = p.clients?.name
+
+                return (
+                  <tr key={p.id} className="border-b border-gray-100 last:border-0 bg-white hover:bg-gray-50/50 transition-colors">
+                    <td className="py-3.5 px-5 font-mono text-xs font-medium">{p.number}</td>
+                    <td className="py-3.5 px-5 capitalize text-gray-600">{p.type}</td>
+                    <td className="py-3.5 px-5 text-gray-600">
+                      {clientName ? clientName : (<span className="text-gray-300">—</span>)}
+                    </td>
+                    <td className="py-3.5 px-5 text-gray-500">
+                      {new Date(p.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="py-3.5 px-5 text-gray-500">
+                      {p.due_date
+                        ? new Date(p.due_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : (<span className="text-gray-300">—</span>)}
+                    </td>
+                    <td className="py-3.5 px-5">
+                      <span className={`inline-block px-2.5 py-0.5 text-xs font-medium rounded-full ${STATUS_STYLES[displayStatus] || ''}`}>
+                        {STATUS_LABELS[displayStatus] || displayStatus}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 text-right">
+                      <Link
+                        href={`/admin/pieces/${p.id}`}
+                        className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-dark)] transition-colors"
+                      >
+                        {'Ouvrir →'}
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

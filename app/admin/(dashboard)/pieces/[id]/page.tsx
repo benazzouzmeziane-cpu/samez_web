@@ -61,6 +61,8 @@ export default async function PieceDetailPage({
             client_id: piece.client_id ?? undefined,
             due_date: piece.due_date ?? undefined,
             notes: piece.notes ?? undefined,
+            paid_date: piece.paid_date ?? undefined,
+            payment_method: piece.payment_method ?? undefined,
           }}
           clients={clients ?? []}
           mode="edit"

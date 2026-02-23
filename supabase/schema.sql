@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS pieces (
   due_date DATE,
   tva_rate DECIMAL(5,2) DEFAULT 20.00,
   notes TEXT,
+  paid_date DATE,                            -- date du règlement
+  payment_method TEXT,                       -- 'virement' | 'carte' | 'chèque' | 'espèces'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

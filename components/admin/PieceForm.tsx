@@ -29,6 +29,8 @@ type PieceData = {
   due_date?: string
   tva_rate: number
   notes?: string
+  paid_date?: string
+  payment_method?: string
   client_id?: string
   clients?: Client | null
   piece_lines?: PieceLine[]
@@ -59,6 +61,8 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
   const [dueDate, setDueDate] = useState(piece?.due_date ?? '')
   const [tvaRate, setTvaRate] = useState(piece?.tva_rate ?? 20)
   const [notes, setNotes] = useState(piece?.notes ?? '')
+  const [paidDate, setPaidDate] = useState(piece?.paid_date ?? '')
+  const [paymentMethod, setPaymentMethod] = useState(piece?.payment_method ?? '')
   const [lines, setLines] = useState<PieceLine[]>(
     piece?.piece_lines?.length ? piece.piece_lines : [emptyLine()]
   )
@@ -140,6 +144,8 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
         notes: notes || null,
         client_id: clientId || null,
         number: finalNumber,
+        paid_date: status === 'payée' ? (paidDate || new Date().toISOString().split('T')[0]) : null,
+        payment_method: status === 'payée' ? (paymentMethod || null) : null,
       }
 
       let pieceId = piece?.id
@@ -218,7 +224,13 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           <label className="block text-xs font-medium text-gray-500 mb-1.5">Statut</label>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              const newStatus = e.target.value
+              setStatus(newStatus)
+              if (newStatus === 'payée' && !paidDate) {
+                setPaidDate(new Date().toISOString().split('T')[0])
+              }
+            }}
             className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] bg-white"
           >
             <option value="brouillon">Brouillon</option>
@@ -246,6 +258,35 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           />
         </div>
       </div>
+
+      {/* Paiement — visible si statut = payée */}
+      {status === 'payée' && (
+        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Date de paiement</label>
+            <input
+              type="date"
+              value={paidDate}
+              onChange={(e) => setPaidDate(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Moyen de paiement</label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] bg-white"
+            >
+              <option value="">— Sélectionner —</option>
+              <option value="virement">Virement bancaire</option>
+              <option value="carte">Carte bancaire</option>
+              <option value="chèque">Chèque</option>
+              <option value="espèces">Espèces</option>
+            </select>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Client */}

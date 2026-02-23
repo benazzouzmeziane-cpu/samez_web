@@ -214,6 +214,31 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     lineHeight: 1.6,
   },
+  // ── Mention payée ──
+  paidBanner: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: '#d1fae5',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: ACCENT,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  paidText: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: ACCENT,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+  },
+  paidDetail: {
+    fontSize: 8,
+    color: '#047857',
+    marginTop: 3,
+    textAlign: 'center' as const,
+  },
   // ── Conditions légales ──
   legalSection: {
     marginTop: 24,
@@ -279,10 +304,13 @@ type Client = {
 type PieceDocProps = {
   number: string
   type: 'facture' | 'devis'
+  status: string
   date: string
   due_date?: string
   tva_rate: number
   notes?: string
+  paid_date?: string
+  payment_method?: string
   client?: Client | null
   lines: Line[]
 }
@@ -290,10 +318,13 @@ type PieceDocProps = {
 export default function PieceDocument({
   number,
   type,
+  status,
   date,
   due_date,
   tva_rate,
   notes,
+  paid_date,
+  payment_method,
   client,
   lines,
 }: PieceDocProps) {
@@ -416,10 +447,23 @@ export default function PieceDocument({
             </View>
           )}
 
+          {/* Bandeau acquittée — factures payées uniquement */}
+          {!isDevis && status === 'payée' && (
+            <View style={styles.paidBanner}>
+              <View>
+                <Text style={styles.paidText}>Facture acquittée</Text>
+                <Text style={styles.paidDetail}>
+                  {paid_date ? `Réglée le ${fmt(paid_date)}` : 'Réglée'}
+                  {payment_method ? ` par ${payment_method}` : ''}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Conditions légales */}
           <View style={styles.legalSection}>
             <Text style={styles.legalLabel}>
-              {isDevis ? 'Conditions du devis' : 'Conditions de paiement'}
+              {isDevis ? 'Conditions du devis' : status === 'payée' ? 'Informations légales' : 'Conditions de paiement'}
             </Text>
             {isDevis ? (
               <>
@@ -431,6 +475,14 @@ export default function PieceDocument({
                 </Text>
                 <Text style={styles.legalText}>
                   Bon pour accord — Date et signature du client :
+                </Text>
+              </>
+            ) : status === 'payée' ? (
+              <>
+                <Text style={styles.legalText}>
+                  En cas de retard de paiement, des pénalités de retard au taux de 3 fois le taux d&apos;intérêt légal
+                  seront appliquées, ainsi qu&apos;une indemnité forfaitaire de recouvrement de 40 €
+                  (articles L.441-10 et D.441-5 du Code de commerce).
                 </Text>
               </>
             ) : (

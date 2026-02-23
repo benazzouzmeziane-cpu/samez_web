@@ -25,10 +25,13 @@ export async function GET(
   const element = createElement(PieceDocument, {
     number: piece.number,
     type: piece.type,
+    status: piece.status,
     date: piece.date,
     due_date: piece.due_date ?? undefined,
     tva_rate: piece.tva_rate,
     notes: piece.notes ?? undefined,
+    paid_date: piece.paid_date ?? undefined,
+    payment_method: piece.payment_method ?? undefined,
     client: piece.clients ?? null,
     lines: piece.piece_lines ?? [],
   })
