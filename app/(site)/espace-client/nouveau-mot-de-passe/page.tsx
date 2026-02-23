@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Suspense } from 'react'
 
 type PageState = 'loading' | 'ready' | 'expired' | 'success'
 
-export default function NouveauMotDePassePage() {
+function PasswordForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,56 +19,37 @@ export default function NouveauMotDePassePage() {
   const [resending, setResending] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
 
-  // Vérifier le hash pour détecter les erreurs ou les tokens
-  const checkHash = useCallback(() => {
-    if (typeof window === 'undefined') return
+  useEffect(() => {
+    const tokenHash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
 
-    const hash = window.location.hash.substring(1)
-    if (!hash) return false
-
-    const params = new URLSearchParams(hash)
-    const errorCode = params.get('error_code')
-
-    if (errorCode === 'otp_expired' || params.get('error') === 'access_denied') {
-      setPageState('expired')
-      return true
+    if (!tokenHash || !type) {
+      // Pas de token dans l'URL — vérifier si déjà connecté
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          setPageState('ready')
+        } else {
+          setPageState('expired')
+        }
+      })
+      return
     }
 
-    return false
-  }, [])
-
-  useEffect(() => {
-    // D'abord vérifier le hash pour les erreurs
-    const hasError = checkHash()
-    if (hasError) return
-
+    // Vérifier le token via verifyOtp (bypass Supabase verify endpoint)
     const supabase = createClient()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setPageState('ready')
-      } else if (event === 'SIGNED_IN') {
-        setPageState('ready')
-      }
-    })
-
-    // Vérifier si déjà authentifié
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setPageState('ready')
+    supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as 'magiclink',
+    }).then(({ error: otpError }) => {
+      if (otpError) {
+        console.error('OTP verification error:', otpError.message)
+        setPageState('expired')
       } else {
-        // Laisser le temps au hash d'être traité
-        setTimeout(() => {
-          setPageState(prev => {
-            if (prev === 'loading') return 'expired'
-            return prev
-          })
-        }, 4000)
+        setPageState('ready')
       }
     })
-
-    return () => subscription.unsubscribe()
-  }, [checkHash])
+  }, [searchParams, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -261,5 +244,17 @@ export default function NouveauMotDePassePage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function NouveauMotDePassePage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-[70vh] flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+      </main>
+    }>
+      <PasswordForm />
+    </Suspense>
   )
 }

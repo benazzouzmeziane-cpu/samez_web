@@ -51,7 +51,7 @@ export async function sendContactEmail(data: {
 export async function sendClientInviteEmail(data: {
   name: string
   email: string
-  actionLink: string
+  inviteUrl: string
 }) {
   await transporter.sendMail({
     from: `same'z <${process.env.SMTP_USER}>`,
@@ -70,7 +70,7 @@ export async function sendClientInviteEmail(data: {
             il vous suffit de définir votre mot de passe en cliquant sur le bouton ci-dessous.
           </p>
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${data.actionLink}" style="display: inline-block; background: #059669; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+            <a href="${data.inviteUrl}" style="display: inline-block; background: #059669; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600;">
               Créer mon mot de passe
             </a>
           </div>

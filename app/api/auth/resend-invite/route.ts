@@ -28,26 +28,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true })
     }
 
-    // Générer un nouveau magic link
+    // Générer un nouveau magic link et extraire le token_hash
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email,
-      options: {
-        redirectTo: 'https://samez.fr/espace-client/nouveau-mot-de-passe',
-      },
     })
 
-    if (linkError || !linkData?.properties?.action_link) {
+    if (linkError || !linkData?.properties?.hashed_token) {
       console.error('Resend link error:', linkError)
       return NextResponse.json({ error: 'Failed to generate link' }, { status: 500 })
     }
 
-    // Envoyer l'email
+    // Construire notre propre URL avec le token_hash
+    const inviteUrl = `https://samez.fr/espace-client/nouveau-mot-de-passe?token_hash=${linkData.properties.hashed_token}&type=magiclink`
     const name = user.user_metadata?.name || email.split('@')[0]
     await sendClientInviteEmail({
       name,
       email,
-      actionLink: linkData.properties.action_link,
+      inviteUrl,
     })
 
     return NextResponse.json({ success: true })

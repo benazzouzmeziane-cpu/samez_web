@@ -66,24 +66,22 @@ export async function POST(request: Request) {
         if (authError) {
           console.error('Auth user creation error (non-blocking):', authError)
         } else if (newUser?.user) {
-          // Générer un magic link pour que le client se connecte et définisse son MDP
+          // Générer un magic link et extraire le token_hash
           const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
             type: 'magiclink',
             email: data.email,
-            options: {
-              redirectTo: 'https://samez.fr/espace-client/nouveau-mot-de-passe',
-            },
           })
 
           if (linkError) {
             console.error('Link generation error (non-blocking):', linkError)
-          } else if (linkData?.properties?.action_link) {
-            // Envoyer l'email d'invitation personnalisé
+          } else if (linkData?.properties?.hashed_token) {
+            // Construire notre propre URL avec le token_hash (bypass Supabase verify endpoint)
+            const inviteUrl = `https://samez.fr/espace-client/nouveau-mot-de-passe?token_hash=${linkData.properties.hashed_token}&type=magiclink`
             try {
               await sendClientInviteEmail({
                 name: data.name,
                 email: data.email,
-                actionLink: linkData.properties.action_link,
+                inviteUrl,
               })
             } catch (inviteEmailError) {
               console.error('Invite email error (non-blocking):', inviteEmailError)
