@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS clients (
   email TEXT UNIQUE,
   phone TEXT,
   address TEXT,
+  access_token UUID DEFAULT gen_random_uuid() UNIQUE, -- token pour espace client
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import PieceForm from '@/components/admin/PieceForm'
 import PiecePDFButton from '@/components/admin/PiecePDFButton'
+import CopyClientLinkButton from '@/components/admin/CopyClientLinkButton'
 import { notFound } from 'next/navigation'
 
 export default async function PieceDetailPage({
@@ -48,10 +49,13 @@ export default async function PieceDetailPage({
             {piece.clients?.name ?? 'Sans client'} — {totalTTC.toFixed(2)} € TTC
           </p>
         </div>
-        <PiecePDFButton
-          pieceId={piece.id}
-          pieceNumber={piece.number}
-        />
+        <div className="flex items-center gap-2">
+          <CopyClientLinkButton accessToken={piece.clients?.access_token ?? null} />
+          <PiecePDFButton
+            pieceId={piece.id}
+            pieceNumber={piece.number}
+          />
+        </div>
       </div>
 
       <div className="mt-10">
