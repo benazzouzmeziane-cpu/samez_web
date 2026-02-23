@@ -66,13 +66,12 @@ export async function POST(request: Request) {
         if (authError) {
           console.error('Auth user creation error (non-blocking):', authError)
         } else if (newUser?.user) {
-          // Générer un lien de récupération pour que le client définisse son MDP
-          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://samez.fr'
+          // Générer un magic link pour que le client se connecte et définisse son MDP
           const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-            type: 'recovery',
+            type: 'magiclink',
             email: data.email,
             options: {
-              redirectTo: `${siteUrl}/espace-client/nouveau-mot-de-passe`,
+              redirectTo: 'https://samez.fr/espace-client/nouveau-mot-de-passe',
             },
           })
 

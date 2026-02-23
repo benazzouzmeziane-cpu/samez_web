@@ -28,13 +28,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true })
     }
 
-    // Générer un nouveau lien de récupération
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://samez.fr'
+    // Générer un nouveau magic link
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'recovery',
+      type: 'magiclink',
       email,
       options: {
-        redirectTo: `${siteUrl}/espace-client/nouveau-mot-de-passe`,
+        redirectTo: 'https://samez.fr/espace-client/nouveau-mot-de-passe',
       },
     })
 
