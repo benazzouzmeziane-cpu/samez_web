@@ -78,6 +78,7 @@ export default async function AdminContactsPage() {
                     name={contact.name}
                     email={contact.email}
                     phone={contact.phone}
+                    contactId={contact.id}
                   />
                   {!contact.read && <MarkReadButton id={contact.id} />}
                   <span className="text-xs text-gray-400 ml-1">

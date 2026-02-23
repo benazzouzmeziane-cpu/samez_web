@@ -9,7 +9,7 @@ const tags = [
   'Outils internes',
   'Extensions Chrome',
   'Applications métiers',
-  'sites web',
+  'site web',
   'app mobile',
 ]
 

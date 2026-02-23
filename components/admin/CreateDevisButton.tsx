@@ -8,9 +8,10 @@ type Props = {
   name: string
   email: string
   phone?: string | null
+  contactId: string
 }
 
-export default function CreateDevisButton({ name, email, phone }: Props) {
+export default function CreateDevisButton({ name, email, phone, contactId }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -18,6 +19,9 @@ export default function CreateDevisButton({ name, email, phone }: Props) {
     setLoading(true)
     try {
       const supabase = createClient()
+
+      // Marquer le message comme lu
+      await supabase.from('contacts').update({ read: true }).eq('id', contactId)
 
       // Upsert : créer le client ou récupérer l'existant
       const { data: client, error } = await supabase
