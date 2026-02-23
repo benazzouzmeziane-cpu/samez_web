@@ -25,24 +25,49 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-  const isLoginPage = request.nextUrl.pathname === '/admin/login'
+  const pathname = request.nextUrl.pathname
 
-  if (isAdminRoute && !isLoginPage && !user) {
+  // --- Routes admin ---
+  const isAdminRoute = pathname.startsWith('/admin')
+  const isAdminLoginPage = pathname === '/admin/login'
+
+  if (isAdminRoute && !isAdminLoginPage && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin/login'
     return NextResponse.redirect(url)
   }
 
-  if (isLoginPage && user) {
+  if (isAdminLoginPage && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)
+  }
+
+  // --- Routes espace client ---
+  const isClientDashboard = pathname.startsWith('/espace-client/dashboard')
+  const isClientPasswordPage = pathname.startsWith('/espace-client/nouveau-mot-de-passe')
+  const isClientLoginPage = pathname === '/espace-client'
+
+  // Protéger dashboard et page mot de passe
+  if ((isClientDashboard || isClientPasswordPage) && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/espace-client'
+    return NextResponse.redirect(url)
+  }
+
+  // Rediriger vers dashboard si déjà connecté (sauf admin)
+  if (isClientLoginPage && user) {
+    const role = user.user_metadata?.role
+    if (role === 'client') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/espace-client/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/espace-client/:path*'],
 }

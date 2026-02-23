@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic'
 
-import { createServiceClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
+import ClientLogoutButton from '@/components/home/ClientLogoutButton'
 
 export const metadata: Metadata = {
-  title: 'Mon espace client',
+  title: 'Mon espace client — same\'z',
   robots: { index: false, follow: false },
 }
 
@@ -30,22 +31,32 @@ type PieceLine = {
   unit_price: number
 }
 
-export default async function EspaceClientTokenPage({
-  params,
-}: {
-  params: Promise<{ token: string }>
-}) {
-  const { token } = await params
-  const supabase = await createServiceClient()
+export default async function EspaceClientDashboard() {
+  const supabase = await createClient()
 
-  // Vérifier le token et récupérer le client
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/espace-client')
+
+  // Trouver le client par email
   const { data: client } = await supabase
     .from('clients')
     .select('*')
-    .eq('access_token', token)
+    .eq('email', user.email!)
     .single()
 
-  if (!client) notFound()
+  if (!client) {
+    return (
+      <main className="max-w-4xl mx-auto px-6 py-16 text-center">
+        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <p className="text-sm text-gray-500">Votre espace n&apos;est pas encore configuré.</p>
+        <p className="text-xs text-gray-400 mt-1">Contactez-nous à <a href="mailto:contact@samez.fr" className="text-[var(--accent)] hover:underline">contact@samez.fr</a></p>
+      </main>
+    )
+  }
 
   // Récupérer les pièces du client
   const { data: pieces } = await supabase
@@ -55,22 +66,24 @@ export default async function EspaceClientTokenPage({
     .order('created_at', { ascending: false })
 
   const today = new Date().toISOString().split('T')[0]
+  const clientFirstName = client.name.split(' ')[0]
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-16">
       {/* En-tête */}
-      <div className="mb-10">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-start justify-between mb-10">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[var(--accent-light)] flex items-center justify-center">
             <span className="text-sm font-bold text-[var(--accent)]">
               {client.name.charAt(0).toUpperCase()}
             </span>
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Bonjour {client.name.split(' ')[0]}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Bonjour {clientFirstName}</h1>
             <p className="text-sm text-gray-500">Voici l&apos;état de vos documents</p>
           </div>
         </div>
+        <ClientLogoutButton />
       </div>
 
       {/* Stats rapides */}
