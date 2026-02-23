@@ -31,13 +31,21 @@ export async function proxy(request: NextRequest) {
   const isAdminRoute = pathname.startsWith('/admin')
   const isAdminLoginPage = pathname === '/admin/login'
 
-  if (isAdminRoute && !isAdminLoginPage && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin/login'
-    return NextResponse.redirect(url)
+  if (isAdminRoute && !isAdminLoginPage) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      return NextResponse.redirect(url)
+    }
+    // Bloquer les clients de l'admin
+    if (user.user_metadata?.role === 'client') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/espace-client/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
-  if (isAdminLoginPage && user) {
+  if (isAdminLoginPage && user && user.user_metadata?.role !== 'client') {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)

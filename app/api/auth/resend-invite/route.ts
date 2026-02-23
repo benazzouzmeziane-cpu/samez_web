@@ -7,7 +7,27 @@ const schema = z.object({
   email: z.string().email(),
 })
 
+// Rate limiting simple en mémoire (par IP)
+const rateLimitMap = new Map<string, number>()
+const RATE_LIMIT_WINDOW = 60_000 // 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const lastRequest = rateLimitMap.get(ip)
+  if (lastRequest && now - lastRequest < RATE_LIMIT_WINDOW) {
+    return true
+  }
+  rateLimitMap.set(ip, now)
+  return false
+}
+
 export async function POST(request: Request) {
+  // Rate limiting
+  const ip = request.headers.get('x-forwarded-for') || 'unknown'
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ success: true }) // Ne pas révéler le rate limit
+  }
+
   try {
     const body = await request.json()
     const { email } = schema.parse(body)

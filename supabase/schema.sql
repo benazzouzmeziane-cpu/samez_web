@@ -77,19 +77,70 @@ CREATE POLICY "Insert contact public" ON contacts
   FOR INSERT TO anon WITH CHECK (true);
 
 CREATE POLICY "Read contacts admin" ON contacts
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
 
 CREATE POLICY "Update contacts admin" ON contacts
-  FOR UPDATE TO authenticated USING (true);
+  FOR UPDATE TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
 
--- clients : CRUD admin seulement
+-- clients : admin full access, client lecture de son propre profil uniquement
 CREATE POLICY "CRUD clients admin" ON clients
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  )
+  WITH CHECK (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
 
--- pieces : CRUD admin seulement
+CREATE POLICY "Read own client profile" ON clients
+  FOR SELECT TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') = 'client'
+    AND email = auth.jwt() ->> 'email'
+  );
+
+-- pieces : admin full access, client lecture de ses propres pièces uniquement
 CREATE POLICY "CRUD pieces admin" ON pieces
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  )
+  WITH CHECK (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
 
--- piece_lines : CRUD admin seulement
+CREATE POLICY "Read own pieces client" ON pieces
+  FOR SELECT TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') = 'client'
+    AND client_id IN (
+      SELECT id FROM clients WHERE email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- piece_lines : admin full access, client lecture de ses propres lignes uniquement
 CREATE POLICY "CRUD piece_lines admin" ON piece_lines
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  )
+  WITH CHECK (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
+
+CREATE POLICY "Read own piece_lines client" ON piece_lines
+  FOR SELECT TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') = 'client'
+    AND piece_id IN (
+      SELECT id FROM pieces WHERE client_id IN (
+        SELECT id FROM clients WHERE email = auth.jwt() ->> 'email'
+      )
+    )
+  );

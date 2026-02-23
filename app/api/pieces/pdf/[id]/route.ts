@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { renderToBuffer, DocumentProps } from '@react-pdf/renderer'
 import { createElement, type ReactElement, type JSXElementConstructor } from 'react'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import PieceDocument from '@/components/admin/PieceDocument'
 
 export async function GET(
@@ -9,6 +9,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+
+  // Vérifier l'authentification
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
   const supabase = await createServiceClient()
 
   const { data: piece, error } = await supabase
@@ -20,6 +29,14 @@ export async function GET(
 
   if (error || !piece) {
     return NextResponse.json({ error: 'Pièce introuvable' }, { status: 404 })
+  }
+
+  // Si client : vérifier qu'il est propriétaire de la pièce
+  const role = user.user_metadata?.role
+  if (role === 'client') {
+    if (!piece.clients || piece.clients.email !== user.email) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
   }
 
   const element = createElement(PieceDocument, {
