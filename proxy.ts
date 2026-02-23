@@ -45,11 +45,10 @@ export async function proxy(request: NextRequest) {
 
   // --- Routes espace client ---
   const isClientDashboard = pathname.startsWith('/espace-client/dashboard')
-  const isClientPasswordPage = pathname.startsWith('/espace-client/nouveau-mot-de-passe')
   const isClientLoginPage = pathname === '/espace-client'
 
-  // Protéger dashboard et page mot de passe
-  if ((isClientDashboard || isClientPasswordPage) && !user) {
+  // Protéger le dashboard uniquement (la page mot de passe gère l'auth côté client via hash fragment)
+  if (isClientDashboard && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/espace-client'
     return NextResponse.redirect(url)

@@ -12,18 +12,45 @@ export default function NouveauMotDePassePage() {
   const [checking, setChecking] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [ready, setReady] = useState(false)
 
-  // Vérifier que l'utilisateur est authentifié (via le lien de récupération)
+  // Écouter l'événement PASSWORD_RECOVERY depuis le hash fragment
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.replace('/espace-client')
-      } else {
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Session récupérée depuis le hash fragment — prêt à définir le MDP
         setChecking(false)
+        setReady(true)
+      } else if (event === 'SIGNED_IN' && session) {
+        // Déjà connecté (ex: retour sur la page)
+        setChecking(false)
+        setReady(true)
       }
     })
-  }, [router])
+
+    // Vérifier aussi si déjà authentifié (ex: refresh de la page après récupération)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setChecking(false)
+        setReady(true)
+      } else {
+        // Attendre un court instant pour que onAuthStateChange traite le hash
+        setTimeout(() => {
+          setChecking(prev => {
+            // Si toujours en checking après le délai, rediriger
+            if (prev && !ready) {
+              router.replace('/espace-client')
+            }
+            return prev
+          })
+        }, 3000)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router, ready])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

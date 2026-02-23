@@ -72,7 +72,7 @@ export async function POST(request: Request) {
             type: 'recovery',
             email: data.email,
             options: {
-              redirectTo: `${siteUrl}/api/auth/callback?next=/espace-client/nouveau-mot-de-passe`,
+              redirectTo: `${siteUrl}/espace-client/nouveau-mot-de-passe`,
             },
           })
 
