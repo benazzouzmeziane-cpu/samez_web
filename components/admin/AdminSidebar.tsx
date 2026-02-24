@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGauge, faEnvelope, faFileInvoice, faArrowRightFromBracket, faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faGauge, faEnvelope, faFileInvoice, faArrowRightFromBracket, faPlus, faBriefcase } from '@fortawesome/free-solid-svg-icons'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: faGauge, exact: true },
   { href: '/admin/contacts', label: 'Messages', icon: faEnvelope },
   { href: '/admin/pieces', label: 'Pièces', icon: faFileInvoice },
+  { href: '/admin/realisations', label: 'Réalisations', icon: faBriefcase },
 ]
 
 export default function AdminSidebar() {

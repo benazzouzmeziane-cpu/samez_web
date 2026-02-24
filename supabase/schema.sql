@@ -144,3 +144,50 @@ CREATE POLICY "Read own piece_lines client" ON piece_lines
       )
     )
   );
+
+-- -----------------------------------------------
+-- Table réalisations (portfolio)
+-- -----------------------------------------------
+CREATE TABLE IF NOT EXISTS realisations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  link TEXT NOT NULL,
+  "order" INTEGER DEFAULT 0,
+  published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE realisations ENABLE ROW LEVEL SECURITY;
+
+-- Lecture publique des réalisations publiées
+CREATE POLICY "Read published realisations" ON realisations
+  FOR SELECT TO anon
+  USING (published = TRUE);
+
+-- Lecture admin (toutes)
+CREATE POLICY "Read all realisations admin" ON realisations
+  FOR SELECT TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
+
+-- CRUD admin
+CREATE POLICY "Insert realisations admin" ON realisations
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
+
+CREATE POLICY "Update realisations admin" ON realisations
+  FOR UPDATE TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
+
+CREATE POLICY "Delete realisations admin" ON realisations
+  FOR DELETE TO authenticated
+  USING (
+    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+  );
