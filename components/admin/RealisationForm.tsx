@@ -30,9 +30,38 @@ export default function RealisationForm({ realisation, mode }: Props) {
   const [order, setOrder] = useState(realisation?.order ?? 0)
   const [published, setPublished] = useState(realisation?.published ?? true)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [error, setError] = useState('')
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setError('')
+
+    const ext = file.name.split('.').pop()
+    const fileName = `${crypto.randomUUID()}.${ext}`
+
+    const { error: uploadErr } = await supabase.storage
+      .from('realisations')
+      .upload(fileName, file, { upsert: true })
+
+    if (uploadErr) {
+      setError('Erreur lors de l\'upload de l\'image.')
+      setUploading(false)
+      return
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('realisations')
+      .getPublicUrl(fileName)
+
+    setImageUrl(publicUrl)
+    setUploading(false)
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -178,23 +207,40 @@ export default function RealisationForm({ realisation, mode }: Props) {
         <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">Média & Lien</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1.5">URL de l&apos;image *</label>
-            <input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://exemple.com/image.jpg"
-              className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)]"
-            />
-            {imageUrl && (
-              <div className="mt-3">
-                <img
-                  src={imageUrl}
-                  alt="Aperçu"
-                  className="w-32 h-20 object-cover rounded-lg border border-gray-200"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Image *</label>
+            <div className="flex items-start gap-4">
+              {imageUrl ? (
+                <div className="relative group">
+                  <img
+                    src={imageUrl}
+                    alt="Aperçu"
+                    className="w-32 h-20 object-cover rounded-lg border border-gray-200"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : null}
+              <label className="cursor-pointer">
+                <div className={`px-4 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors text-center ${
+                  uploading ? 'opacity-50 pointer-events-none' : ''
+                }`}>
+                  {uploading ? 'Upload en cours...' : imageUrl ? 'Changer l\'image' : 'Choisir une image'}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={uploading}
                 />
-              </div>
-            )}
+              </label>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">Lien externe *</label>
