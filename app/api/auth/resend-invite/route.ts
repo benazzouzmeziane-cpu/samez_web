@@ -37,26 +37,23 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Vérifier que l'utilisateur existe et est un client
-    const { data: existingUsers } = await adminClient.auth.admin.listUsers()
-    const user = existingUsers?.users?.find(
-      u => u.email === email && u.user_metadata?.role === 'client'
-    )
-
-    if (!user) {
-      // Ne pas révéler si l'email existe ou non
-      return NextResponse.json({ success: true })
-    }
-
-    // Générer un nouveau magic link et extraire le token_hash
+    // Vérifier que l'utilisateur existe via generateLink (évite listUsers)
+    // generateLink échouera si l'email n'existe pas dans Auth
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email,
     })
 
     if (linkError || !linkData?.properties?.hashed_token) {
-      console.error('Resend link error:', linkError)
-      return NextResponse.json({ error: 'Failed to generate link' }, { status: 500 })
+      // L'utilisateur n'existe pas ou erreur → réponse neutre
+      console.log('[resend-invite] generateLink failed (user may not exist):', linkError?.message)
+      return NextResponse.json({ success: true })
+    }
+
+    // Vérifier que c'est bien un client via les metadata du user retourné
+    const user = linkData.user
+    if (user?.user_metadata?.role !== 'client') {
+      return NextResponse.json({ success: true })
     }
 
     // Construire notre propre URL avec le token_hash

@@ -18,7 +18,7 @@ export async function GET(
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const supabase = await createServiceClient()
+  const supabase = createServiceClient()
 
   const { data: piece, error } = await supabase
     .from('pieces')
