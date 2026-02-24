@@ -9,7 +9,8 @@ export default function ClientLogoutButton() {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/espace-client')
+    router.refresh()
+    window.location.href = '/'
   }
 
   return (
