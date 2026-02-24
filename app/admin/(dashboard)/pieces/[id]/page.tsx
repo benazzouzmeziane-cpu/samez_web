@@ -49,10 +49,7 @@ export default async function PieceDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <PiecePDFButton
-            pieceId={piece.id}
-            pieceNumber={piece.number}
-          />
+          <PiecePDFButton pieceId={piece.id} />
         </div>
       </div>
 

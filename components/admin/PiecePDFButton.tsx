@@ -2,10 +2,8 @@
 
 export default function PiecePDFButton({
   pieceId,
-  pieceNumber,
 }: {
   pieceId: string
-  pieceNumber: string
 }) {
   const handleDownload = () => {
     window.open(`/api/pieces/pdf/${pieceId}`, '_blank')

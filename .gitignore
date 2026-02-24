@@ -38,5 +38,8 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# temp files
+tmpclaude-*
 next-env.d.ts
 tmpclaude-*

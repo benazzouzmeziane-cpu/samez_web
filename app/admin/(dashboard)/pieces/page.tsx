@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import Pagination from '@/components/admin/Pagination'
+
+const PAGE_SIZE = 20
 
 const STATUS_LABELS: Record<string, string> = {
   brouillon: 'Brouillon',
@@ -19,13 +22,30 @@ const STATUS_STYLES: Record<string, string> = {
   'en retard': 'bg-orange-50 text-orange-600',
 }
 
-export default async function AdminPiecesPage() {
+export default async function AdminPiecesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
+  const params = await searchParams
+  const page = Math.max(1, parseInt(params.page || '1', 10))
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
   const supabase = await createClient()
+
+  const { count: totalCount } = await supabase
+    .from('pieces')
+    .select('*', { count: 'exact', head: true })
 
   const { data: pieces } = await supabase
     .from('pieces')
     .select('*, clients(name)')
     .order('created_at', { ascending: false })
+    .range(from, to)
+
+  const total = totalCount ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
     <div>
@@ -38,7 +58,9 @@ export default async function AdminPiecesPage() {
           + Nouvelle pièce
         </Link>
       </div>
-      <p className="text-sm text-gray-500 mb-8">Factures et devis</p>
+      <p className="text-sm text-gray-500 mb-8">
+        {total} pièce{total > 1 ? 's' : ''} — Factures et devis
+      </p>
 
       {!pieces || pieces.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
@@ -109,6 +131,8 @@ export default async function AdminPiecesPage() {
           </table>
         </div>
       )}
+
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/admin/pieces" />
     </div>
   )
 }

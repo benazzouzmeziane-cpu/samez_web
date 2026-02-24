@@ -75,6 +75,8 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
   })
   const [useNewClient, setUseNewClient] = useState(!piece?.client_id && !initialClientId)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [error, setError] = useState('')
 
   const totalHT = lines.reduce((sum, l) => sum + l.quantity * l.unit_price, 0)
@@ -94,11 +96,27 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
   const removeLine = (index: number) =>
     setLines((prev) => prev.filter((_, i) => i !== index))
 
-  const generateNumber = () => {
-    const prefix = type === 'facture' ? 'FAC' : 'DEV'
+  const generateNumber = async (pieceType: 'facture' | 'devis') => {
+    const prefix = pieceType === 'facture' ? 'FAC' : 'DEV'
     const year = new Date().getFullYear()
-    const rand = String(Math.floor(Math.random() * 900) + 100)
-    return `${prefix}-${year}-${rand}`
+    const pattern = `${prefix}-${year}-%`
+
+    // Chercher le dernier numéro séquentiel pour ce type et cette année
+    const { data } = await supabase
+      .from('pieces')
+      .select('number')
+      .like('number', pattern)
+      .order('number', { ascending: false })
+      .limit(1)
+
+    let next = 1
+    if (data && data.length > 0) {
+      const lastNumber = data[0].number // ex: FAC-2026-003
+      const lastSeq = parseInt(lastNumber.split('-')[2], 10)
+      if (!isNaN(lastSeq)) next = lastSeq + 1
+    }
+
+    return `${prefix}-${year}-${String(next).padStart(3, '0')}`
   }
 
   const handleSave = async (redirect = true) => {
@@ -128,11 +146,15 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
         clientId = created.id
       }
 
-      // Si le type a changé, adapter le préfixe du numéro (DEV↔FAC)
-      let finalNumber = piece?.number ?? generateNumber()
-      if (piece?.number && piece.type !== type) {
-        const newPrefix = type === 'facture' ? 'FAC' : 'DEV'
-        finalNumber = finalNumber.replace(/^(DEV|FAC)/, newPrefix)
+      // Génération ou adaptation du numéro séquentiel
+      let finalNumber: string
+      if (mode === 'create') {
+        finalNumber = await generateNumber(type)
+      } else if (piece?.number && piece.type !== type) {
+        // Le type a changé en édition → nouveau numéro séquentiel pour le nouveau type
+        finalNumber = await generateNumber(type)
+      } else {
+        finalNumber = piece?.number ?? await generateNumber(type)
       }
 
       const piecePayload = {
@@ -203,8 +225,70 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
     }
   }
 
+  const handleDelete = async () => {
+    if (!piece?.id) return
+    setDeleting(true)
+    setError('')
+
+    try {
+      // piece_lines are deleted by cascade
+      const { error: deleteErr } = await supabase
+        .from('pieces')
+        .delete()
+        .eq('id', piece.id)
+
+      if (deleteErr) {
+        setError('Erreur lors de la suppression.')
+        setDeleting(false)
+        return
+      }
+
+      router.push('/admin/pieces')
+    } catch {
+      setError('Erreur lors de la suppression.')
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
+      {/* Modale de confirmation de suppression */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Supprimer cette pièce ?</h3>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">
+              La pièce <strong>{piece?.number}</strong> sera définitivement supprimée avec toutes ses lignes de prestation. Cette action est irréversible.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:border-gray-300 transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {deleting ? 'Suppression...' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* En-tête */}
       <div className="p-6 bg-[#fafafa] rounded-xl border border-gray-100">
         <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">Informations</h2>
@@ -463,22 +547,33 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4">
-        <button
-          type="button"
-          onClick={() => handleSave(true)}
-          disabled={saving}
-          className="px-6 py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
-        >
-          {saving ? 'Sauvegarde...' : mode === 'create' ? 'Créer la pièce' : 'Enregistrer'}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-6 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-        >
-          Annuler
-        </button>
+      <div className="flex items-center justify-between pt-4">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => handleSave(true)}
+            disabled={saving}
+            className="px-6 py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Sauvegarde...' : mode === 'create' ? 'Créer la pièce' : 'Enregistrer'}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+          >
+            Annuler
+          </button>
+        </div>
+        {mode === 'edit' && (
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="px-5 py-2.5 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors"
+          >
+            Supprimer
+          </button>
+        )}
       </div>
     </div>
   )

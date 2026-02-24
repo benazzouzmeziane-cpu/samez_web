@@ -3,28 +3,55 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import MarkReadButton from '@/components/admin/MarkReadButton'
 import CreateDevisButton from '@/components/admin/CreateDevisButton'
+import Pagination from '@/components/admin/Pagination'
 
-export default async function AdminContactsPage() {
+const PAGE_SIZE = 20
+
+export default async function AdminContactsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
+  const params = await searchParams
+  const page = Math.max(1, parseInt(params.page || '1', 10))
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
   const supabase = await createClient()
+
+  // Compter le total + les non lus
+  const { count: totalCount } = await supabase
+    .from('contacts')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: unreadCount } = await supabase
+    .from('contacts')
+    .select('*', { count: 'exact', head: true })
+    .eq('read', false)
+
+  // Récupérer la page courante
   const { data: contacts } = await supabase
     .from('contacts')
     .select('*')
     .order('created_at', { ascending: false })
+    .range(from, to)
 
-  const unreadCount = contacts?.filter((c) => !c.read).length ?? 0
+  const total = totalCount ?? 0
+  const unread = unreadCount ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
-        {unreadCount > 0 && (
+        {unread > 0 && (
           <span className="px-3 py-1 bg-[var(--accent-light)] text-[var(--accent-dark)] text-xs font-semibold rounded-full">
-            {unreadCount} non lu{unreadCount > 1 ? 's' : ''}
+            {unread} non lu{unread > 1 ? 's' : ''}
           </span>
         )}
       </div>
       <p className="text-sm text-gray-500 mb-8">
-        {contacts?.length ?? 0} message{(contacts?.length ?? 0) > 1 ? 's' : ''} au total
+        {total} message{total > 1 ? 's' : ''} au total
       </p>
 
       {!contacts || contacts.length === 0 ? (
@@ -96,6 +123,6 @@ export default async function AdminContactsPage() {
           ))}
         </div>
       )}
-    </div>
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/admin/contacts" />    </div>
   )
 }
