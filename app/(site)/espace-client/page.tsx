@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -87,7 +88,7 @@ export default function EspaceClientPage() {
         <div className="mt-8 p-4 bg-[#fafafa] rounded-xl border border-gray-100 text-center">
           <p className="text-xs text-gray-500">
             Pas encore de compte ? Remplissez le{' '}
-            <a href="/#contact" className="text-[var(--accent)] hover:underline">formulaire de contact</a>
+            <Link href="/#contact" className="text-[var(--accent)] hover:underline">formulaire de contact</Link>
             {' '}en cochant &quot;Créer mon compte client&quot;.
           </p>
         </div>

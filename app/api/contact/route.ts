@@ -9,13 +9,72 @@ const schema = z.object({
   phone: z.string().optional(),
   message: z.string().min(10),
   createAccount: z.boolean().optional(),
+  website: z.string().optional(),
+  startedAt: z.number().optional(),
 })
+
+const ipRateLimitMap = new Map<string, number>()
+const emailRateLimitMap = new Map<string, number>()
+const ACCOUNT_CREATE_IP_WINDOW = 10 * 60 * 1000
+const ACCOUNT_CREATE_EMAIL_WINDOW = 24 * 60 * 60 * 1000
 
 function createAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+function isTrustedOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  const referer = request.headers.get('referer')
+  const host = request.headers.get('host')
+
+  if (!host) return false
+
+  const expectedHosts = [host]
+  if (process.env.NODE_ENV !== 'production') {
+    expectedHosts.push('localhost:3000')
+  }
+
+  const isAllowedUrl = (value: string | null) => {
+    if (!value) return false
+    try {
+      const parsed = new URL(value)
+      return expectedHosts.includes(parsed.host)
+    } catch {
+      return false
+    }
+  }
+
+  return isAllowedUrl(origin) || isAllowedUrl(referer)
+}
+
+function isRateLimited(map: Map<string, number>, key: string, windowMs: number): boolean {
+  const now = Date.now()
+  const last = map.get(key)
+  if (last && now - last < windowMs) return true
+  map.set(key, now)
+  return false
+}
+
+function canCreateAccountFromPublicRequest(request: Request, data: z.infer<typeof schema>): boolean {
+  if (!data.createAccount) return false
+
+  // Honeypot anti-bot: ce champ doit rester vide.
+  if (data.website && data.website.trim().length > 0) return false
+
+  // Anti-bot simple: le formulaire doit avoir été rempli en plus de 3s.
+  if (!data.startedAt || Date.now() - data.startedAt < 3000) return false
+
+  if (!isTrustedOrigin(request)) return false
+
+  const ip = request.headers.get('x-forwarded-for') || 'unknown'
+  const emailKey = data.email.toLowerCase()
+  if (isRateLimited(ipRateLimitMap, ip, ACCOUNT_CREATE_IP_WINDOW)) return false
+  if (isRateLimited(emailRateLimitMap, emailKey, ACCOUNT_CREATE_EMAIL_WINDOW)) return false
+
+  return true
 }
 
 export async function POST(request: Request) {
@@ -38,9 +97,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 
-    // Créer le compte client si demandé
-    if (data.createAccount) {
+    // Chemin interne: autorisation explicite via secret serveur.
+    const accountCreationSecret = process.env.CONTACT_ACCOUNT_CREATION_SECRET
+    const providedSecret = request.headers.get('x-account-creation-secret')
+    const internalAccountCreation = Boolean(
+      data.createAccount &&
+      accountCreationSecret &&
+      providedSecret &&
+      providedSecret === accountCreationSecret
+    )
+
+    // Chemin public sécurisé: anti-bot + rate limit + vérification d'origine.
+    const publicAccountCreation = canCreateAccountFromPublicRequest(request, data)
+    const canCreateAccount = internalAccountCreation || publicAccountCreation
+
+    if (canCreateAccount) {
       await createClientAccount(supabase, data)
+    } else if (data.createAccount) {
+      console.warn('[contact] Account creation blocked by security checks')
     }
 
     // Envoyer l'email de notification à l'admin
@@ -74,7 +148,7 @@ async function createClientAccount(
   }
 
   // 2. Tenter de créer l'utilisateur Auth (échouera s'il existe déjà)
-  const { data: newUser, error: authError } = await supabase.auth.admin.createUser({
+  const { error: authError } = await supabase.auth.admin.createUser({
     email: data.email,
     email_confirm: true,
     user_metadata: { role: 'client', name: data.name },

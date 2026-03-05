@@ -1,6 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+function getAdminAllowlist(): Set<string> {
+  return new Set(
+    (process.env.ADMIN_EMAILS ?? '')
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  )
+}
+
+function isAdminAllowed(email?: string): boolean {
+  if (!email) return false
+  const allowlist = getAdminAllowlist()
+  if (allowlist.size === 0) return false
+  return allowlist.has(email.toLowerCase())
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -37,15 +53,16 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/admin/login'
       return NextResponse.redirect(url)
     }
-    // Bloquer les clients de l'admin
-    if (user.user_metadata?.role === 'client') {
+
+    // Hardening: n'autoriser l'admin que pour les emails explicitement allowlistés.
+    if (!isAdminAllowed(user.email)) {
       const url = request.nextUrl.clone()
-      url.pathname = '/espace-client/dashboard'
+      url.pathname = '/admin/login'
       return NextResponse.redirect(url)
     }
   }
 
-  if (isAdminLoginPage && user && user.user_metadata?.role !== 'client') {
+  if (isAdminLoginPage && user && isAdminAllowed(user.email)) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)

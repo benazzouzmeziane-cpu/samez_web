@@ -11,12 +11,15 @@ const schema = z.object({
   phone: z.string().optional(),
   message: z.string().min(10, 'Message trop court (10 caractères min.)'),
   createAccount: z.boolean().optional(),
+  website: z.string().optional(),
+  startedAt: z.number().optional(),
 })
 
 type FormData = z.infer<typeof schema>
 
 export default function ContactForm() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [startedAt] = useState(() => Date.now())
 
   const {
     register,
@@ -28,10 +31,15 @@ export default function ContactForm() {
   const onSubmit = async (data: FormData) => {
     setStatus('sending')
     try {
+      const payload = {
+        ...data,
+        startedAt,
+      }
+
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error()
       setStatus('success')
@@ -127,6 +135,16 @@ export default function ContactForm() {
                   Créer mon compte client pour faciliter mes futurs échanges
                 </span>
               </label>
+
+              {/* Honeypot anti-bot: ce champ doit rester vide */}
+              <input
+                {...register('website')}
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="hidden"
+              />
 
               {status === 'error' && (
                 <p className="text-sm text-red-500">
