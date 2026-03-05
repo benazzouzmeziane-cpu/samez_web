@@ -16,7 +16,8 @@ export default async function RealisationsPreview() {
   if (!realisations || realisations.length === 0) return null
 
   return (
-    <section className="py-24">
+    <section className="py-24 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-50/50 blur-3xl pointer-events-none" />
       <div className="max-w-6xl mx-auto px-6">
         <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">
           Réalisations
@@ -35,7 +36,7 @@ export default async function RealisationsPreview() {
           {realisations.map((r) => (
             <div
               key={r.id}
-              className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-[var(--accent)] hover:shadow-lg hover:shadow-emerald-50 transition-all duration-300 snap-start shrink-0 w-[85vw] md:w-auto"
+              className="group glass-card rounded-2xl overflow-hidden hover:border-[var(--accent)] hover:shadow-xl hover:shadow-emerald-100/60 transition-all duration-300 snap-start shrink-0 w-[85vw] md:w-auto"
             >
               {r.image_url && (
                 <div className="relative overflow-hidden aspect-[16/10]">

@@ -50,7 +50,7 @@ export default function ContactForm() {
   }
 
   return (
-    <section id="contact" className="py-20 px-6 bg-[#f5f5f7]">
+    <section id="contact" className="py-20 px-6 bg-[var(--gray-light)] relative overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <div className="max-w-2xl">
           <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-3">
@@ -63,8 +63,12 @@ export default function ContactForm() {
             Réponse sous 24h — <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
           </p>
 
+          {/* Blobs décoratifs */}
+          <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-emerald-100/30 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-teal-100/20 blur-3xl pointer-events-none" />
+
           {status === 'success' ? (
-            <div className="p-6 border border-gray-200 bg-white rounded-sm">
+            <div className="p-6 glass-card rounded-2xl">
               <p className="font-medium mb-1">Message envoyé.</p>
               <p className="text-sm text-gray-500">Je vous recontacte sous 24h.</p>
               <button
@@ -82,7 +86,7 @@ export default function ContactForm() {
                   <input
                     {...register('name')}
                     placeholder="Jean Dupont"
-                    className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
+                    className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
                   />
                   {errors.name && (
                     <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
@@ -94,7 +98,7 @@ export default function ContactForm() {
                     {...register('email')}
                     type="email"
                     placeholder="jean@exemple.fr"
-                    className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
+                    className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
                   />
                   {errors.email && (
                     <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
@@ -108,7 +112,7 @@ export default function ContactForm() {
                   {...register('phone')}
                   type="tel"
                   placeholder="06 xx xx xx xx"
-                  className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
+                  className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
                 />
               </div>
 
@@ -118,7 +122,7 @@ export default function ContactForm() {
                   {...register('message')}
                   rows={5}
                   placeholder="Décrivez votre projet..."
-                  className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors resize-none"
+                  className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all resize-none"
                 />
                 {errors.message && (
                   <p className="mt-1 text-xs text-red-500">{errors.message.message}</p>
@@ -155,7 +159,7 @@ export default function ContactForm() {
               <button
                 type="submit"
                 disabled={status === 'sending'}
-                className="self-start px-8 py-3.5 bg-[var(--accent)] text-white text-sm font-medium rounded-full hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="self-start px-8 py-3.5 bg-gradient-to-r from-[var(--accent)] to-emerald-400 text-white text-sm font-medium rounded-full hover:shadow-lg hover:shadow-emerald-200/60 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === 'sending' ? 'Envoi...' : 'Envoyer le message'}
               </button>

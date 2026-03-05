@@ -38,8 +38,10 @@ function AnimatedNumber({ value, suffix, prefix }: { value: number; suffix: stri
 
 export default function Stats() {
   return (
-    <section className="py-20 px-6">
-      <div className="max-w-6xl mx-auto">
+    <section className="py-20 px-6 relative overflow-hidden">
+      {/* Gradient stripe accent */}
+      <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/0 via-emerald-50/60 to-emerald-50/0 pointer-events-none" />
+      <div className="max-w-6xl mx-auto relative">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
           {stats.map((stat, i) => (
             <motion.div
@@ -48,11 +50,13 @@ export default function Stats() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="text-center"
+              className="text-center group"
             >
-              <p className="text-4xl md:text-5xl font-semibold tracking-tight text-[var(--accent)] mb-2">
-                <AnimatedNumber value={stat.value} suffix={stat.suffix} prefix={stat.prefix} />
-              </p>
+              <div className="inline-block px-6 py-4 rounded-2xl glass-card mb-3 group-hover:shadow-lg group-hover:shadow-emerald-100/60 transition-all duration-300">
+                <p className="text-4xl md:text-5xl font-semibold tracking-tight gradient-text">
+                  <AnimatedNumber value={stat.value} suffix={stat.suffix} prefix={stat.prefix} />
+                </p>
+              </div>
               <p className="text-sm text-gray-500">{stat.label}</p>
             </motion.div>
           ))}

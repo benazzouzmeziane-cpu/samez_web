@@ -31,8 +31,12 @@ const services: { icon: IconDefinition; title: string; description: string }[] =
 
 export default function ServicesPreview() {
   return (
-    <section className="py-24 px-6 bg-[var(--gray-light)]">
-      <div className="max-w-6xl mx-auto">
+    <section className="py-24 px-6 bg-[var(--gray-light)] relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-100/30 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-teal-100/20 blur-3xl pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto relative">
         <ScrollReveal>
           <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">
             Services
@@ -48,8 +52,8 @@ export default function ServicesPreview() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((s, i) => (
             <ScrollReveal key={s.title} delay={i * 0.1}>
-              <div className="group bg-white p-7 rounded-2xl border border-gray-100 hover:border-[var(--accent)] hover:shadow-lg hover:shadow-emerald-50 transition-all duration-300 h-full">
-                <div className="w-10 h-10 rounded-xl bg-[var(--accent-light)] flex items-center justify-center mb-4 group-hover:bg-[var(--accent)] transition-colors">
+              <div className="group glass-card p-7 rounded-2xl hover:border-[var(--accent)] hover:shadow-xl hover:shadow-emerald-100/60 transition-all duration-300 h-full">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-4 group-hover:from-[var(--accent)] group-hover:to-emerald-400 transition-all">
                   <FontAwesomeIcon icon={s.icon} className="w-5 h-5 text-[var(--accent)] group-hover:text-white transition-colors" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2 group-hover:text-[var(--accent)] transition-colors">

@@ -19,10 +19,10 @@ export default function Header() {
   if (pathname.startsWith('/admin')) return null
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-100">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-emerald-100/60">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="text-xl font-semibold tracking-tight text-black">
-          same<span className="text-black">&apos;</span>z
+        <Link href="/" className="text-xl font-semibold tracking-tight gradient-text">
+          same<span>&apos;</span>z
         </Link>
 
         {/* Nav desktop */}
