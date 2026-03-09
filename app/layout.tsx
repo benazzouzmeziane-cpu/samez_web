@@ -14,8 +14,23 @@ export const metadata: Metadata = {
     default: "same'z — Solutions logicielles sur mesure",
     template: "%s | same'z",
   },
-  description: "same'z — Automatisation, analyse de conversion, outils internes, extensions Chrome et applications métiers. Des solutions robustes qui font gagner du temps.",
+  description: "same'z (samez) — Automatisation, analyse de conversion, outils internes, extensions Chrome et applications métiers. Des solutions robustes qui font gagner du temps.",
+  keywords: [
+    'samez',
+    "same'z",
+    'samez.fr',
+    'solutions logicielles sur mesure',
+    'automatisation',
+    'développement web',
+    'applications métiers',
+    'outils internes',
+    'extensions Chrome',
+    'analyse de conversion',
+  ],
   metadataBase: new URL('https://samez.fr'),
+  alternates: {
+    canonical: 'https://samez.fr',
+  },
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
@@ -48,6 +63,49 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
 }
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://samez.fr/#organization',
+      name: "same'z",
+      alternateName: ['samez', 'samez.fr'],
+      url: 'https://samez.fr',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://samez.fr/icon.png',
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        email: 'contact@samez.fr',
+        contactType: 'customer service',
+        areaServed: 'FR',
+        availableLanguage: 'French',
+      },
+      sameAs: ['https://samez.fr'],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://samez.fr/#website',
+      url: 'https://samez.fr',
+      name: "same'z",
+      alternateName: 'samez',
+      description: "Solutions logicielles sur mesure — automatisation, outils internes, applications métiers.",
+      publisher: { '@id': 'https://samez.fr/#organization' },
+      inLanguage: 'fr-FR',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: 'https://samez.fr/?q={search_term_string}',
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+  ],
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -55,6 +113,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={inter.variable}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="antialiased bg-white text-black font-[family-name:var(--font-inter)]">
         {children}
         <Analytics />
