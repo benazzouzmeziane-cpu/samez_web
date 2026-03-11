@@ -65,9 +65,6 @@ function TrainSVG() {
       <rect x="127" y="18" width="13" height="16" rx="2" fill="#d0d9e4" stroke="#a4b4c4" strokeWidth="0.8" />
       <line x1="133.5" y1="18" x2="133.5" y2="34" stroke="#a4b4c4" strokeWidth="0.8" />
 
-      {/* Windshield — sits in the light nose area */}
-      <path d="M150 9 C166 9 182 14 190 22 L190 26 C180 17 164 12 150 12 Z" fill="#5b7fa6" opacity="0.65" />
-
       {/* Pantograph */}
       <rect x="49" y="5" width="8" height="4" rx="1.5" fill="#4b5563" />
       <line x1="53" y1="8" x2="45" y2="2" stroke="#2c3042" strokeWidth="1.8" strokeLinecap="round" />
