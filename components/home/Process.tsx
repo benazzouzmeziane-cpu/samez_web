@@ -327,7 +327,6 @@ export default function Process() {
           <div className="flex items-start gap-3">
             {/* Vertical rail */}
             <div ref={railVertRef} className="relative shrink-0 w-8 self-stretch">
-              <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1.5 rounded-full bg-emerald-500/80" />
               <div className="absolute left-1/2 -translate-x-1/2 top-0">
                 <motion.div style={{ y: trainY }}>
                   <TGVTopSVG />
