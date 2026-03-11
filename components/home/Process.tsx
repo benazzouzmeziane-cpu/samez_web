@@ -95,6 +95,28 @@ function SpeedLine({ delay, y, width }: { delay: number; y: number; width: numbe
 }
 
 const TRAIN_W = 190 // px — TGV
+const TRAIN_H_TOP = 68 // px — top-view height
+
+// Bird's-eye (top-down) TGV — moves vertically on mobile
+function TGVTopSVG() {
+  return (
+    <svg viewBox="0 0 26 68" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="68">
+      {/* Rear bumper */}
+      <rect x="7" y="2" width="12" height="3" rx="1.5" fill="#4b5563" />
+      {/* Body */}
+      <rect x="3" y="5" width="20" height="48" rx="6" fill="#2c3042" />
+      {/* Window strip */}
+      <rect x="6" y="12" width="14" height="28" rx="2" fill="#3d4f63" />
+      {/* Mid stripe */}
+      <rect x="3" y="34" width="20" height="3" fill="#bdc8d4" opacity="0.5" />
+      {/* Nose — tapers to front */}
+      <path d="M3 53 C3 53 13 66 23 53 Z" fill="#6b7a8d" />
+      {/* Pantograph from above */}
+      <line x1="13" y1="5" x2="13" y2="11" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="9" y1="8" x2="17" y2="8" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 // Mini SVG clock mounted on station card
 function StationClock({ hour, minute }: { hour: number; minute: number }) {
@@ -168,7 +190,9 @@ const stationClocks = [
 export default function Process() {
   const sectionRef = useRef<HTMLElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
+  const railVertRef = useRef<HTMLDivElement>(null)
   const [railWidth, setRailWidth] = useState(900)
+  const [railVertHeight, setRailVertHeight] = useState(600)
   const hovered = useRef(false)
 
   const rawProgress = useMotionValue(0)
@@ -210,14 +234,17 @@ export default function Process() {
   useEffect(() => {
     const update = () => {
       if (railRef.current) setRailWidth(railRef.current.offsetWidth)
+      if (railVertRef.current) setRailVertHeight(railVertRef.current.offsetHeight)
     }
     update()
     const ro = new ResizeObserver(update)
     if (railRef.current) ro.observe(railRef.current)
+    if (railVertRef.current) ro.observe(railVertRef.current)
     return () => ro.disconnect()
   }, [])
 
   const trainX = useTransform(springProgress, [0, 1], [0, Math.max(0, railWidth - TRAIN_W)])
+  const trainY = useTransform(springProgress, [0, 1], [0, Math.max(0, railVertHeight - TRAIN_H_TOP)])
 
   return (
     <section
@@ -292,8 +319,49 @@ export default function Process() {
           </p>
         </div>
 
-        {/* ═══ STATION CARDS ═══ */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 md:gap-0 relative">
+        {/* ═══ MOBILE: vertical rail + top-view TGV ═══ */}
+        <div className="md:hidden relative mb-6">
+          <div className="flex items-start gap-3">
+            {/* Vertical rail */}
+            <div ref={railVertRef} className="relative shrink-0 w-8 self-stretch">
+              <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1.5 rounded-full bg-emerald-500/80" />
+              <div className="absolute left-1/2 -translate-x-1/2 top-0" style={{ marginLeft: -13 }}>
+                <motion.div style={{ y: trainY }}>
+                  <TGVTopSVG />
+                </motion.div>
+              </div>
+            </div>
+            {/* Stacked cards */}
+            <div className="flex-1 flex flex-col gap-4">
+              {steps.map((step, i) => (
+                <ScrollReveal key={step.number} delay={i * 0.1}>
+                  <div className="relative flex flex-col rounded-xl overflow-hidden shadow-sm"
+                    style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(209,250,229,0.6)' }}
+                  >
+                    <div className="bg-[#1c1917] px-4 pt-3 pb-2 flex items-center justify-between">
+                      <div>
+                        <p className="text-[9px] font-mono text-stone-500 uppercase tracking-widest mb-0.5">Quai {step.number}</p>
+                        <p className="text-white font-bold text-sm tracking-wide font-mono">{step.title.toUpperCase()}</p>
+                      </div>
+                      <SignalLamp />
+                    </div>
+                    <div className="h-[4px]" style={{ background: 'repeating-linear-gradient(90deg,#fbbf24 0px,#fbbf24 14px,#1c1917 14px,#1c1917 18px)' }} />
+                    <div className="p-4">
+                      <p className="text-gray-600 text-sm leading-relaxed mb-3">{step.description}</p>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono bg-[#1c1917] text-[#4ade80] rounded border border-[#2d2d2b]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] inline-block animate-pulse" />
+                        {step.accent}
+                      </span>
+                    </div>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ═══ STATION CARDS — desktop only ═══ */}
+        <div className="hidden md:grid md:grid-cols-3 gap-0 relative">
           {/* Track line between cards — desktop */}
           <div className="hidden md:block absolute top-[72px] left-[calc(33.33%+12px)] right-[calc(33.33%+12px)] h-[3px] z-0"
             style={{ background: 'repeating-linear-gradient(90deg, #059669 0px, #059669 12px, transparent 12px, transparent 20px)' }}
