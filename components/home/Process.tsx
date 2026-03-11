@@ -105,14 +105,17 @@ function TGVTopSVG() {
       <rect x="7" y="2" width="12" height="3" rx="1.5" fill="#4b5563" />
       {/* Body */}
       <rect x="3" y="5" width="20" height="48" rx="6" fill="#2c3042" />
-      {/* Window strip */}
-      <rect x="6" y="12" width="14" height="28" rx="2" fill="#3d4f63" />
-      {/* Mid stripe */}
-      <rect x="3" y="34" width="20" height="3" fill="#bdc8d4" opacity="0.5" />
+      {/* Rail channel — green line through the center of the body */}
+      <rect x="11.5" y="0" width="3" height="68" fill="#059669" rx="1" />
+      {/* Window strip left */}
+      <rect x="4" y="12" width="6" height="28" rx="2" fill="#3d4f63" />
+      {/* Window strip right */}
+      <rect x="16" y="12" width="6" height="28" rx="2" fill="#3d4f63" />
       {/* Nose — tapers to front */}
       <path d="M3 53 C3 53 13 66 23 53 Z" fill="#6b7a8d" />
+      {/* Rail channel continues through nose */}
+      <rect x="11.5" y="53" width="3" height="15" fill="#059669" rx="1" />
       {/* Pantograph from above */}
-      <line x1="13" y1="5" x2="13" y2="11" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="9" y1="8" x2="17" y2="8" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
