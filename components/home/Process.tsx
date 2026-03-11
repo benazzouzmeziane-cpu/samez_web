@@ -45,8 +45,6 @@ function TrainSVG() {
 
       {/* Dark charcoal roof */}
       <rect x="2" y="8" width="144" height="11" rx="2" fill="#2c3042" />
-      {/* Roof blends into top of nose */}
-      <path d="M146 8 C164 8 185 11 192 18 L192 15 C184 9 165 8 146 8 Z" fill="#2c3042" />
 
       {/* Gray mid stripe */}
       <rect x="2" y="30" width="144" height="4" fill="#bdc8d4" />
