@@ -7,8 +7,6 @@ import {
   useSpring,
   useTransform,
   useScroll,
-  useMotionValueEvent,
-  type MotionValue,
 } from 'framer-motion'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 
@@ -33,117 +31,53 @@ const steps = [
   },
 ]
 
-// Spokes that rotate using SVG transform (works correctly with scaled SVGs)
-function RotatingSpokes({
-  cx, cy, r, count, angle, color,
-}: {
-  cx: number; cy: number; r: number; count: number
-  angle: MotionValue<number>; color: string
-}) {
-  const [deg, setDeg] = useState(0)
-  useMotionValueEvent(angle, 'change', setDeg)
-  return (
-    <g transform={`rotate(${deg}, ${cx}, ${cy})`}>
-      {Array.from({ length: count }, (_, i) => {
-        const rad = (i * Math.PI) / count
-        const r1 = r - 1.5
-        return (
-          <line
-            key={i}
-            x1={Math.round((cx + Math.cos(rad) * r1) * 1000) / 1000}
-            y1={Math.round((cy + Math.sin(rad) * r1) * 1000) / 1000}
-            x2={Math.round((cx - Math.cos(rad) * r1) * 1000) / 1000}
-            y2={Math.round((cy - Math.sin(rad) * r1) * 1000) / 1000}
-            stroke={color}
-            strokeWidth="1.3"
-            strokeLinecap="round"
-          />
-        )
-      })}
-    </g>
-  )
-}
-
-function TGVWheel({ cx, cy, r, angle }: { cx: number; cy: number; r: number; angle: MotionValue<number> }) {
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r={r} fill="#1e293b" stroke="#475569" strokeWidth="2" />
-      <RotatingSpokes cx={cx} cy={cy} r={r} count={5} angle={angle} color="#64748b" />
-      <circle cx={cx} cy={cy} r={3} fill="#94a3b8" />
-      <circle cx={cx} cy={cy} r={1.2} fill="#e2e8f0" />
-    </g>
-  )
-}
-
-function TrainSVG({ wheelAngle }: { wheelAngle: MotionValue<number> }) {
+function TrainSVG() {
   return (
     <svg
-      viewBox="0 0 260 72"
+      viewBox="0 0 190 46"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ width: '100%', height: 'auto' }}
     >
-      {/* ═══ REAR PASSENGER CAR ═══ */}
-      <rect x="2" y="18" width="68" height="32" rx="4" fill="#1e3a5f" />
-      <rect x="2" y="18" width="68" height="6" rx="4" fill="#1e40af" />
+      {/* ═══ BODY ═══ */}
+      <rect x="2" y="6" width="144" height="34" rx="3" fill="#1e3a8a" />
+      {/* Roof band */}
+      <rect x="2" y="6" width="144" height="6" rx="3" fill="#1e40af" />
+      {/* Underbody (chassis skirt — hides wheels) */}
+      <rect x="2" y="34" width="144" height="6" rx="1" fill="#172554" />
+
       {/* Windows */}
-      {[8, 22, 36, 50].map(x => (
-        <rect key={x} x={x} y="26" width="11" height="9" rx="2" fill="#bae6fd" opacity="0.85" />
+      {[8, 28, 48, 68, 88, 110].map(x => (
+        <rect key={x} x={x} y="11" width="16" height="13" rx="2" fill="#bae6fd" opacity="0.82" />
       ))}
-      {/* Green stripe */}
-      <rect x="2" y="38" width="68" height="3" fill="#059669" opacity="0.7" />
-      {/* Bogies */}
-      <rect x="8" y="48" width="18" height="4" rx="1" fill="#0f172a" />
-      <rect x="44" y="48" width="18" height="4" rx="1" fill="#0f172a" />
-      <TGVWheel cx={14} cy={57} r={8} angle={wheelAngle} />
-      <TGVWheel cx={30} cy={57} r={8} angle={wheelAngle} />
-      <TGVWheel cx={50} cy={57} r={8} angle={wheelAngle} />
-      <TGVWheel cx={64} cy={57} r={8} angle={wheelAngle} />
 
-      {/* ═══ COUPLER ═══ */}
-      <rect x="68" y="30" width="8" height="6" rx="1" fill="#475569" />
-
-      {/* ═══ POWER CAR (locomotive) ═══ */}
-      {/* Body */}
-      <rect x="74" y="14" width="120" height="36" rx="5" fill="#1e3a8a" />
-      {/* Roof */}
-      <rect x="74" y="14" width="120" height="7" rx="5" fill="#1e40af" />
       {/* Green accent stripe */}
-      <rect x="74" y="35" width="120" height="4" fill="#059669" />
-      {/* Windows on cab area */}
-      {[80, 98, 116, 134, 152].map(x => (
-        <rect key={x} x={x} y="22" width="14" height="10" rx="2" fill="#bae6fd" opacity="0.8" />
-      ))}
-      {/* Pantograph (current collector on roof) */}
-      <line x1="130" y1="14" x2="118" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
-      <line x1="130" y1="14" x2="142" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
-      <line x1="110" y1="3" x2="150" y2="3" stroke="#94a3b8" strokeWidth="1.8" />
-      <line x1="110" y1="3" x2="118" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
-      <line x1="142" y1="3" x2="150" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
-      {/* Bogies */}
-      <rect x="82" y="48" width="24" height="4" rx="1" fill="#0f172a" />
-      <rect x="154" y="48" width="24" height="4" rx="1" fill="#0f172a" />
-      <TGVWheel cx={88} cy={57} r={8} angle={wheelAngle} />
-      <TGVWheel cx={104} cy={57} r={8} angle={wheelAngle} />
-      <TGVWheel cx={160} cy={57} r={8} angle={wheelAngle} />
-      <TGVWheel cx={174} cy={57} r={8} angle={wheelAngle} />
+      <rect x="2" y="30" width="144" height="4" fill="#059669" />
+      <rect x="2" y="30" width="144" height="1.5" fill="#34d399" opacity="0.5" />
+
+      {/* Pantograph */}
+      <line x1="80" y1="6" x2="72" y2="-1" stroke="#94a3b8" strokeWidth="1.2" />
+      <line x1="80" y1="6" x2="88" y2="-1" stroke="#94a3b8" strokeWidth="1.2" />
+      <line x1="65" y1="-1" x2="95" y2="-1" stroke="#94a3b8" strokeWidth="1.8" />
+      <line x1="65" y1="-1" x2="72" y2="-1" stroke="#94a3b8" strokeWidth="1.2" />
+      <line x1="88" y1="-1" x2="95" y2="-1" stroke="#94a3b8" strokeWidth="1.2" />
 
       {/* ═══ AERODYNAMIC NOSE ═══ */}
-      {/* Nose body */}
-      <path d="M194 14 Q230 14 254 32 Q258 35 258 38 Q258 42 254 45 Q230 55 194 50 L194 14Z" fill="#1e3a8a" />
-      {/* Nose accent stripe */}
-      <path d="M194 35 Q220 35 250 40 Q220 42 194 39Z" fill="#059669" opacity="0.8" />
-      {/* Headlights */}
-      <ellipse cx="248" cy="32" rx="5" ry="4" fill="#fef9c3" />
-      <ellipse cx="248" cy="32" rx="3" ry="2.5" fill="#fde047" />
-      <ellipse cx="248" cy="44" rx="3" ry="2.5" fill="#fde047" opacity="0.5" />
-      {/* Front bogie */}
-      <TGVWheel cx={216} cy={57} r={8} angle={wheelAngle} />
-      <TGVWheel cx={232} cy={57} r={8} angle={wheelAngle} />
-      <rect x="210" y="48" width="28" height="4" rx="1" fill="#0f172a" />
+      <path d="M146 6 C172 6 188 13 188 23 C188 33 172 40 146 40 L146 6Z" fill="#1e3a8a" />
+      {/* Nose roof */}
+      <path d="M146 6 C162 6 176 8 186 14 C178 10 162 8 146 9 Z" fill="#1e40af" />
+      {/* Nose green stripe */}
+      <path d="M146 30 C168 30 184 30 186 28 C184 33 168 36 146 36 Z" fill="#059669" opacity="0.85" />
+      {/* Cab window */}
+      <path d="M154 10 C166 10 180 15 184 22 L184 24 C178 18 166 14 154 14 Z" fill="#bae6fd" opacity="0.65" />
+      {/* Headlight top */}
+      <ellipse cx="183" cy="17" rx="4" ry="3.5" fill="#fef9c3" />
+      <ellipse cx="183" cy="17" rx="2.5" ry="2" fill="#fde047" />
+      {/* Headlight bottom */}
+      <ellipse cx="183" cy="29" rx="3" ry="2.5" fill="#fde047" opacity="0.5" />
 
-      {/* ═══ UNDERCARRIAGE RAILS ═══ */}
-      <rect x="2" y="64" width="256" height="2.5" rx="1" fill="#334155" opacity="0.5" />
+      {/* Ground shadow */}
+      <ellipse cx="95" cy="43" rx="88" ry="2.5" fill="#1e3a8a" opacity="0.12" />
     </svg>
   )
 }
@@ -165,7 +99,7 @@ function SpeedLine({ delay, y, width }: { delay: number; y: number; width: numbe
   )
 }
 
-const TRAIN_W = 270 // px — TGV
+const TRAIN_W = 195 // px — TGV
 
 // Mini SVG clock mounted on station card
 function StationClock({ hour, minute }: { hour: number; minute: number }) {
@@ -289,7 +223,6 @@ export default function Process() {
   }, [])
 
   const trainX = useTransform(springProgress, [0, 1], [0, Math.max(0, railWidth - TRAIN_W)])
-  const wheelAngle = useTransform(springProgress, [0, 1], [0, 1440])
 
   return (
     <section
@@ -351,13 +284,13 @@ export default function Process() {
 
           <motion.div
             className="absolute pointer-events-none"
-            style={{ x: trainX, bottom: 8, width: TRAIN_W, height: 90 }}
+            style={{ x: trainX, bottom: 10, width: TRAIN_W, height: 64 }}
           >
             {/* Speed lines behind the train */}
-            <SpeedLine delay={0}    y={28} width={40} />
-            <SpeedLine delay={0.2}  y={36} width={28} />
-            <SpeedLine delay={0.4}  y={22} width={20} />
-            <TrainSVG wheelAngle={wheelAngle} />
+            <SpeedLine delay={0}    y={22} width={40} />
+            <SpeedLine delay={0.2}  y={30} width={28} />
+            <SpeedLine delay={0.4}  y={15} width={20} />
+            <TrainSVG />
           </motion.div>
 
           <p className="absolute top-0 right-0 text-[11px] text-stone-400 font-mono pointer-events-none">
