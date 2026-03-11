@@ -64,159 +64,108 @@ function RotatingSpokes({
   )
 }
 
-function DriveWheel({ cx, cy, r, angle }: { cx: number; cy: number; r: number; angle: MotionValue<number> }) {
+function TGVWheel({ cx, cy, r, angle }: { cx: number; cy: number; r: number; angle: MotionValue<number> }) {
   return (
     <g>
-      {/* Tyre */}
-      <circle cx={cx} cy={cy} r={r} fill="#14532d" stroke="#059669" strokeWidth="2.5" />
-      {/* Spokes */}
-      <RotatingSpokes cx={cx} cy={cy} r={r} count={6} angle={angle} color="#86efac" />
-      {/* Crank pin (offset from center for realism) */}
-      <RotatingSpokes cx={cx} cy={cy} r={r * 0.55} count={1} angle={angle} color="#4ade80" />
-      {/* Hub */}
-      <circle cx={cx} cy={cy} r={4} fill="#059669" />
-      <circle cx={cx} cy={cy} r={1.8} fill="#bbf7d0" />
-    </g>
-  )
-}
-
-function SmallWheel({ cx, cy, r, angle }: { cx: number; cy: number; r: number; angle: MotionValue<number> }) {
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r={r} fill="#374151" stroke="#6b7280" strokeWidth="1.5" />
-      <RotatingSpokes cx={cx} cy={cy} r={r} count={4} angle={angle} color="#9ca3af" />
-      <circle cx={cx} cy={cy} r={2.5} fill="#6b7280" />
+      <circle cx={cx} cy={cy} r={r} fill="#1e293b" stroke="#475569" strokeWidth="2" />
+      <RotatingSpokes cx={cx} cy={cy} r={r} count={5} angle={angle} color="#64748b" />
+      <circle cx={cx} cy={cy} r={3} fill="#94a3b8" />
+      <circle cx={cx} cy={cy} r={1.2} fill="#e2e8f0" />
     </g>
   )
 }
 
 function TrainSVG({ wheelAngle }: { wheelAngle: MotionValue<number> }) {
-  const smallAngle = useTransform(wheelAngle, v => v * 1.45)
   return (
     <svg
-      viewBox="0 0 215 90"
+      viewBox="0 0 260 72"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ width: '100%', height: 'auto' }}
     >
-      {/* ═══ TENDER (coal car, left/rear) ═══ */}
-      <rect x="1" y="33" width="54" height="35" rx="3" fill="#1e3a5f" />
-      <rect x="4" y="36" width="48" height="21" rx="2" fill="#172a48" />
-      {/* Coal lumps */}
-      <ellipse cx="14" cy="43" rx="7" ry="4.5" fill="#0f172a" opacity="0.9" />
-      <ellipse cx="29" cy="40" rx="9" ry="5.5" fill="#0f172a" opacity="0.9" />
-      <ellipse cx="45" cy="43" rx="7" ry="4.5" fill="#0f172a" opacity="0.9" />
-      {/* Tender frame rail */}
-      <rect x="1" y="62" width="54" height="4" rx="1" fill="#152a45" />
-      {/* Tender wheels */}
-      <SmallWheel cx={17} cy={74} r={10} angle={smallAngle} />
-      <SmallWheel cx={39} cy={74} r={10} angle={smallAngle} />
-      {/* Coupler */}
-      <rect x="53" y="56" width="10" height="5" rx="1.5" fill="#6b7280" />
-      <rect x="55" y="57.5" width="6" height="2" rx="1" fill="#9ca3af" />
-
-      {/* ═══ CAB ═══ */}
-      <rect x="61" y="20" width="41" height="48" rx="3" fill="#166534" />
-      {/* Roof */}
-      <rect x="58" y="16" width="47" height="8" rx="3" fill="#14532d" />
+      {/* ═══ REAR PASSENGER CAR ═══ */}
+      <rect x="2" y="18" width="68" height="32" rx="4" fill="#1e3a5f" />
+      <rect x="2" y="18" width="68" height="6" rx="4" fill="#1e40af" />
       {/* Windows */}
-      <rect x="65" y="27" width="13" height="11" rx="2" fill="#bae6fd" opacity="0.9" />
-      <rect x="83" y="27" width="13" height="11" rx="2" fill="#bae6fd" opacity="0.9" />
-      <rect x="65" y="27" width="13" height="11" rx="2" stroke="#0369a1" strokeWidth="1" fill="none" />
-      <rect x="83" y="27" width="13" height="11" rx="2" stroke="#0369a1" strokeWidth="1" fill="none" />
-      {/* Door */}
-      <rect x="72" y="50" width="18" height="18" rx="1.5" fill="#14532d" />
-      <circle cx="88" cy="59" r="1.5" fill="#6b7280" />
-      {/* Vertical rivets */}
-      {[63, 99].map(x => [28, 36, 44, 52, 60].map(y => (
-        <circle key={`${x}-${y}`} cx={x} cy={y} r="0.9" fill="#14532d" opacity="0.8" />
-      )))}
-
-      {/* ═══ BOILER ═══ */}
-      <rect x="100" y="28" width="77" height="39" rx="16" fill="#15803d" />
-      {/* Boiler bands */}
-      {[120, 140, 160].map(x => (
-        <rect key={x} x={x} y="28" width="2" height="39" fill="#14532d" opacity="0.4" />
+      {[8, 22, 36, 50].map(x => (
+        <rect key={x} x={x} y="26" width="11" height="9" rx="2" fill="#bae6fd" opacity="0.85" />
       ))}
-      {/* Front nose */}
-      <ellipse cx="176" cy="47" rx="5" ry="19.5" fill="#166534" />
-      {/* Sand dome */}
-      <ellipse cx="109" cy="27" rx="9" ry="6" fill="#059669" />
-      {/* Steam dome */}
-      <ellipse cx="126" cy="27" rx="13" ry="9" fill="#047857" />
-      <ellipse cx="126" cy="22" rx="7" ry="3.5" fill="#065f46" />
-      {/* Safety valve */}
-      <rect x="141" y="20" width="5" height="10" rx="2" fill="#6b7280" />
-      <ellipse cx="143.5" cy="20" rx="4.5" ry="2" fill="#9ca3af" />
-      {/* Handrail */}
-      <line x1="100" y1="27" x2="174" y2="27" stroke="#6b7280" strokeWidth="1.2" opacity="0.7" />
-      {[100, 140, 174].map(x => (
-        <line key={x} x1={x} y1="27" x2={x} y2="33" stroke="#6b7280" strokeWidth="1.2" opacity="0.7" />
+      {/* Green stripe */}
+      <rect x="2" y="38" width="68" height="3" fill="#059669" opacity="0.7" />
+      {/* Bogies */}
+      <rect x="8" y="48" width="18" height="4" rx="1" fill="#0f172a" />
+      <rect x="44" y="48" width="18" height="4" rx="1" fill="#0f172a" />
+      <TGVWheel cx={14} cy={57} r={8} angle={wheelAngle} />
+      <TGVWheel cx={30} cy={57} r={8} angle={wheelAngle} />
+      <TGVWheel cx={50} cy={57} r={8} angle={wheelAngle} />
+      <TGVWheel cx={64} cy={57} r={8} angle={wheelAngle} />
+
+      {/* ═══ COUPLER ═══ */}
+      <rect x="68" y="30" width="8" height="6" rx="1" fill="#475569" />
+
+      {/* ═══ POWER CAR (locomotive) ═══ */}
+      {/* Body */}
+      <rect x="74" y="14" width="120" height="36" rx="5" fill="#1e3a8a" />
+      {/* Roof */}
+      <rect x="74" y="14" width="120" height="7" rx="5" fill="#1e40af" />
+      {/* Green accent stripe */}
+      <rect x="74" y="35" width="120" height="4" fill="#059669" />
+      {/* Windows on cab area */}
+      {[80, 98, 116, 134, 152].map(x => (
+        <rect key={x} x={x} y="22" width="14" height="10" rx="2" fill="#bae6fd" opacity="0.8" />
       ))}
+      {/* Pantograph (current collector on roof) */}
+      <line x1="130" y1="14" x2="118" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
+      <line x1="130" y1="14" x2="142" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
+      <line x1="110" y1="3" x2="150" y2="3" stroke="#94a3b8" strokeWidth="1.8" />
+      <line x1="110" y1="3" x2="118" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
+      <line x1="142" y1="3" x2="150" y2="3" stroke="#94a3b8" strokeWidth="1.2" />
+      {/* Bogies */}
+      <rect x="82" y="48" width="24" height="4" rx="1" fill="#0f172a" />
+      <rect x="154" y="48" width="24" height="4" rx="1" fill="#0f172a" />
+      <TGVWheel cx={88} cy={57} r={8} angle={wheelAngle} />
+      <TGVWheel cx={104} cy={57} r={8} angle={wheelAngle} />
+      <TGVWheel cx={160} cy={57} r={8} angle={wheelAngle} />
+      <TGVWheel cx={174} cy={57} r={8} angle={wheelAngle} />
 
-      {/* ═══ SMOKE STACK ═══ */}
-      <rect x="159" y="9" width="14" height="20" rx="2" fill="#1f2937" />
-      <ellipse cx="166" cy="9" rx="10.5" ry="4.5" fill="#374151" />
-      <rect x="163" y="4" width="6" height="7" rx="1.5" fill="#374151" />
-      {/* Stack inner dark */}
-      <ellipse cx="166" cy="9" rx="5" ry="2" fill="#111827" />
+      {/* ═══ AERODYNAMIC NOSE ═══ */}
+      {/* Nose body */}
+      <path d="M194 14 Q230 14 254 32 Q258 35 258 38 Q258 42 254 45 Q230 55 194 50 L194 14Z" fill="#1e3a8a" />
+      {/* Nose accent stripe */}
+      <path d="M194 35 Q220 35 250 40 Q220 42 194 39Z" fill="#059669" opacity="0.8" />
+      {/* Headlights */}
+      <ellipse cx="248" cy="32" rx="5" ry="4" fill="#fef9c3" />
+      <ellipse cx="248" cy="32" rx="3" ry="2.5" fill="#fde047" />
+      <ellipse cx="248" cy="44" rx="3" ry="2.5" fill="#fde047" opacity="0.5" />
+      {/* Front bogie */}
+      <TGVWheel cx={216} cy={57} r={8} angle={wheelAngle} />
+      <TGVWheel cx={232} cy={57} r={8} angle={wheelAngle} />
+      <rect x="210" y="48" width="28" height="4" rx="1" fill="#0f172a" />
 
-      {/* ═══ HEADLIGHT ═══ */}
-      <circle cx="172" cy="47" r="8" fill="#fef9c3" />
-      <circle cx="172" cy="47" r="5" fill="#fde047" />
-      <circle cx="172" cy="47" r="2.2" fill="#fbbf24" />
-
-      {/* ═══ COWCATCHER ═══ */}
-      <rect x="170" y="60" width="32" height="9" rx="1.5" fill="#374151" />
-      {[175, 181, 187, 193, 199].map(x => (
-        <line key={x} x1={x} y1="60" x2={x} y2="69" stroke="#1f2937" strokeWidth="1.2" />
-      ))}
-      {/* Front buffer */}
-      <rect x="199" y="61" width="6" height="7" rx="1" fill="#4b5563" />
-
-      {/* ═══ DRIVING WHEELS ═══ */}
-      <DriveWheel cx={113} cy={74} r={13} angle={wheelAngle} />
-      <DriveWheel cx={141} cy={74} r={13} angle={wheelAngle} />
-      {/* Front pilot wheel */}
-      <SmallWheel cx={164} cy={74} r={8} angle={smallAngle} />
-
-      {/* ═══ CONNECTING RODS ═══ */}
-      {/* Main rod between driving wheels */}
-      <rect x="113" y="70.5" width="28" height="5" rx="2.5" fill="#94a3b8" />
-      <circle cx="113" cy="73" r="3" fill="#64748b" />
-      <circle cx="141" cy="73" r="3" fill="#64748b" />
-      {/* Valve gear / piston rod */}
-      <rect x="150" y="71" width="22" height="4" rx="2" fill="#94a3b8" />
-      <rect x="156" y="67.5" width="10" height="9" rx="2" fill="#64748b" />
-      {/* Slide bar */}
-      <rect x="150" y="69" width="22" height="1.5" rx="0.75" fill="#cbd5e1" opacity="0.6" />
+      {/* ═══ UNDERCARRIAGE RAILS ═══ */}
+      <rect x="2" y="64" width="256" height="2.5" rx="1" fill="#334155" opacity="0.5" />
     </svg>
   )
 }
 
-function SmokeParticle({ index }: { index: number }) {
-  const size = 5 + index * 4
+function SpeedLine({ delay, y, width }: { delay: number; y: number; width: number }) {
   return (
     <motion.div
-      className="absolute rounded-full bg-gray-300/60 blur-sm"
-      style={{ width: size, height: size, left: -size / 2, top: -size / 2 }}
-      animate={{
-        y: [0, -(22 + index * 14)],
-        opacity: [0.75, 0],
-        scale: [0.4, 1.3 + index * 0.25],
-        x: [0, index % 2 === 0 ? -7 : 7],
+      className="absolute rounded-full"
+      style={{
+        height: 1.5,
+        width,
+        right: 0,
+        top: y,
+        background: 'linear-gradient(90deg, transparent, rgba(5,150,105,0.5))',
       }}
-      transition={{
-        duration: 1.4 + index * 0.3,
-        delay: index * 0.45,
-        repeat: Infinity,
-        ease: 'easeOut',
-      }}
+      animate={{ opacity: [0, 0.8, 0], scaleX: [0.3, 1, 0.3], x: [8, 0, 8] }}
+      transition={{ duration: 0.9, delay, repeat: Infinity, ease: 'easeInOut' }}
     />
   )
 }
 
-const TRAIN_W = 224 // px
+const TRAIN_W = 270 // px — TGV
 
 // Mini SVG clock mounted on station card
 function StationClock({ hour, minute }: { hour: number; minute: number }) {
@@ -340,7 +289,6 @@ export default function Process() {
   }, [])
 
   const trainX = useTransform(springProgress, [0, 1], [0, Math.max(0, railWidth - TRAIN_W)])
-  // 4 full rotations over the full track
   const wheelAngle = useTransform(springProgress, [0, 1], [0, 1440])
 
   return (
@@ -384,31 +332,31 @@ export default function Process() {
         <div
           ref={railRef}
           className="hidden md:block relative mb-0 select-none cursor-ew-resize"
-          style={{ height: 120 }}
+          style={{ height: 110 }}
           aria-hidden
         >
+          {/* Single sleek rail */}
           <svg
             className="absolute bottom-0 left-0 w-full"
-            height="28"
-            viewBox="0 0 1000 28"
+            height="16"
+            viewBox="0 0 1000 16"
             preserveAspectRatio="none"
           >
-            {Array.from({ length: 38 }).map((_, i) => (
-              <rect key={i} x={i * 26.6 + 0.5} y="1" width="17" height="26" rx="2" fill="#78716c" opacity="0.3" />
-            ))}
-            <rect x="0" y="18" width="1000" height="5" rx="2.5" fill="#059669" />
-            <rect x="0" y="18" width="1000" height="2" rx="1" fill="#34d399" opacity="0.55" />
-            <rect x="0" y="5" width="1000" height="5" rx="2.5" fill="#059669" />
-            <rect x="0" y="5" width="1000" height="2" rx="1" fill="#34d399" opacity="0.55" />
+            {/* Rail bed */}
+            <rect x="0" y="8" width="1000" height="8" fill="#e2e8f0" rx="1" />
+            {/* Single rail — top */}
+            <rect x="0" y="4" width="1000" height="5" rx="2" fill="#059669" />
+            <rect x="0" y="4" width="1000" height="2" rx="1" fill="#34d399" opacity="0.6" />
           </svg>
 
           <motion.div
             className="absolute pointer-events-none"
-            style={{ x: trainX, bottom: 3, width: TRAIN_W, height: 95 }}
+            style={{ x: trainX, bottom: 8, width: TRAIN_W, height: 90 }}
           >
-            <div className="absolute" style={{ left: '77%', top: 3, width: 0, height: 0 }}>
-              {[0, 1, 2].map(i => <SmokeParticle key={i} index={i} />)}
-            </div>
+            {/* Speed lines behind the train */}
+            <SpeedLine delay={0}    y={28} width={40} />
+            <SpeedLine delay={0.2}  y={36} width={28} />
+            <SpeedLine delay={0.4}  y={22} width={20} />
             <TrainSVG wheelAngle={wheelAngle} />
           </motion.div>
 
