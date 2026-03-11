@@ -34,54 +34,50 @@ const steps = [
 function TrainSVG() {
   return (
     <svg
-      viewBox="0 0 200 44"
+      viewBox="0 0 196 46"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ width: '100%', height: 'auto' }}
     >
-      {/* ═══ BODY ═══ */}
-      <rect x="4" y="8" width="148" height="32" rx="2" fill="#e8ecf2" />
+      {/* ═══ FULL SILHOUETTE — body + nose in one path ═══ */}
+      <path d="M2 8 L146 8 Q174 8 194 25 Q174 42 146 42 L2 42 Z" fill="#e8ecf2" />
 
-      {/* ═══ NOSE (clean bezier) ═══ */}
-      {/* Fill same as body */}
-      <path d="M152 8 C170 8 196 15 196 26 C196 37 170 40 152 40 Z" fill="#e8ecf2" />
+      {/* Dark charcoal roof — rect only, no nose continuation needed */}
+      <rect x="2" y="8" width="144" height="11" rx="2" fill="#2c3042" />
 
-      {/* ═══ DARK ROOF ═══ */}
-      <rect x="4" y="8" width="148" height="11" rx="2" fill="#2c3042" />
-      <path d="M152 8 C168 8 188 12 194 20 L194 17 C186 10 167 8 152 8 Z" fill="#2c3042" />
+      {/* Gray mid stripe */}
+      <rect x="2" y="30" width="144" height="4" fill="#bdc8d4" />
 
-      {/* ═══ GRAY MID STRIPE ═══ */}
-      <rect x="4" y="29" width="148" height="4" fill="#bdc8d4" />
-      <path d="M152 29 C165 29 183 32 192 35 L192 33 C183 31 163 29 152 29 Z" fill="#bdc8d4" />
+      {/* Dark underbody skirt */}
+      <rect x="2" y="35" width="144" height="7" rx="1" fill="#2c3042" />
 
-      {/* ═══ DARK UNDERBODY (sits on rail) ═══ */}
-      <rect x="4" y="34" width="148" height="6" rx="1" fill="#2c3042" />
-      <path d="M152 34 C168 34 187 36 193 38 C186 40 168 40 152 40 Z" fill="#2c3042" />
+      {/* Dark nose cap — same bezier as body, clips cleanly */}
+      <path d="M148 8 Q174 8 194 25 Q174 42 148 42 Z" fill="#2c3042" />
 
-      {/* ═══ WINDOWS ═══ */}
-      {[8, 33, 58, 83, 108].map(x => (
-        <rect key={x} x={x} y="19" width="21" height="9" rx="2" fill="#3d4f63" />
+      {/* Windows */}
+      {[6, 30, 54, 78, 102].map(x => (
+        <rect key={x} x={x} y="20" width="21" height="9" rx="2" fill="#3d4f63" />
       ))}
 
-      {/* ═══ DOOR PANEL ═══ */}
-      <rect x="133" y="18" width="13" height="15" rx="2" fill="#d0d9e4" stroke="#a4b4c4" strokeWidth="0.8" />
-      <line x1="139.5" y1="18" x2="139.5" y2="33" stroke="#a4b4c4" strokeWidth="0.8" />
+      {/* Door panel */}
+      <rect x="127" y="18" width="13" height="16" rx="2" fill="#d0d9e4" stroke="#a4b4c4" strokeWidth="0.8" />
+      <line x1="133.5" y1="18" x2="133.5" y2="34" stroke="#a4b4c4" strokeWidth="0.8" />
 
-      {/* ═══ CAB WINDOW ═══ */}
-      <path d="M157 11 C173 11 189 17 193 24 L193 21 C189 15 172 11 157 11 Z" fill="#3d4f63" opacity="0.9" />
+      {/* Cab window inside dark nose */}
+      <path d="M154 10 Q176 10 190 21 L190 25 Q174 16 154 15 Z" fill="#4d7a9e" opacity="0.75" />
 
-      {/* ═══ RED HEADLIGHT ═══ */}
-      <circle cx="191" cy="28" r="3.5" fill="#b91c1c" />
-      <circle cx="191" cy="28" r="1.8" fill="#f87171" />
+      {/* Red headlight */}
+      <circle cx="190" cy="30" r="3.5" fill="#b91c1c" />
+      <circle cx="190" cy="30" r="1.8" fill="#f87171" />
 
-      {/* ═══ PANTOGRAPH ═══ */}
-      <rect x="51" y="5" width="8" height="4" rx="1.5" fill="#4b5563" />
-      <line x1="55" y1="8" x2="47" y2="1" stroke="#2c3042" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="55" y1="8" x2="63" y2="1" stroke="#2c3042" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="40" y1="1" x2="70" y2="1" stroke="#2c3042" strokeWidth="2" strokeLinecap="round" />
+      {/* Pantograph */}
+      <rect x="49" y="5" width="8" height="4" rx="1.5" fill="#4b5563" />
+      <line x1="53" y1="8" x2="45" y2="2" stroke="#2c3042" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="53" y1="8" x2="61" y2="2" stroke="#2c3042" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="38" y1="2" x2="68" y2="2" stroke="#2c3042" strokeWidth="2" strokeLinecap="round" />
 
       {/* Ground shadow */}
-      <ellipse cx="96" cy="42" rx="90" ry="1.8" fill="#1a2535" opacity="0.08" />
+      <ellipse cx="94" cy="44" rx="88" ry="1.5" fill="#1a2535" opacity="0.07" />
     </svg>
   )
 }
@@ -103,7 +99,7 @@ function SpeedLine({ delay, y, width }: { delay: number; y: number; width: numbe
   )
 }
 
-const TRAIN_W = 195 // px — TGV
+const TRAIN_W = 190 // px — TGV
 
 // Mini SVG clock mounted on station card
 function StationClock({ hour, minute }: { hour: number; minute: number }) {
@@ -269,7 +265,7 @@ export default function Process() {
         <div
           ref={railRef}
           className="hidden md:block relative mb-0 select-none cursor-ew-resize"
-          style={{ height: 88 }}
+          style={{ height: 80 }}
           aria-hidden
         >
           {/* Single sleek rail */}
@@ -288,9 +284,8 @@ export default function Process() {
 
           <motion.div
             className="absolute pointer-events-none"
-            style={{ x: trainX, bottom: 9, width: TRAIN_W, height: 56, overflow: 'visible' }}
+            style={{ x: trainX, bottom: 3, width: TRAIN_W, height: 50, overflow: 'visible' }}
           >
-            {/* Speed trails behind the train */}
             <SpeedLine delay={0}    y={18} width={48} />
             <SpeedLine delay={0.2}  y={26} width={32} />
             <SpeedLine delay={0.4}  y={12} width={22} />
