@@ -36,7 +36,7 @@ export default async function RealisationsPreview() {
           {realisations.map((r) => (
             <div
               key={r.id}
-              className="group glass-card rounded-2xl overflow-hidden hover:border-[var(--accent)] hover:shadow-xl hover:shadow-emerald-100/60 transition-all duration-300 snap-start shrink-0 w-[85vw] md:w-auto"
+              className="group glass-card rounded-2xl overflow-hidden hover:border-[var(--accent)] hover:shadow-xl hover:shadow-emerald-100/60 transition-all duration-300 snap-start shrink-0 w-[85vw] md:w-auto flex flex-col"
             >
               {r.image_url && (
                 <div className="relative overflow-hidden aspect-[16/10]">
@@ -47,10 +47,12 @@ export default async function RealisationsPreview() {
                   />
                 </div>
               )}
-              <div className="p-6">
+              <div className="p-6 flex flex-col flex-1">
                 <h3 className="text-lg font-semibold mb-2 leading-snug">{r.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed mb-5">{r.description}</p>
-                <ProjectPreviewModal title={r.title} url={r.link} />
+                <p className="text-sm text-gray-500 leading-relaxed mb-5 flex-1">{r.description}</p>
+                <div className="mt-auto">
+                  <ProjectPreviewModal title={r.title} url={r.link} />
+                </div>
               </div>
             </div>
           ))}

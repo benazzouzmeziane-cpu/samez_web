@@ -37,7 +37,7 @@ export default async function RealisationsPage() {
           {realisations.map((r) => (
             <div
               key={r.id}
-              className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-[var(--accent)] hover:shadow-lg hover:shadow-emerald-50 transition-all duration-300"
+              className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-[var(--accent)] hover:shadow-lg hover:shadow-emerald-50 transition-all duration-300 flex flex-col"
             >
               {/* Image */}
               {r.image_url && (
@@ -51,10 +51,12 @@ export default async function RealisationsPage() {
               )}
 
               {/* Content */}
-              <div className="p-6">
+              <div className="p-6 flex flex-col flex-1">
                 <h2 className="text-lg font-semibold mb-2 leading-snug">{r.title}</h2>
-                <p className="text-sm text-gray-500 leading-relaxed mb-5">{r.description}</p>
-                <ProjectPreviewModal title={r.title} url={r.link} />
+                <p className="text-sm text-gray-500 leading-relaxed mb-5 flex-1">{r.description}</p>
+                <div className="mt-auto">
+                  <ProjectPreviewModal title={r.title} url={r.link} />
+                </div>
               </div>
             </div>
           ))}
