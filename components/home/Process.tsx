@@ -40,8 +40,10 @@ function TrainSVG() {
       style={{ width: '100%', height: 'auto' }}
     >
       {/* ═══ FULL SILHOUETTE — nose tip curves down toward rail ═══ */}
-      {/* Top: straight then arcs gently; Bottom: body floor then curves up to tip */}
       <path d="M2 8 L146 8 C168 8 192 14 193 36 C192 40 170 42 146 42 L2 42 Z" fill="#e8ecf2" />
+
+      {/* Darker nose cap */}
+      <path d="M146 8 C168 8 192 14 193 36 C192 40 170 42 146 42 Z" fill="#6b7a8d" />
 
       {/* Dark charcoal roof */}
       <rect x="2" y="8" width="144" height="11" rx="2" fill="#2c3042" />
