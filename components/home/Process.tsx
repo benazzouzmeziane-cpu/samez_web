@@ -34,71 +34,54 @@ const steps = [
 function TrainSVG() {
   return (
     <svg
-      viewBox="0 0 210 76"
+      viewBox="0 0 200 44"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ width: '100%', height: 'auto' }}
     >
-      {/* ═══ BODY SHELL ═══ */}
-      <rect x="6" y="12" width="158" height="42" rx="3" fill="#ecf0f5" />
-      {/* Nose */}
-      <path d="M164 12 C185 12 207 20 209 33 C207 46 185 54 164 54 Z" fill="#ecf0f5" />
+      {/* ═══ BODY ═══ */}
+      <rect x="4" y="8" width="148" height="32" rx="2" fill="#e8ecf2" />
 
-      {/* ═══ DARK CHARCOAL ROOF PANEL ═══ */}
-      <rect x="6" y="12" width="158" height="12" rx="3" fill="#2c3042" />
-      {/* Roof continues into nose */}
-      <path d="M162 12 C180 12 202 18 208 27 L208 24 C200 14 178 11 162 11 Z" fill="#2c3042" />
+      {/* ═══ NOSE (clean bezier) ═══ */}
+      {/* Fill same as body */}
+      <path d="M152 8 C170 8 196 15 196 26 C196 37 170 40 152 40 Z" fill="#e8ecf2" />
 
-      {/* ═══ GRAY MID-BODY STRIPE ═══ */}
-      <rect x="6" y="37" width="158" height="5" fill="#bdc8d4" />
-      <path d="M164 37 C180 37 198 40 206 44 L206 42 C197 39 178 37 164 37 Z" fill="#bdc8d4" />
+      {/* ═══ DARK ROOF ═══ */}
+      <rect x="4" y="8" width="148" height="11" rx="2" fill="#2c3042" />
+      <path d="M152 8 C168 8 188 12 194 20 L194 17 C186 10 167 8 152 8 Z" fill="#2c3042" />
 
-      {/* ═══ DARK UNDERBODY SKIRT ═══ */}
-      <rect x="6" y="47" width="158" height="7" rx="1" fill="#2c3042" />
-      <path d="M164 47 C183 47 202 50 207 53 C200 55 181 54 164 54 Z" fill="#2c3042" />
+      {/* ═══ GRAY MID STRIPE ═══ */}
+      <rect x="4" y="29" width="148" height="4" fill="#bdc8d4" />
+      <path d="M152 29 C165 29 183 32 192 35 L192 33 C183 31 163 29 152 29 Z" fill="#bdc8d4" />
 
-      {/* ═══ WINDOWS (dark tinted) ═══ */}
-      {[10, 37, 64, 91, 118].map(x => (
-        <rect key={x} x={x} y="26" width="23" height="10" rx="2" fill="#3d4f63" />
+      {/* ═══ DARK UNDERBODY (sits on rail) ═══ */}
+      <rect x="4" y="34" width="148" height="6" rx="1" fill="#2c3042" />
+      <path d="M152 34 C168 34 187 36 193 38 C186 40 168 40 152 40 Z" fill="#2c3042" />
+
+      {/* ═══ WINDOWS ═══ */}
+      {[8, 33, 58, 83, 108].map(x => (
+        <rect key={x} x={x} y="19" width="21" height="9" rx="2" fill="#3d4f63" />
       ))}
 
       {/* ═══ DOOR PANEL ═══ */}
-      <rect x="143" y="22" width="14" height="19" rx="2" fill="#cfd8e3" stroke="#a4b4c4" strokeWidth="0.8" />
-      <line x1="150" y1="22" x2="150" y2="41" stroke="#a4b4c4" strokeWidth="0.8" />
+      <rect x="133" y="18" width="13" height="15" rx="2" fill="#d0d9e4" stroke="#a4b4c4" strokeWidth="0.8" />
+      <line x1="139.5" y1="18" x2="139.5" y2="33" stroke="#a4b4c4" strokeWidth="0.8" />
 
-      {/* ═══ NOSE CAB WINDOW ═══ */}
-      <path d="M172 17 C188 15 203 23 207 31 L207 28 C202 20 186 13 172 14 Z" fill="#3d4f63" opacity="0.88" />
+      {/* ═══ CAB WINDOW ═══ */}
+      <path d="M157 11 C173 11 189 17 193 24 L193 21 C189 15 172 11 157 11 Z" fill="#3d4f63" opacity="0.9" />
 
       {/* ═══ RED HEADLIGHT ═══ */}
-      <circle cx="205" cy="36" r="3.5" fill="#b91c1c" />
-      <circle cx="205" cy="36" r="1.8" fill="#f87171" />
+      <circle cx="191" cy="28" r="3.5" fill="#b91c1c" />
+      <circle cx="191" cy="28" r="1.8" fill="#f87171" />
 
       {/* ═══ PANTOGRAPH ═══ */}
-      <line x1="55" y1="12" x2="47" y2="3" stroke="#2c3042" strokeWidth="2" strokeLinecap="round" />
-      <line x1="55" y1="12" x2="63" y2="3" stroke="#2c3042" strokeWidth="2" strokeLinecap="round" />
-      <line x1="40" y1="3" x2="70" y2="3" stroke="#2c3042" strokeWidth="2.2" strokeLinecap="round" />
-      <rect x="51" y="9" width="8" height="4" rx="1.5" fill="#4b5563" />
-
-      {/* ═══ BOGIES / WHEELS ═══ */}
-      {/* Rear bogie frame */}
-      <rect x="18" y="54" width="36" height="3" rx="1" fill="#1a2535" />
-      <circle cx="26" cy="62" r="7" fill="#374151" />
-      <circle cx="26" cy="62" r="4.5" fill="#4b5569" />
-      <circle cx="26" cy="62" r="2" fill="#9ca3af" />
-      <circle cx="46" cy="62" r="7" fill="#374151" />
-      <circle cx="46" cy="62" r="4.5" fill="#4b5569" />
-      <circle cx="46" cy="62" r="2" fill="#9ca3af" />
-      {/* Front bogie frame */}
-      <rect x="104" y="54" width="42" height="3" rx="1" fill="#1a2535" />
-      <circle cx="112" cy="62" r="7" fill="#374151" />
-      <circle cx="112" cy="62" r="4.5" fill="#4b5569" />
-      <circle cx="112" cy="62" r="2" fill="#9ca3af" />
-      <circle cx="138" cy="62" r="7" fill="#374151" />
-      <circle cx="138" cy="62" r="4.5" fill="#4b5569" />
-      <circle cx="138" cy="62" r="2" fill="#9ca3af" />
+      <rect x="51" y="5" width="8" height="4" rx="1.5" fill="#4b5563" />
+      <line x1="55" y1="8" x2="47" y2="1" stroke="#2c3042" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="55" y1="8" x2="63" y2="1" stroke="#2c3042" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="40" y1="1" x2="70" y2="1" stroke="#2c3042" strokeWidth="2" strokeLinecap="round" />
 
       {/* Ground shadow */}
-      <ellipse cx="105" cy="72" rx="96" ry="2.5" fill="#1a2535" opacity="0.1" />
+      <ellipse cx="96" cy="42" rx="90" ry="1.8" fill="#1a2535" opacity="0.08" />
     </svg>
   )
 }
@@ -120,7 +103,7 @@ function SpeedLine({ delay, y, width }: { delay: number; y: number; width: numbe
   )
 }
 
-const TRAIN_W = 205 // px — TGV
+const TRAIN_W = 195 // px — TGV
 
 // Mini SVG clock mounted on station card
 function StationClock({ hour, minute }: { hour: number; minute: number }) {
@@ -286,7 +269,7 @@ export default function Process() {
         <div
           ref={railRef}
           className="hidden md:block relative mb-0 select-none cursor-ew-resize"
-          style={{ height: 110 }}
+          style={{ height: 88 }}
           aria-hidden
         >
           {/* Single sleek rail */}
@@ -305,13 +288,12 @@ export default function Process() {
 
           <motion.div
             className="absolute pointer-events-none"
-            style={{ x: trainX, bottom: 2, width: TRAIN_W, height: 80, overflow: 'visible' }}
+            style={{ x: trainX, bottom: 9, width: TRAIN_W, height: 56, overflow: 'visible' }}
           >
-            {/* Speed trails — extend left behind the train */}
-            <SpeedLine delay={0}    y={26} width={50} />
-            <SpeedLine delay={0.18} y={34} width={36} />
-            <SpeedLine delay={0.35} y={20} width={24} />
-            <SpeedLine delay={0.5}  y={40} width={18} />
+            {/* Speed trails behind the train */}
+            <SpeedLine delay={0}    y={18} width={48} />
+            <SpeedLine delay={0.2}  y={26} width={32} />
+            <SpeedLine delay={0.4}  y={12} width={22} />
             <TrainSVG />
           </motion.div>
 
