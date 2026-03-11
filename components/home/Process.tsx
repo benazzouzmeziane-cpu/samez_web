@@ -39,20 +39,22 @@ function TrainSVG() {
       xmlns="http://www.w3.org/2000/svg"
       style={{ width: '100%', height: 'auto' }}
     >
-      {/* ═══ FULL SILHOUETTE — body + nose in one path ═══ */}
-      <path d="M2 8 L146 8 Q174 8 194 25 Q174 42 146 42 L2 42 Z" fill="#e8ecf2" />
+      {/* ═══ FULL SILHOUETTE — nose tip curves down toward rail ═══ */}
+      {/* Top: straight then arcs gently; Bottom: body floor then curves up to tip */}
+      <path d="M2 8 L146 8 C168 8 192 14 193 36 C192 40 170 42 146 42 L2 42 Z" fill="#e8ecf2" />
 
-      {/* Dark charcoal roof — rect only, no nose continuation needed */}
+      {/* Dark charcoal roof */}
       <rect x="2" y="8" width="144" height="11" rx="2" fill="#2c3042" />
+      {/* Roof blends into top of nose */}
+      <path d="M146 8 C164 8 185 11 192 18 L192 15 C184 9 165 8 146 8 Z" fill="#2c3042" />
 
       {/* Gray mid stripe */}
       <rect x="2" y="30" width="144" height="4" fill="#bdc8d4" />
 
       {/* Dark underbody skirt */}
       <rect x="2" y="35" width="144" height="7" rx="1" fill="#2c3042" />
-
-      {/* Dark nose cap — same bezier as body, clips cleanly */}
-      <path d="M148 8 Q174 8 194 25 Q174 42 148 42 Z" fill="#2c3042" />
+      {/* Skirt curves into nose bottom */}
+      <path d="M146 35 C162 35 180 37 191 38 C188 40 168 42 146 42 Z" fill="#2c3042" />
 
       {/* Windows */}
       {[6, 30, 54, 78, 102].map(x => (
@@ -63,12 +65,8 @@ function TrainSVG() {
       <rect x="127" y="18" width="13" height="16" rx="2" fill="#d0d9e4" stroke="#a4b4c4" strokeWidth="0.8" />
       <line x1="133.5" y1="18" x2="133.5" y2="34" stroke="#a4b4c4" strokeWidth="0.8" />
 
-      {/* Cab window inside dark nose */}
-      <path d="M154 10 Q176 10 190 21 L190 25 Q174 16 154 15 Z" fill="#4d7a9e" opacity="0.75" />
-
-      {/* Red headlight */}
-      <circle cx="190" cy="30" r="3.5" fill="#b91c1c" />
-      <circle cx="190" cy="30" r="1.8" fill="#f87171" />
+      {/* Windshield — sits in the light nose area */}
+      <path d="M150 9 C166 9 182 14 190 22 L190 26 C180 17 164 12 150 12 Z" fill="#5b7fa6" opacity="0.65" />
 
       {/* Pantograph */}
       <rect x="49" y="5" width="8" height="4" rx="1.5" fill="#4b5563" />
