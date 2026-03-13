@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import HeroFramePlayer from './HeroFramePlayer'
 
 const tags = [
   'Automatisation',
@@ -23,7 +24,9 @@ export default function Hero() {
       <div className="absolute top-1/3 -right-48 w-[500px] h-[400px] rounded-full bg-teal-100/30 blur-3xl pointer-events-none" />
 
       <div className="relative pt-32 pb-20 px-6 max-w-6xl mx-auto w-full flex flex-col justify-center">
-        <div className="max-w-3xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {/* Colonne gauche : texte */}
+          <div className="max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -91,6 +94,17 @@ export default function Hero() {
                 {tag}
               </motion.span>
             ))}
+          </motion.div>
+          </div>
+
+          {/* Colonne droite : animation scroll-driven (frames WebP) */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.4 }}
+            className="hidden lg:flex justify-center items-center"
+          >
+            <HeroFramePlayer />
           </motion.div>
         </div>
 
