@@ -26,23 +26,41 @@ export default function HeroFramePlayer() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Preload all frames
+    // Preload frames progressively (first frame immediately, rest lazily)
     let loaded = 0
-    imagesRef.current = frames.map((src) => {
-      const img = new Image()
-      img.src = src
-      img.onload = () => {
-        loaded++
-        // Draw first frame once images start loading
-        if (loaded === 1) {
-          canvas.width = img.naturalWidth
-          canvas.height = img.naturalHeight
-          ctx.clearRect(0, 0, canvas.width, canvas.height)
-          ctx.drawImage(img, 0, 0)
+    const loadImage = (index: number): Promise<HTMLImageElement> =>
+      new Promise((resolve) => {
+        const img = new Image()
+        img.src = frames[index]
+        img.onload = () => {
+          loaded++
+          if (index === 0) {
+            canvas.width = img.naturalWidth
+            canvas.height = img.naturalHeight
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(img, 0, 0)
+          }
+          resolve(img)
         }
+        img.onerror = () => resolve(img)
+        return img
+      })
+
+    // Load first frame immediately, then load the rest in small batches
+    const loadAll = async () => {
+      imagesRef.current = new Array(FRAME_COUNT)
+      imagesRef.current[0] = await loadImage(0)
+      // Load remaining in batches of 8
+      for (let i = 1; i < FRAME_COUNT; i += 8) {
+        const batch = Array.from({ length: Math.min(8, FRAME_COUNT - i) }, (_, j) => i + j)
+        const results = await Promise.all(batch.map((idx) => loadImage(idx)))
+        results.forEach((img, j) => {
+          imagesRef.current[batch[j]] = img
+        })
       }
-      return img
-    })
+    }
+
+    loadAll()
 
     const drawFrame = (index: number) => {
       const img = imagesRef.current[index]

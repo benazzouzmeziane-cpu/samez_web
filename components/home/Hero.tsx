@@ -2,7 +2,12 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import HeroFramePlayer from './HeroFramePlayer'
+import dynamic from 'next/dynamic'
+
+const HeroFramePlayer = dynamic(() => import('./HeroFramePlayer'), {
+  ssr: false,
+  loading: () => <div className="w-full max-w-[420px] aspect-square" />,
+})
 
 const tags = [
   'Automatisation',
@@ -27,35 +32,26 @@ export default function Hero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Colonne gauche : texte */}
           <div className="max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+          <div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-6"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] inline-block" />
             Solutions logicielles sur mesure
-          </motion.div>
+          </div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+          <h1
             className="text-5xl md:text-7xl font-semibold tracking-tight leading-none mb-6"
           >
             <span className="gradient-text">same</span><span className="gradient-text">&apos;</span><span className="gradient-text">z</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+          <p
             className="text-xl md:text-2xl text-gray-500 font-light leading-relaxed max-w-2xl"
           >
             Transformez vos opérations grâce à des{' '}
             <span className="text-gray-800 font-normal">solutions logicielles sur mesure</span>.
             Automatisation, analyse de conversion, outils internes et applications métiers.
-          </motion.p>
+          </p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
