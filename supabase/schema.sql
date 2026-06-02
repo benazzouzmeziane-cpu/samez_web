@@ -79,29 +79,29 @@ CREATE POLICY "Insert contact public" ON contacts
 CREATE POLICY "Read contacts admin" ON contacts
   FOR SELECT TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 CREATE POLICY "Update contacts admin" ON contacts
   FOR UPDATE TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 -- clients : admin full access, client lecture de son propre profil uniquement
 CREATE POLICY "CRUD clients admin" ON clients
   FOR ALL TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   )
   WITH CHECK (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 CREATE POLICY "Read own client profile" ON clients
   FOR SELECT TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') = 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'client'
     AND email = auth.jwt() ->> 'email'
   );
 
@@ -109,16 +109,16 @@ CREATE POLICY "Read own client profile" ON clients
 CREATE POLICY "CRUD pieces admin" ON pieces
   FOR ALL TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   )
   WITH CHECK (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 CREATE POLICY "Read own pieces client" ON pieces
   FOR SELECT TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') = 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'client'
     AND client_id IN (
       SELECT id FROM clients WHERE email = auth.jwt() ->> 'email'
     )
@@ -128,16 +128,16 @@ CREATE POLICY "Read own pieces client" ON pieces
 CREATE POLICY "CRUD piece_lines admin" ON piece_lines
   FOR ALL TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   )
   WITH CHECK (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 CREATE POLICY "Read own piece_lines client" ON piece_lines
   FOR SELECT TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') = 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'client'
     AND piece_id IN (
       SELECT id FROM pieces WHERE client_id IN (
         SELECT id FROM clients WHERE email = auth.jwt() ->> 'email'
@@ -170,24 +170,24 @@ CREATE POLICY "Read published realisations" ON realisations
 CREATE POLICY "Read all realisations admin" ON realisations
   FOR SELECT TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 -- CRUD admin
 CREATE POLICY "Insert realisations admin" ON realisations
   FOR INSERT TO authenticated
   WITH CHECK (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 CREATE POLICY "Update realisations admin" ON realisations
   FOR UPDATE TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );
 
 CREATE POLICY "Delete realisations admin" ON realisations
   FOR DELETE TO authenticated
   USING (
-    (auth.jwt() -> 'user_metadata' ->> 'role') IS DISTINCT FROM 'client'
+    (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'client'
   );

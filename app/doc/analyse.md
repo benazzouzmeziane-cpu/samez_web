@@ -28,15 +28,15 @@ contacts	name, email, phone, message, read	INSERT public (anon), SELECT/UPDATE a
 clients	name, email (unique), phone, address, access_token	CRUD admin, SELECT propre profil client
 pieces	number (unique), type (facture/devis), status, client_id (FK), date, due_date, tva_rate, paid_date, payment_method	CRUD admin, SELECT propres pièces client
 piece_lines	piece_id (FK cascade), description, quantity, unit_price, order_index	CRUD admin, SELECT propres lignes client
-Politique de sécurité RLS : Le rôle est stocké dans user_metadata.role du JWT. Les clients ne voient que leurs propres données, les admins ont accès complet.
+Politique de sécurité RLS : Le rôle est stocké dans app_metadata.role du JWT pour les politiques RLS. Les clients ne voient que leurs propres données, les admins ont accès complet.
 
 4. Authentification & Sécurité
 Flux Auth
 Admin : Login avec email/password via signInWithPassword → redirect /admin
 Client : Login avec email/password → redirect /espace-client/dashboard
 Création compte client : Via le formulaire de contact (checkbox "Créer mon compte client") → admin API crée l'utilisateur Supabase + envoie un magic link par email pour définir le mot de passe
-Middleware (proxy.ts)
-Le fichier proxy.ts contient la logique middleware mais n'est pas importé par un middleware.ts. C'est un problème potentiel grave : la protection des routes admin et espace client au niveau middleware ne fonctionne probablement pas si ce fichier n'est pas connecté.
+Middleware (middleware.ts)
+Le fichier middleware.ts protège les routes admin et espace client. L'accès admin repose sur une allowlist d'emails via ADMIN_EMAILS, ce qui évite de dépendre du rôle du JWT pour l'accès aux pages d'administration.
 
 Points d'attention sécurité
 Aspect	Statut	Détail

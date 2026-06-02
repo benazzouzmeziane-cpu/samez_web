@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
     // Vérifier que c'est bien un client via les metadata du user retourné
     const user = linkData.user
-    if (user?.user_metadata?.role !== 'client') {
+    if (user?.app_metadata?.role !== 'client') {
       return NextResponse.json({ success: true })
     }
 

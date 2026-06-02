@@ -151,6 +151,7 @@ async function createClientAccount(
   const { error: authError } = await supabase.auth.admin.createUser({
     email: data.email,
     email_confirm: true,
+    app_metadata: { role: 'client' },
     user_metadata: { role: 'client', name: data.name },
   })
 

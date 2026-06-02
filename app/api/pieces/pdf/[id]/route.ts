@@ -32,7 +32,7 @@ export async function GET(
   }
 
   // Si client : vérifier qu'il est propriétaire de la pièce
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role
   if (role === 'client') {
     if (!piece.clients || piece.clients.email !== user.email) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })

@@ -81,7 +81,7 @@ export async function middleware(request: NextRequest) {
 
   // Rediriger vers dashboard si déjà connecté (sauf admin)
   if (isClientLoginPage && user) {
-    const role = user.user_metadata?.role
+    const role = user.app_metadata?.role
     if (role === 'client') {
       const url = request.nextUrl.clone()
       url.pathname = '/espace-client/dashboard'
