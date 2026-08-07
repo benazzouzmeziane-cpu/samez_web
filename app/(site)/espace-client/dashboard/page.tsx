@@ -58,11 +58,12 @@ export default async function EspaceClientDashboard() {
     )
   }
 
-  // Récupérer les pièces du client
+  // Récupérer les pièces visibles (hors brouillon)
   const { data: pieces } = await supabase
     .from('pieces')
     .select('*, piece_lines(*)')
     .eq('client_id', client.id)
+    .neq('status', 'brouillon')
     .order('created_at', { ascending: false })
 
   const today = new Date().toISOString().split('T')[0]

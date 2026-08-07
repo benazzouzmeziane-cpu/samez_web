@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import RealisationForm from '@/components/admin/RealisationForm'
 
 export default function NouvelleRealisationPage() {

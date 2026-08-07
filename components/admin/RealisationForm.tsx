@@ -21,7 +21,6 @@ type Props = {
 
 export default function RealisationForm({ realisation, mode }: Props) {
   const router = useRouter()
-  const supabase = createClient()
 
   const [title, setTitle] = useState(realisation?.title ?? '')
   const [description, setDescription] = useState(realisation?.description ?? '')
@@ -42,6 +41,7 @@ export default function RealisationForm({ realisation, mode }: Props) {
     setUploading(true)
     setError('')
 
+    const supabase = createClient()
     const ext = file.name.split('.').pop()
     const fileName = `${crypto.randomUUID()}.${ext}`
 
@@ -83,6 +83,7 @@ export default function RealisationForm({ realisation, mode }: Props) {
     }
 
     try {
+      const supabase = createClient()
       if (mode === 'create') {
         const { data, error: err } = await supabase
           .from('realisations')
@@ -120,6 +121,7 @@ export default function RealisationForm({ realisation, mode }: Props) {
     setError('')
 
     try {
+      const supabase = createClient()
       const { error: err } = await supabase
         .from('realisations')
         .delete()

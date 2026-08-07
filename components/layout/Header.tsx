@@ -48,7 +48,9 @@ export default function Header() {
         <button
           className="md:hidden p-2"
           onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Menu"
+          aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-nav"
         >
           <div className={`w-5 h-0.5 bg-black mb-1 transition-all ${menuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
           <div className={`w-5 h-0.5 bg-black mb-1 transition-all ${menuOpen ? 'opacity-0' : ''}`} />
@@ -58,7 +60,7 @@ export default function Header() {
 
       {/* Menu mobile */}
       {menuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white">
+        <div id="mobile-nav" className="md:hidden border-t border-gray-100 bg-white">
           {navLinks.map(link => (
             <Link
               key={link.href}

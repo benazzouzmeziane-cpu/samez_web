@@ -1,6 +1,5 @@
 'use client'
 
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -18,10 +17,21 @@ export default function AdminLoginPage() {
 
     const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
+    if (authError) {
       setError('Email ou mot de passe incorrect.')
+      setLoading(false)
+      return
+    }
+
+    // Vérifier allowlist + synchroniser app_metadata.role = admin (RLS)
+    const ensureRes = await fetch('/api/auth/ensure-admin', { method: 'POST' })
+    const ensureData = await ensureRes.json().catch(() => ({ allowed: false }))
+
+    if (!ensureRes.ok || !ensureData.allowed) {
+      await supabase.auth.signOut()
+      setError(ensureData.error || 'Ce compte n’est pas autorisé à accéder à l’administration.')
       setLoading(false)
       return
     }

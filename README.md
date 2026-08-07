@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# same'z — Site & back-office
 
-## Getting Started
+Site vitrine Next.js + espace client + console admin (factures / devis / contacts), branché sur Supabase.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router) + React 19 + TypeScript
+- Supabase (Auth, Postgres, RLS)
+- Tailwind CSS 4
+- Nodemailer (SMTP Hostinger)
+- `@react-pdf/renderer` (PDF factures/devis)
+
+## Démarrage
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables d'environnement
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Créer un fichier `.env.local` :
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 
-## Learn More
+ADMIN_EMAILS=contact@samez.fr
 
-To learn more about Next.js, take a look at the following resources:
+SMTP_USER=
+SMTP_PASSWORD=
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Optionnel — création de compte client via formulaire public (désactivée par défaut)
+# CONTACT_ALLOW_PUBLIC_ACCOUNT_CREATION=true
+# CONTACT_ACCOUNT_CREATION_SECRET=...
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Sécurité / Supabase
 
-## Deploy on Vercel
+1. Exécuter `supabase/schema.sql` (ou la migration `supabase/migrations/20260807_fix_rls_admin_role.sql` si le schéma existe déjà).
+2. Attribuer le rôle admin aux comptes allowlistés :
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```sql
+UPDATE auth.users
+SET raw_app_meta_data = COALESCE(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+WHERE email IN ('contact@samez.fr');
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Se déconnecter / reconnecter pour rafraîchir le JWT (`/api/auth/ensure-admin` le fait aussi au login admin).
+
+Les policies RLS exigent `app_metadata.role = 'admin'` (plus « tout utilisateur non-client »).
+
+## Scripts
+
+| Commande | Description |
+|----------|-------------|
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build production |
+| `npm run start` | Serveur production |
+| `npm run lint` | ESLint |
+
+## Structure
+
+- `app/(site)` — pages publiques + espace client
+- `app/admin` — console admin
+- `app/api` — contact, auth, PDF
+- `components/` — UI site / admin
+- `lib/` — Supabase, email, helpers admin
+- `supabase/` — schéma SQL + migrations

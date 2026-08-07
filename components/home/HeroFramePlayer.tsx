@@ -27,13 +27,11 @@ export default function HeroFramePlayer() {
     if (!ctx) return
 
     // Preload frames progressively (first frame immediately, rest lazily)
-    let loaded = 0
     const loadImage = (index: number): Promise<HTMLImageElement> =>
       new Promise((resolve) => {
         const img = new Image()
         img.src = frames[index]
         img.onload = () => {
-          loaded++
           if (index === 0) {
             canvas.width = img.naturalWidth
             canvas.height = img.naturalHeight

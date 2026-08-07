@@ -28,9 +28,6 @@ export const metadata: Metadata = {
     'analyse de conversion',
   ],
   metadataBase: new URL('https://samez.fr'),
-  alternates: {
-    canonical: 'https://samez.fr',
-  },
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
@@ -94,14 +91,6 @@ const jsonLd = {
       description: "Solutions logicielles sur mesure — automatisation, outils internes, applications métiers.",
       publisher: { '@id': 'https://samez.fr/#organization' },
       inLanguage: 'fr-FR',
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: 'https://samez.fr/?q={search_term_string}',
-        },
-        'query-input': 'required name=search_term_string',
-      },
     },
   ],
 }

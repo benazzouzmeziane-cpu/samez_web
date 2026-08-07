@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { sendContactEmail, sendClientInviteEmail } from '@/lib/email'
+import { timingSafeEqualString } from '@/lib/crypto-safe'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 
 const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  message: z.string().min(10),
+  name: z.string().min(2).max(120),
+  email: z.string().email().max(254),
+  phone: z.string().max(40).optional(),
+  message: z.string().min(10).max(5000),
   createAccount: z.boolean().optional(),
   website: z.string().optional(),
   startedAt: z.number().optional(),
@@ -15,14 +16,25 @@ const schema = z.object({
 
 const ipRateLimitMap = new Map<string, number>()
 const emailRateLimitMap = new Map<string, number>()
+const contactIpRateLimitMap = new Map<string, number>()
 const ACCOUNT_CREATE_IP_WINDOW = 10 * 60 * 1000
 const ACCOUNT_CREATE_EMAIL_WINDOW = 24 * 60 * 60 * 1000
+const CONTACT_IP_WINDOW = 60 * 1000
+const MAX_RATE_LIMIT_ENTRIES = 5000
 
 function createAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+function pruneRateLimitMap(map: Map<string, number>, windowMs: number) {
+  if (map.size < MAX_RATE_LIMIT_ENTRIES) return
+  const now = Date.now()
+  for (const [key, ts] of map) {
+    if (now - ts > windowMs) map.delete(key)
+  }
 }
 
 function isTrustedOrigin(request: Request): boolean {
@@ -51,6 +63,7 @@ function isTrustedOrigin(request: Request): boolean {
 }
 
 function isRateLimited(map: Map<string, number>, key: string, windowMs: number): boolean {
+  pruneRateLimitMap(map, windowMs)
   const now = Date.now()
   const last = map.get(key)
   if (last && now - last < windowMs) return true
@@ -58,18 +71,20 @@ function isRateLimited(map: Map<string, number>, key: string, windowMs: number):
   return false
 }
 
+/**
+ * Création de compte :
+ * - chemin interne uniquement via secret serveur (recommandé)
+ * - chemin public désactivé sauf CONTACT_ALLOW_PUBLIC_ACCOUNT_CREATION=true
+ */
 function canCreateAccountFromPublicRequest(request: Request, data: z.infer<typeof schema>): boolean {
   if (!data.createAccount) return false
+  if (process.env.CONTACT_ALLOW_PUBLIC_ACCOUNT_CREATION !== 'true') return false
 
-  // Honeypot anti-bot: ce champ doit rester vide.
   if (data.website && data.website.trim().length > 0) return false
-
-  // Anti-bot simple: le formulaire doit avoir été rempli en plus de 3s.
   if (!data.startedAt || Date.now() - data.startedAt < 3000) return false
-
   if (!isTrustedOrigin(request)) return false
 
-  const ip = request.headers.get('x-forwarded-for') || 'unknown'
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
   const emailKey = data.email.toLowerCase()
   if (isRateLimited(ipRateLimitMap, ip, ACCOUNT_CREATE_IP_WINDOW)) return false
   if (isRateLimited(emailRateLimitMap, emailKey, ACCOUNT_CREATE_EMAIL_WINDOW)) return false
@@ -82,9 +97,22 @@ export async function POST(request: Request) {
     const body = await request.json()
     const data = schema.parse(body)
 
+    // Honeypot : bloquer toute la requête (pas seulement la création de compte)
+    if (data.website && data.website.trim().length > 0) {
+      return NextResponse.json({ success: true })
+    }
+
+    if (!isTrustedOrigin(request)) {
+      return NextResponse.json({ error: 'Origine non autorisée' }, { status: 403 })
+    }
+
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    if (isRateLimited(contactIpRateLimitMap, `contact:${ip}`, CONTACT_IP_WINDOW)) {
+      return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 })
+    }
+
     const supabase = createAdminClient()
 
-    // Insérer le message de contact
     const { error } = await supabase.from('contacts').insert([{
       name: data.name,
       email: data.email,
@@ -97,34 +125,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 
-    // Chemin interne: autorisation explicite via secret serveur.
     const accountCreationSecret = process.env.CONTACT_ACCOUNT_CREATION_SECRET
     const providedSecret = request.headers.get('x-account-creation-secret')
     const internalAccountCreation = Boolean(
       data.createAccount &&
       accountCreationSecret &&
       providedSecret &&
-      providedSecret === accountCreationSecret
+      timingSafeEqualString(providedSecret, accountCreationSecret)
     )
 
-    // Chemin public sécurisé: anti-bot + rate limit + vérification d'origine.
     const publicAccountCreation = canCreateAccountFromPublicRequest(request, data)
     const canCreateAccount = internalAccountCreation || publicAccountCreation
 
+    let accountCreated = false
     if (canCreateAccount) {
-      await createClientAccount(supabase, data)
+      accountCreated = await createClientAccount(supabase, data)
     } else if (data.createAccount) {
       console.warn('[contact] Account creation blocked by security checks')
     }
 
-    // Envoyer l'email de notification à l'admin
     try {
       await sendContactEmail(data)
     } catch (emailError) {
       console.error('[contact] Admin notification email error:', emailError)
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      accountCreated: data.createAccount ? accountCreated : undefined,
+    })
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid data', details: err.issues }, { status: 400 })
@@ -137,8 +166,7 @@ export async function POST(request: Request) {
 async function createClientAccount(
   supabase: ReturnType<typeof createAdminClient>,
   data: { name: string; email: string; phone?: string }
-) {
-  // 1. Upsert dans la table clients
+): Promise<boolean> {
   const { error: clientError } = await supabase.from('clients').upsert(
     [{ name: data.name, email: data.email, phone: data.phone || null }],
     { onConflict: 'email' }
@@ -147,20 +175,17 @@ async function createClientAccount(
     console.error('[contact] Client upsert error:', clientError)
   }
 
-  // 2. Tenter de créer l'utilisateur Auth (échouera s'il existe déjà)
   const { error: authError } = await supabase.auth.admin.createUser({
     email: data.email,
     email_confirm: true,
     app_metadata: { role: 'client' },
-    user_metadata: { role: 'client', name: data.name },
+    user_metadata: { name: data.name },
   })
 
   if (authError) {
-    // L'utilisateur existe probablement déjà — on tente quand même d'envoyer un nouveau lien
     console.log('[contact] User may already exist, generating new link anyway:', authError.message)
   }
 
-  // 3. Générer un magic link (fonctionne que l'utilisateur soit nouveau ou existant)
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'magiclink',
     email: data.email,
@@ -168,16 +193,15 @@ async function createClientAccount(
 
   if (linkError) {
     console.error('[contact] Magic link generation failed:', linkError)
-    return
+    return false
   }
 
   const tokenHash = linkData?.properties?.hashed_token
   if (!tokenHash) {
     console.error('[contact] No hashed_token in generateLink response:', linkData)
-    return
+    return false
   }
 
-  // 4. Envoyer l'email d'invitation
   const inviteUrl = `https://samez.fr/espace-client/nouveau-mot-de-passe?token_hash=${tokenHash}&type=magiclink`
   try {
     await sendClientInviteEmail({
@@ -186,7 +210,9 @@ async function createClientAccount(
       inviteUrl,
     })
     console.log('[contact] Invite email sent to:', data.email)
+    return true
   } catch (inviteEmailError) {
     console.error('[contact] Invite email send failed:', inviteEmailError)
+    return false
   }
 }

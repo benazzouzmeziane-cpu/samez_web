@@ -6,20 +6,33 @@ import Link from 'next/link'
 export default async function AdminDashboard() {
   const supabase = await createClient()
 
-  const [contactsResult, piecesResult, clientsResult] = await Promise.all([
-    supabase.from('contacts').select('id, read', { count: 'exact' }),
-    supabase.from('pieces').select('id, type, status', { count: 'exact' }),
-    supabase.from('clients').select('id', { count: 'exact' }),
+  const [
+    contactsCount,
+    unreadCount,
+    clientsCount,
+    devisCount,
+    facturesCount,
+    unpaidCount,
+  ] = await Promise.all([
+    supabase.from('contacts').select('*', { count: 'exact', head: true }),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('read', false),
+    supabase.from('clients').select('*', { count: 'exact', head: true }),
+    supabase.from('pieces').select('*', { count: 'exact', head: true }).eq('type', 'devis'),
+    supabase.from('pieces').select('*', { count: 'exact', head: true }).eq('type', 'facture'),
+    supabase
+      .from('pieces')
+      .select('*', { count: 'exact', head: true })
+      .eq('type', 'facture')
+      .neq('status', 'payée')
+      .neq('status', 'annulée'),
   ])
 
-  const totalContacts = contactsResult.count ?? 0
-  const unreadContacts = contactsResult.data?.filter((c) => !c.read).length ?? 0
-  const totalPieces = piecesResult.count ?? 0
-  const unpaidPieces = piecesResult.data?.filter(
-    (p) => p.type === 'facture' && p.status !== 'payée' && p.status !== 'annulée'
-  ).length ?? 0
-  const devisCount = piecesResult.data?.filter((p) => p.type === 'devis').length ?? 0
-  const totalClients = clientsResult.count ?? 0
+  const totalContacts = contactsCount.count ?? 0
+  const unreadContacts = unreadCount.count ?? 0
+  const totalClients = clientsCount.count ?? 0
+  const devis = devisCount.count ?? 0
+  const factures = facturesCount.count ?? 0
+  const unpaidPieces = unpaidCount.count ?? 0
 
   const stats = [
     {
@@ -38,14 +51,14 @@ export default async function AdminDashboard() {
     },
     {
       label: 'Devis',
-      value: devisCount,
+      value: devis,
       sub: 'créés',
       accent: false,
       href: '/admin/pieces',
     },
     {
       label: 'Factures',
-      value: totalPieces - devisCount,
+      value: factures,
       sub: `${unpaidPieces} en attente`,
       accent: unpaidPieces > 0,
       href: '/admin/pieces',
@@ -59,7 +72,6 @@ export default async function AdminDashboard() {
         <p className="text-sm text-gray-500">Vue d&apos;ensemble de votre activité</p>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {stats.map((s) => (
           <Link
@@ -78,7 +90,6 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Quick actions */}
       <div className="p-6 bg-[#fafafa] rounded-xl border border-gray-100">
         <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">Accès rapide</h2>
         <div className="flex gap-3 flex-wrap">

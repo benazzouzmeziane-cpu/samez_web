@@ -1,21 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-
-function getAdminAllowlist(): Set<string> {
-  return new Set(
-    (process.env.ADMIN_EMAILS ?? '')
-      .split(',')
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean)
-  )
-}
-
-function isAdminAllowed(email?: string): boolean {
-  if (!email) return false
-  const allowlist = getAdminAllowlist()
-  if (allowlist.size === 0) return false
-  return allowlist.has(email.toLowerCase())
-}
+import { isAdminAllowed, isAdminUser } from '@/lib/admin'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -48,21 +33,14 @@ export async function middleware(request: NextRequest) {
   const isAdminLoginPage = pathname === '/admin/login'
 
   if (isAdminRoute && !isAdminLoginPage) {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/admin/login'
-      return NextResponse.redirect(url)
-    }
-
-    // Hardening: n'autoriser l'admin que pour les emails explicitement allowlistés.
-    if (!isAdminAllowed(user.email)) {
+    if (!user || !isAdminUser(user)) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin/login'
       return NextResponse.redirect(url)
     }
   }
 
-  if (isAdminLoginPage && user && isAdminAllowed(user.email)) {
+  if (isAdminLoginPage && user && isAdminUser(user)) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)
@@ -72,19 +50,29 @@ export async function middleware(request: NextRequest) {
   const isClientDashboard = pathname.startsWith('/espace-client/dashboard')
   const isClientLoginPage = pathname === '/espace-client'
 
-  // Protéger le dashboard uniquement (la page mot de passe gère l'auth côté client via hash fragment)
   if (isClientDashboard && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/espace-client'
     return NextResponse.redirect(url)
   }
 
-  // Rediriger vers dashboard si déjà connecté (sauf admin)
+  // Admin sur le dashboard client → renvoyer vers l'admin
+  if (isClientDashboard && user && isAdminAllowed(user.email)) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin'
+    return NextResponse.redirect(url)
+  }
+
   if (isClientLoginPage && user) {
     const role = user.app_metadata?.role
     if (role === 'client') {
       const url = request.nextUrl.clone()
       url.pathname = '/espace-client/dashboard'
+      return NextResponse.redirect(url)
+    }
+    if (isAdminUser(user)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin'
       return NextResponse.redirect(url)
     }
   }

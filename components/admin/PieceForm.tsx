@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -53,7 +53,6 @@ const emptyLine = (): PieceLine => ({
 
 export default function PieceForm({ piece, clients, mode, initialType, initialClientId }: Props) {
   const router = useRouter()
-  const supabase = createClient()
 
   const [type, setType] = useState<'facture' | 'devis'>(piece?.type ?? initialType ?? 'facture')
   const [status, setStatus] = useState(piece?.status ?? 'brouillon')
@@ -97,12 +96,18 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
     setLines((prev) => prev.filter((_, i) => i !== index))
 
   const generateNumber = async (pieceType: 'facture' | 'devis') => {
+    const supabase = createClient()
+    // RPC atomique (advisory lock) — fallback client si la fonction n'est pas encore déployée
+    const { data, error } = await supabase.rpc('next_piece_number', { p_type: pieceType })
+    if (!error && typeof data === 'string' && data.length > 0) {
+      return data
+    }
+
     const prefix = pieceType === 'facture' ? 'FAC' : 'DEV'
     const year = new Date().getFullYear()
     const pattern = `${prefix}-${year}-%`
 
-    // Chercher le dernier numéro séquentiel pour ce type et cette année
-    const { data } = await supabase
+    const { data: rows } = await supabase
       .from('pieces')
       .select('number')
       .like('number', pattern)
@@ -110,9 +115,8 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
       .limit(1)
 
     let next = 1
-    if (data && data.length > 0) {
-      const lastNumber = data[0].number // ex: FAC-2026-003
-      const lastSeq = parseInt(lastNumber.split('-')[2], 10)
+    if (rows && rows.length > 0) {
+      const lastSeq = parseInt(rows[0].number.split('-')[2], 10)
       if (!isNaN(lastSeq)) next = lastSeq + 1
     }
 
@@ -124,6 +128,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
     setError('')
 
     try {
+      const supabase = createClient()
       let clientId = selectedClientId
 
       if (useNewClient) {
@@ -196,25 +201,67 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           setSaving(false)
           return
         }
-        await supabase.from('piece_lines').delete().eq('piece_id', piece!.id)
-      }
 
-      const linePayload = lines
-        .filter((l) => l.description.trim())
-        .map((l, i) => ({
-          piece_id: pieceId,
-          description: l.description,
-          quantity: Number(l.quantity),
-          unit_price: Number(l.unit_price),
-          order_index: i,
-        }))
+        // Sauvegarder les lignes existantes pour rollback si l'insert échoue
+        const { data: previousLines } = await supabase
+          .from('piece_lines')
+          .select('description, quantity, unit_price, order_index')
+          .eq('piece_id', piece!.id)
 
-      if (linePayload.length > 0) {
-        const { error: linesErr } = await supabase.from('piece_lines').insert(linePayload)
-        if (linesErr) {
-          setError('Erreur lors de la sauvegarde des lignes.')
+        const { error: deleteErr } = await supabase
+          .from('piece_lines')
+          .delete()
+          .eq('piece_id', piece!.id)
+
+        if (deleteErr) {
+          setError('Erreur lors de la mise à jour des lignes.')
           setSaving(false)
           return
+        }
+
+        const linePayload = lines
+          .filter((l) => l.description.trim())
+          .map((l, i) => ({
+            piece_id: pieceId,
+            description: l.description,
+            quantity: Number(l.quantity),
+            unit_price: Number(l.unit_price),
+            order_index: i,
+          }))
+
+        if (linePayload.length > 0) {
+          const { error: linesErr } = await supabase.from('piece_lines').insert(linePayload)
+          if (linesErr) {
+            if (previousLines && previousLines.length > 0) {
+              await supabase.from('piece_lines').insert(
+                previousLines.map((l) => ({ ...l, piece_id: piece!.id }))
+              )
+            }
+            setError('Erreur lors de la sauvegarde des lignes. Anciennes lignes restaurées.')
+            setSaving(false)
+            return
+          }
+        }
+      }
+
+      if (mode === 'create') {
+        const linePayload = lines
+          .filter((l) => l.description.trim())
+          .map((l, i) => ({
+            piece_id: pieceId,
+            description: l.description,
+            quantity: Number(l.quantity),
+            unit_price: Number(l.unit_price),
+            order_index: i,
+          }))
+
+        if (linePayload.length > 0) {
+          const { error: linesErr } = await supabase.from('piece_lines').insert(linePayload)
+          if (linesErr) {
+            setError('Erreur lors de la sauvegarde des lignes.')
+            setSaving(false)
+            return
+          }
         }
       }
 
@@ -231,6 +278,7 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
     setError('')
 
     try {
+      const supabase = createClient()
       // piece_lines are deleted by cascade
       const { error: deleteErr } = await supabase
         .from('pieces')

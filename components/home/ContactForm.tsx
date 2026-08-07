@@ -136,7 +136,7 @@ export default function ContactForm() {
                   className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
                 />
                 <span className="text-sm text-gray-600">
-                  Créer mon compte client pour faciliter mes futurs échanges
+                  Je souhaite un accès espace client (nous vous enverrons les instructions après validation)
                 </span>
               </label>
 

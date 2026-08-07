@@ -18,13 +18,25 @@ export default function EspaceClientPage() {
     setError('')
 
     const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (authError) {
       setError('Email ou mot de passe incorrect.')
+      setLoading(false)
+      return
+    }
+
+    const role = data.user?.app_metadata?.role
+    if (role === 'admin') {
+      router.push('/admin')
+      return
+    }
+    if (role !== 'client') {
+      await supabase.auth.signOut()
+      setError('Ce compte n’a pas accès à l’espace client.')
       setLoading(false)
       return
     }
@@ -87,9 +99,11 @@ export default function EspaceClientPage() {
         {/* Aide */}
         <div className="mt-8 p-4 bg-[#fafafa] rounded-xl border border-gray-100 text-center">
           <p className="text-xs text-gray-500">
-            Pas encore de compte ? Remplissez le{' '}
-            <Link href="/#contact" className="text-[var(--accent)] hover:underline">formulaire de contact</Link>
-            {' '}en cochant &quot;Créer mon compte client&quot;.
+            Pas encore de compte ? Contactez-nous via le{' '}
+            <Link href="/#contact" className="text-[var(--accent)] hover:underline">formulaire</Link>
+            {' '}ou à{' '}
+            <a href="mailto:contact@samez.fr" className="text-[var(--accent)] hover:underline">contact@samez.fr</a>
+            {' '}— nous créerons votre accès.
           </p>
         </div>
       </div>

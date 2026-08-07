@@ -1,64 +1,105 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createServiceSupabase } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 import { sendClientInviteEmail } from '@/lib/email'
+import { isAdminUser } from '@/lib/admin'
 import { z } from 'zod'
 
 const schema = z.object({
   email: z.string().email(),
 })
 
-// Rate limiting simple en mémoire (par IP)
 const rateLimitMap = new Map<string, number>()
-const RATE_LIMIT_WINDOW = 60_000 // 1 minute
+const ADMIN_WINDOW = 60_000
+const PUBLIC_IP_WINDOW = 15 * 60 * 1000
+const PUBLIC_EMAIL_WINDOW = 60 * 60 * 1000
 
-function isRateLimited(ip: string): boolean {
+function isRateLimited(key: string, windowMs: number): boolean {
   const now = Date.now()
-  const lastRequest = rateLimitMap.get(ip)
-  if (lastRequest && now - lastRequest < RATE_LIMIT_WINDOW) {
+  const lastRequest = rateLimitMap.get(key)
+  if (lastRequest && now - lastRequest < windowMs) {
     return true
   }
-  rateLimitMap.set(ip, now)
+  rateLimitMap.set(key, now)
   return false
 }
 
-export async function POST(request: Request) {
-  // Rate limiting
-  const ip = request.headers.get('x-forwarded-for') || 'unknown'
-  if (isRateLimited(ip)) {
-    return NextResponse.json({ success: true }) // Ne pas révéler le rate limit
+function isTrustedOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  const referer = request.headers.get('referer')
+  const host = request.headers.get('host')
+  if (!host) return false
+
+  const expectedHosts = [host]
+  if (process.env.NODE_ENV !== 'production') {
+    expectedHosts.push('localhost:3000')
   }
 
+  const check = (value: string | null) => {
+    if (!value) return false
+    try {
+      return expectedHosts.includes(new URL(value).host)
+    } catch {
+      return false
+    }
+  }
+
+  return check(origin) || check(referer)
+}
+
+export async function POST(request: Request) {
   try {
+    const authClient = await createClient()
+    const { data: { user } } = await authClient.auth.getUser()
+    const isAdmin = Boolean(user && isAdminUser(user))
+
+    if (!isAdmin) {
+      if (!isTrustedOrigin(request)) {
+        return NextResponse.json({ error: 'Origine non autorisée' }, { status: 403 })
+      }
+    }
+
     const body = await request.json()
     const { email } = schema.parse(body)
+    const emailKey = email.toLowerCase()
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 
-    const adminClient = createClient(
+    if (isAdmin) {
+      if (isRateLimited(`admin:${user!.id}`, ADMIN_WINDOW)) {
+        return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 })
+      }
+    } else {
+      // Public : rate-limit strict, réponses toujours neutres
+      if (
+        isRateLimited(`public-ip:${ip}`, PUBLIC_IP_WINDOW) ||
+        isRateLimited(`public-email:${emailKey}`, PUBLIC_EMAIL_WINDOW)
+      ) {
+        return NextResponse.json({ success: true })
+      }
+    }
+
+    const adminClient = createServiceSupabase(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Vérifier que l'utilisateur existe via generateLink (évite listUsers)
-    // generateLink échouera si l'email n'existe pas dans Auth
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email,
     })
 
     if (linkError || !linkData?.properties?.hashed_token) {
-      // L'utilisateur n'existe pas ou erreur → réponse neutre
-      console.log('[resend-invite] generateLink failed (user may not exist):', linkError?.message)
+      console.log('[resend-invite] generateLink failed:', linkError?.message)
       return NextResponse.json({ success: true })
     }
 
-    // Vérifier que c'est bien un client via les metadata du user retourné
-    const user = linkData.user
-    if (user?.app_metadata?.role !== 'client') {
+    const inviteUser = linkData.user
+    if (inviteUser?.app_metadata?.role !== 'client') {
       return NextResponse.json({ success: true })
     }
 
-    // Construire notre propre URL avec le token_hash
     const inviteUrl = `https://samez.fr/espace-client/nouveau-mot-de-passe?token_hash=${linkData.properties.hashed_token}&type=magiclink`
-    const name = user.user_metadata?.name || email.split('@')[0]
+    const name = inviteUser.user_metadata?.name || email.split('@')[0]
     await sendClientInviteEmail({
       name,
       email,
