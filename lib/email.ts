@@ -64,16 +64,24 @@ export async function sendContactEmail(data: {
   })
 }
 
+function sanitizeSamezUrl(url: string): string {
+  if (/^https:\/\/samez\.fr\//.test(url)) return url
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    /^http:\/\/localhost:3000\//.test(url)
+  ) {
+    return url
+  }
+  return 'https://samez.fr/espace-client'
+}
+
 export async function sendClientInviteEmail(data: {
   name: string
   email: string
   inviteUrl: string
 }) {
   const name = escapeHtml(data.name)
-  // Ne permettre que des URL https samez.fr pour le lien d'invitation
-  const safeUrl = /^https:\/\/samez\.fr\//.test(data.inviteUrl)
-    ? data.inviteUrl
-    : 'https://samez.fr/espace-client'
+  const safeUrl = sanitizeSamezUrl(data.inviteUrl)
 
   await transporter.sendMail({
     from: `same'z <${process.env.SMTP_USER}>`,
@@ -112,6 +120,56 @@ export async function sendClientInviteEmail(data: {
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
           <p style="color: #9ca3af; font-size: 11px; line-height: 1.5; margin: 0;">
             Cet email a été envoyé automatiquement. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.<br />
+            same'z — contact@samez.fr — 07 52 08 74 16
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
+export async function sendPasswordResetEmail(data: {
+  name: string
+  email: string
+  resetUrl: string
+}) {
+  const name = escapeHtml(data.name)
+  const safeUrl = sanitizeSamezUrl(data.resetUrl)
+
+  await transporter.sendMail({
+    from: `same'z <${process.env.SMTP_USER}>`,
+    to: data.email,
+    subject: `same'z — Réinitialisation de votre mot de passe`,
+    text: [
+      `Bonjour ${data.name},`,
+      ``,
+      `Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le lien suivant :`,
+      safeUrl,
+      ``,
+      `Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.`,
+    ].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+        <div style="background: #059669; padding: 32px; text-align: center;">
+          <h1 style="color: #fff; font-size: 24px; margin: 0; font-weight: 700;">same'z</h1>
+          <p style="color: #d1fae5; font-size: 12px; margin: 4px 0 0; text-transform: uppercase; letter-spacing: 1px;">Solutions logicielles sur mesure</p>
+        </div>
+        <div style="padding: 32px;">
+          <h2 style="font-size: 20px; font-weight: 600; margin: 0 0 16px;">Bonjour ${name},</h2>
+          <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 16px;">
+            Vous avez demandé à réinitialiser le mot de passe de votre espace client.
+            Cliquez sur le bouton ci-dessous pour en choisir un nouveau.
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${safeUrl}" style="display: inline-block; background: #059669; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+              Réinitialiser mon mot de passe
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 12px; line-height: 1.6; margin: 0 0 16px;">
+            Ce lien expire rapidement. Si vous n&apos;êtes pas à l&apos;origine de cette demande, ignorez cet email.
+          </p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+          <p style="color: #9ca3af; font-size: 11px; line-height: 1.5; margin: 0;">
             same'z — contact@samez.fr — 07 52 08 74 16
           </p>
         </div>

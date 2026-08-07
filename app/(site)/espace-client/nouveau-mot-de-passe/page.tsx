@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Suspense } from 'react'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 type PageState = 'loading' | 'ready' | 'expired' | 'success'
 
@@ -18,13 +19,13 @@ function PasswordForm() {
   const [resendEmail, setResendEmail] = useState('')
   const [resending, setResending] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+  const isRecovery = searchParams.get('type') === 'recovery'
 
   useEffect(() => {
     const tokenHash = searchParams.get('token_hash')
     const type = searchParams.get('type')
 
     if (!tokenHash || !type) {
-      // Pas de token dans l'URL — vérifier si déjà connecté
       const supabase = createClient()
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) {
@@ -36,11 +37,11 @@ function PasswordForm() {
       return
     }
 
-    // Vérifier le token via verifyOtp (bypass Supabase verify endpoint)
+    const otpType = (type === 'recovery' ? 'recovery' : 'magiclink') as EmailOtpType
     const supabase = createClient()
     supabase.auth.verifyOtp({
       token_hash: tokenHash,
-      type: type as 'magiclink',
+      type: otpType,
     }).then(({ error: otpError }) => {
       if (otpError) {
         console.error('OTP verification error:', otpError.message)
@@ -49,7 +50,7 @@ function PasswordForm() {
         setPageState('ready')
       }
     })
-  }, [searchParams, router])
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,9 +89,11 @@ function PasswordForm() {
     e.preventDefault()
     if (!resendEmail) return
     setResending(true)
+    setError('')
 
     try {
-      const res = await fetch('/api/auth/resend-invite', {
+      const endpoint = isRecovery ? '/api/auth/forgot-password' : '/api/auth/resend-invite'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: resendEmail }),
@@ -108,7 +111,6 @@ function PasswordForm() {
     }
   }
 
-  // État : chargement
   if (pageState === 'loading') {
     return (
       <main className="min-h-[70vh] flex items-center justify-center">
@@ -120,7 +122,6 @@ function PasswordForm() {
     )
   }
 
-  // État : lien expiré
   if (pageState === 'expired') {
     return (
       <main className="min-h-[70vh] flex items-center justify-center px-6">
@@ -132,7 +133,8 @@ function PasswordForm() {
           </div>
           <h1 className="text-xl font-semibold tracking-tight mb-1">Lien expiré</h1>
           <p className="text-sm text-gray-500 mb-6">
-            Ce lien n&apos;est plus valide. Demandez un nouveau lien pour créer votre mot de passe.
+            Ce lien n&apos;est plus valide. Demandez un nouveau lien
+            {isRecovery ? ' de réinitialisation' : ' pour créer votre mot de passe'}.
           </p>
 
           {resendSuccess ? (
@@ -176,15 +178,20 @@ function PasswordForm() {
   return (
     <main className="min-h-[70vh] flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        {/* En-tête */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center mx-auto mb-4">
             <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Créez votre mot de passe</h1>
-          <p className="text-sm text-gray-500 mt-1">Choisissez un mot de passe sécurisé pour accéder à votre espace</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isRecovery ? 'Nouveau mot de passe' : 'Créez votre mot de passe'}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {isRecovery
+              ? 'Choisissez un nouveau mot de passe pour votre espace'
+              : 'Choisissez un mot de passe sécurisé pour accéder à votre espace'}
+          </p>
         </div>
 
         {pageState === 'success' ? (
@@ -192,7 +199,9 @@ function PasswordForm() {
             <svg className="w-10 h-10 text-[var(--accent)] mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            <p className="text-sm font-medium text-[var(--accent-dark)]">Mot de passe créé avec succès !</p>
+            <p className="text-sm font-medium text-[var(--accent-dark)]">
+              {isRecovery ? 'Mot de passe mis à jour !' : 'Mot de passe créé avec succès !'}
+            </p>
             <p className="text-xs text-[var(--accent)] mt-1">Redirection vers votre espace...</p>
           </div>
         ) : (
@@ -222,16 +231,14 @@ function PasswordForm() {
               />
             </div>
 
-            {error && (
-              <p className="text-sm text-red-500">{error}</p>
-            )}
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
             >
-              {loading ? 'Enregistrement...' : 'Créer mon mot de passe'}
+              {loading ? 'Enregistrement...' : isRecovery ? 'Enregistrer' : 'Créer mon mot de passe'}
             </button>
           </form>
         )}
