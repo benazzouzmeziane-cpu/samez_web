@@ -11,12 +11,13 @@ const rateLimitMap = new Map<string, number>()
 const IP_WINDOW = 15 * 60 * 1000
 const EMAIL_WINDOW = 60 * 60 * 1000
 
-function isRateLimited(key: string, windowMs: number): boolean {
-  const now = Date.now()
+function wasRecentlySent(key: string, windowMs: number): boolean {
   const last = rateLimitMap.get(key)
-  if (last && now - last < windowMs) return true
-  rateLimitMap.set(key, now)
-  return false
+  return Boolean(last && Date.now() - last < windowMs)
+}
+
+function markSent(key: string) {
+  rateLimitMap.set(key, Date.now())
 }
 
 function isTrustedOrigin(request: Request): boolean {
@@ -54,13 +55,15 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { email } = schema.parse(body)
-    const emailKey = email.toLowerCase()
+    const emailKey = email.toLowerCase().trim()
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 
+    // Rate-limit uniquement après un envoi réussi (sinon un échec bloque 1h)
     if (
-      isRateLimited(`forgot-ip:${ip}`, IP_WINDOW) ||
-      isRateLimited(`forgot-email:${emailKey}`, EMAIL_WINDOW)
+      wasRecentlySent(`forgot-ip:${ip}`, IP_WINDOW) ||
+      wasRecentlySent(`forgot-email:${emailKey}`, EMAIL_WINDOW)
     ) {
+      console.log('[forgot-password] rate-limited (already sent recently):', emailKey)
       return NextResponse.json({ success: true })
     }
 
@@ -71,17 +74,44 @@ export async function POST(request: Request) {
 
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'recovery',
-      email,
+      email: emailKey,
     })
 
     if (linkError || !linkData?.properties?.hashed_token) {
-      // Email inconnu ou erreur → réponse neutre
       console.log('[forgot-password] generateLink failed:', linkError?.message)
       return NextResponse.json({ success: true })
     }
 
     const user = linkData.user
-    if (user?.app_metadata?.role !== 'client') {
+    const role = user?.app_metadata?.role
+
+    // Autoriser si rôle client OU email présent dans la table clients
+    let isClient = role === 'client'
+    if (!isClient) {
+      const { data: clientRow } = await adminClient
+        .from('clients')
+        .select('id, email, name')
+        .ilike('email', emailKey)
+        .maybeSingle()
+
+      if (clientRow) {
+        isClient = true
+        // Réparer le claim manquant pour les prochains accès
+        if (user?.id && role !== 'client') {
+          const { error: metaErr } = await adminClient.auth.admin.updateUserById(user.id, {
+            app_metadata: { ...user.app_metadata, role: 'client' },
+          })
+          if (metaErr) {
+            console.warn('[forgot-password] failed to sync client role:', metaErr.message)
+          } else {
+            console.log('[forgot-password] synced app_metadata.role=client for', emailKey)
+          }
+        }
+      }
+    }
+
+    if (!isClient) {
+      console.log('[forgot-password] skipped: not a client account:', emailKey, 'role=', role)
       return NextResponse.json({ success: true })
     }
 
@@ -90,13 +120,21 @@ export async function POST(request: Request) {
         ? 'https://samez.fr'
         : `http://${request.headers.get('host') || 'localhost:3000'}`
     const resetUrl = `${baseUrl}/espace-client/nouveau-mot-de-passe?token_hash=${linkData.properties.hashed_token}&type=recovery`
-    const name = (user.user_metadata?.name as string | undefined) || email.split('@')[0]
+    const name = (user?.user_metadata?.name as string | undefined) || emailKey.split('@')[0]
 
-    await sendPasswordResetEmail({
-      name,
-      email,
-      resetUrl,
-    })
+    try {
+      await sendPasswordResetEmail({
+        name,
+        email: emailKey,
+        resetUrl,
+      })
+      markSent(`forgot-ip:${ip}`)
+      markSent(`forgot-email:${emailKey}`)
+      console.log('[forgot-password] reset email sent to:', emailKey)
+    } catch (smtpErr) {
+      console.error('[forgot-password] SMTP send failed:', smtpErr)
+      return NextResponse.json({ error: 'Envoi email impossible' }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {
