@@ -69,6 +69,18 @@
     opacity var(--duration-ui) ease;
 }
 
+/* Let Tailwind visibility utilities (e.g. md:hidden) win over .btn display */
+.btn.md\:hidden,
+.btn.hidden {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .btn.md\:hidden {
+    display: none;
+  }
+}
+
 .btn:active {
   transform: scale(0.97);
 }

@@ -48,26 +48,26 @@ export default function Header() {
 
         <button
           type="button"
-          className="md:hidden p-2 btn !p-2"
+          className="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg transition-[transform] duration-[var(--duration-press)] ease-[var(--ease-out)] active:scale-[0.97]"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
           aria-expanded={menuOpen}
           aria-controls="mobile-nav"
         >
           <span className="sr-only">{menuOpen ? 'Fermer' : 'Menu'}</span>
-          <div
-            className={`w-5 h-0.5 bg-black mb-1 transition-[transform,opacity] duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
-              menuOpen ? 'rotate-45 translate-y-1.5' : ''
+          <span
+            className={`block w-5 h-0.5 bg-black transition-[transform,opacity] duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+              menuOpen ? 'translate-y-[5px] rotate-45' : ''
             }`}
           />
-          <div
-            className={`w-5 h-0.5 bg-black mb-1 transition-opacity duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+          <span
+            className={`block w-5 h-0.5 bg-black my-[5px] transition-opacity duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
               menuOpen ? 'opacity-0' : ''
             }`}
           />
-          <div
-            className={`w-5 h-0.5 bg-black transition-[transform] duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
-              menuOpen ? '-rotate-45 -translate-y-1.5' : ''
+          <span
+            className={`block w-5 h-0.5 bg-black transition-[transform] duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+              menuOpen ? '-translate-y-[5px] -rotate-45' : ''
             }`}
           />
         </button>
