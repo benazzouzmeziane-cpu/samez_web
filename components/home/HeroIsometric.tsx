@@ -3,10 +3,13 @@
  */
 export default function HeroIsometric() {
   return (
-    <div className="hero-iso pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+    <div
+      className="hero-iso pointer-events-none absolute top-16 inset-x-0 bottom-0 overflow-hidden"
+      aria-hidden
+    >
       <div className="absolute inset-y-0 right-0 hidden sm:block w-[55%] lg:w-[50%]">
         <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-white to-transparent z-[1]" />
-        <div className="hero-iso__stage absolute right-0 top-1/2 -translate-y-1/2 w-full max-w-[640px]">
+        <div className="hero-iso__stage absolute right-0 top-[48%] -translate-y-1/2 w-full max-w-[640px] px-4">
           <svg
             className="hero-iso__svg w-full h-auto"
             viewBox="0 0 640 520"

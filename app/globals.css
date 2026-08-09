@@ -208,7 +208,7 @@ h1, h2, h3, h4, .font-display {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-5px);
   }
 }
 
@@ -226,7 +226,7 @@ h1, h2, h3, h4, .font-display {
   }
   50% {
     opacity: 0.75;
-    transform: translateY(-4px);
+    transform: translateY(-2px);
   }
 }
 
