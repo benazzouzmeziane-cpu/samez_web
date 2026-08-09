@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -19,7 +20,10 @@ type FormData = z.infer<typeof schema>
 
 type SuccessKind = 'message' | 'message_and_account' | 'message_account_failed'
 
-export default function ContactForm() {
+function ContactFormInner() {
+  const searchParams = useSearchParams()
+  const wantAccount = searchParams.get('compte') === '1'
+
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
   const [successKind, setSuccessKind] = useState<SuccessKind>('message')
   const [startedAt] = useState(() => Date.now())
@@ -28,8 +32,27 @@ export default function ContactForm() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) })
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      createAccount: wantAccount,
+      message: wantAccount
+        ? 'Bonjour, je souhaite créer mon espace client pour suivre mes devis et factures.'
+        : '',
+    },
+  })
+
+  useEffect(() => {
+    if (wantAccount) {
+      setValue('createAccount', true)
+      setValue(
+        'message',
+        'Bonjour, je souhaite créer mon espace client pour suivre mes devis et factures.'
+      )
+    }
+  }, [wantAccount, setValue])
 
   const onSubmit = async (data: FormData) => {
     setStatus('sending')
@@ -68,10 +91,21 @@ export default function ContactForm() {
             Contact
           </p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">
-            Parlons de votre projet
+            {wantAccount ? 'Créer mon espace client' : 'Parlons de votre projet'}
           </h2>
           <p className="text-gray-500 mb-10">
-            Réponse sous 24h — <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
+            {wantAccount ? (
+              <>
+                Remplissez le formulaire — un email vous permettra de définir votre mot de passe.
+                {' '}Réponse aussi à{' '}
+                <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
+              </>
+            ) : (
+              <>
+                Réponse sous 24h —{' '}
+                <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
+              </>
+            )}
           </p>
 
           <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-emerald-100/30 blur-3xl pointer-events-none" />
@@ -154,7 +188,14 @@ export default function ContactForm() {
                 )}
               </div>
 
-              <label className="flex items-start gap-3 cursor-pointer select-none p-4 rounded-xl border border-emerald-100/80 bg-white/50">
+              <label
+                id="creer-compte"
+                className={`flex items-start gap-3 cursor-pointer select-none p-4 rounded-xl border transition-colors ${
+                  wantAccount
+                    ? 'border-[var(--accent)] bg-emerald-50/80 ring-2 ring-[var(--accent)]/20'
+                    : 'border-emerald-100/80 bg-white/50'
+                }`}
+              >
                 <input
                   {...register('createAccount')}
                   type="checkbox"
@@ -163,7 +204,7 @@ export default function ContactForm() {
                 <span className="text-sm text-gray-600">
                   <span className="font-medium text-gray-800">Créer mon espace client</span>
                   <span className="block mt-1 text-xs text-gray-500 leading-relaxed">
-                    Vous recevrez un email pour définir votre mot de passe, puis pourrez suivre devis et factures sur{' '}
+                    Cochez cette case pour recevoir un email et définir votre mot de passe, puis accéder à{' '}
                     <span className="text-[var(--accent)]">samez.fr/espace-client</span>.
                   </span>
                 </span>
@@ -189,12 +230,31 @@ export default function ContactForm() {
                 disabled={status === 'sending'}
                 className="self-start px-8 py-3.5 bg-gradient-to-r from-[var(--accent)] to-emerald-400 text-white text-sm font-medium rounded-full hover:shadow-lg hover:shadow-emerald-200/60 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {status === 'sending' ? 'Envoi...' : 'Envoyer le message'}
+                {status === 'sending'
+                  ? 'Envoi...'
+                  : wantAccount
+                    ? 'Créer mon compte'
+                    : 'Envoyer le message'}
               </button>
             </form>
           )}
         </div>
       </div>
     </section>
+  )
+}
+
+export default function ContactForm() {
+  return (
+    <Suspense fallback={
+      <section id="contact" className="py-20 px-6 bg-[var(--gray-light)]">
+        <div className="max-w-2xl mx-auto">
+          <div className="h-8 w-48 bg-gray-100 rounded animate-pulse mb-4" />
+          <div className="h-64 bg-gray-50 rounded-xl animate-pulse" />
+        </div>
+      </section>
+    }>
+      <ContactFormInner />
+    </Suspense>
   )
 }

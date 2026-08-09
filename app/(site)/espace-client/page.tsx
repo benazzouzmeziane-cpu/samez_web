@@ -205,13 +205,17 @@ export default function EspaceClientPage() {
           </form>
         )}
 
-        <div className="mt-8 p-4 bg-[#fafafa] rounded-xl border border-gray-100 text-center">
+        <div className="mt-8 p-5 bg-[#fafafa] rounded-xl border border-gray-100 text-center space-y-3">
+          <p className="text-sm font-medium text-gray-800">Pas encore de compte ?</p>
           <p className="text-xs text-gray-500">
-            Pas encore de compte ? Remplissez le{' '}
-            <Link href="/#contact" className="text-[var(--accent)] hover:underline">formulaire de contact</Link>
-            {' '}en cochant <span className="font-medium">« Créer mon espace client »</span>
-            {' '}— vous recevrez un email pour définir votre mot de passe.
+            Créez votre accès en 1 minute : vous recevrez un email pour définir votre mot de passe.
           </p>
+          <Link
+            href="/#contact?compte=1"
+            className="inline-flex items-center justify-center w-full py-3 border-2 border-[var(--accent)] text-[var(--accent)] text-sm font-medium rounded-lg hover:bg-[var(--accent)] hover:text-white transition-colors"
+          >
+            Créer mon compte
+          </Link>
         </div>
       </div>
     </main>
