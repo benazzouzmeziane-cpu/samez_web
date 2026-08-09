@@ -20,6 +20,9 @@ type FormData = z.infer<typeof schema>
 
 type SuccessKind = 'message' | 'message_and_account' | 'message_account_failed'
 
+const inputClass =
+  'w-full px-4 py-3 border border-black/[0.08] bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-[border-color,background-color] duration-[var(--duration-ui)] ease'
+
 function ContactFormInner() {
   const searchParams = useSearchParams()
   const wantAccount = searchParams.get('compte') === '1'
@@ -84,44 +87,47 @@ function ContactFormInner() {
   }
 
   return (
-    <section id="contact" className="py-20 px-6 bg-[var(--gray-light)] relative overflow-hidden">
-      <div className="max-w-6xl mx-auto">
-        <div className="max-w-2xl">
-          <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-3">
+    <section id="contact" className="py-24 md:py-32 px-6 relative overflow-hidden">
+      <div className="absolute inset-0 mesh-bg opacity-50 pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto relative">
+        <div className="max-w-xl">
+          <p className="text-sm font-medium text-[var(--accent)] tracking-wide mb-4">
             Contact
           </p>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2">
+          <h2 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-3">
             {wantAccount ? 'Créer mon espace client' : 'Parlons de votre projet'}
           </h2>
-          <p className="text-gray-500 mb-10">
+          <p className="text-gray-500 mb-12 leading-relaxed">
             {wantAccount ? (
               <>
                 Remplissez le formulaire — un email vous permettra de définir votre mot de passe.
                 {' '}Réponse aussi à{' '}
-                <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
+                <a href="mailto:contact@samez.fr" className="underline underline-offset-2 link-quiet text-gray-700">
+                  contact@samez.fr
+                </a>
               </>
             ) : (
               <>
                 Réponse sous 24h —{' '}
-                <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
+                <a href="mailto:contact@samez.fr" className="underline underline-offset-2 link-quiet text-gray-700">
+                  contact@samez.fr
+                </a>
               </>
             )}
           </p>
 
-          <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-emerald-100/30 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-teal-100/20 blur-3xl pointer-events-none" />
-
           {status === 'success' ? (
-            <div className="p-6 glass-card rounded-2xl">
-              <p className="font-medium mb-1">Message envoyé.</p>
+            <div className="py-6 border-y border-black/[0.06]">
+              <p className="font-display text-lg font-semibold mb-2">Message envoyé.</p>
               {successKind === 'message_and_account' && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 leading-relaxed">
                   Un email vient de vous être envoyé pour créer votre mot de passe et accéder à l&apos;espace client.
                   Vérifiez aussi vos indésirables.
                 </p>
               )}
               {successKind === 'message_account_failed' && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 leading-relaxed">
                   Votre message est bien reçu. L&apos;accès espace client n&apos;a pas pu être créé automatiquement —
                   nous vous recontactons sous 24h, ou écrivez à{' '}
                   <a href="mailto:contact@samez.fr" className="underline underline-offset-2">contact@samez.fr</a>.
@@ -131,8 +137,9 @@ function ContactFormInner() {
                 <p className="text-sm text-gray-500">Je vous recontacte sous 24h.</p>
               )}
               <button
+                type="button"
                 onClick={() => setStatus('idle')}
-                className="mt-4 text-sm underline underline-offset-2 hover:text-gray-600"
+                className="mt-5 text-sm underline underline-offset-2 link-quiet text-gray-600"
               >
                 Envoyer un autre message
               </button>
@@ -142,11 +149,7 @@ function ContactFormInner() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Nom *</label>
-                  <input
-                    {...register('name')}
-                    placeholder="Jean Dupont"
-                    className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
-                  />
+                  <input {...register('name')} placeholder="Jean Dupont" className={inputClass} />
                   {errors.name && (
                     <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
                   )}
@@ -157,7 +160,7 @@ function ContactFormInner() {
                     {...register('email')}
                     type="email"
                     placeholder="jean@exemple.fr"
-                    className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
+                    className={inputClass}
                   />
                   {errors.email && (
                     <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
@@ -171,7 +174,7 @@ function ContactFormInner() {
                   {...register('phone')}
                   type="tel"
                   placeholder="06 xx xx xx xx"
-                  className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all"
+                  className={inputClass}
                 />
               </div>
 
@@ -181,7 +184,7 @@ function ContactFormInner() {
                   {...register('message')}
                   rows={5}
                   placeholder="Décrivez votre projet..."
-                  className="w-full px-4 py-3 border border-emerald-100/60 bg-white/70 backdrop-blur-sm text-sm rounded-xl outline-none focus:border-[var(--accent)] focus:bg-white transition-all resize-none"
+                  className={`${inputClass} resize-none`}
                 />
                 {errors.message && (
                   <p className="mt-1 text-xs text-red-500">{errors.message.message}</p>
@@ -190,10 +193,10 @@ function ContactFormInner() {
 
               <label
                 id="creer-compte"
-                className={`flex items-start gap-3 cursor-pointer select-none p-4 rounded-xl border transition-colors ${
+                className={`flex items-start gap-3 cursor-pointer select-none p-4 rounded-lg border transition-[border-color,background-color] duration-[var(--duration-ui)] ease ${
                   wantAccount
-                    ? 'border-[var(--accent)] bg-emerald-50/80 ring-2 ring-[var(--accent)]/20'
-                    : 'border-emerald-100/80 bg-white/50'
+                    ? 'border-[var(--accent)] bg-emerald-50/60'
+                    : 'border-black/[0.08] bg-white'
                 }`}
               >
                 <input
@@ -228,7 +231,7 @@ function ContactFormInner() {
               <button
                 type="submit"
                 disabled={status === 'sending'}
-                className="self-start px-8 py-3.5 bg-gradient-to-r from-[var(--accent)] to-emerald-400 text-white text-sm font-medium rounded-full hover:shadow-lg hover:shadow-emerald-200/60 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn btn-primary self-start disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === 'sending'
                   ? 'Envoi...'
@@ -246,14 +249,16 @@ function ContactFormInner() {
 
 export default function ContactForm() {
   return (
-    <Suspense fallback={
-      <section id="contact" className="py-20 px-6 bg-[var(--gray-light)]">
-        <div className="max-w-2xl mx-auto">
-          <div className="h-8 w-48 bg-gray-100 rounded animate-pulse mb-4" />
-          <div className="h-64 bg-gray-50 rounded-xl animate-pulse" />
-        </div>
-      </section>
-    }>
+    <Suspense
+      fallback={
+        <section id="contact" className="py-24 px-6">
+          <div className="max-w-xl">
+            <div className="h-8 w-48 bg-gray-100 rounded mb-4" />
+            <div className="h-64 bg-gray-50 rounded-lg" />
+          </div>
+        </section>
+      }
+    >
       <ContactFormInner />
     </Suspense>
   )

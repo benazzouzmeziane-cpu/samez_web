@@ -1,11 +1,17 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Figtree, Syne } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const inter = Inter({
+const syne = Syne({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-syne',
+  display: 'swap',
+})
+
+const figtree = Figtree({
+  subsets: ['latin'],
+  variable: '--font-figtree',
   display: 'swap',
 })
 
@@ -101,14 +107,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr" className={inter.variable}>
+    <html lang="fr" className={`${syne.variable} ${figtree.variable}`}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased bg-white text-black font-[family-name:var(--font-inter)]">
+      <body className="antialiased bg-white text-[var(--foreground)] font-[family-name:var(--font-figtree)]">
         {children}
         <Analytics />
       </body>

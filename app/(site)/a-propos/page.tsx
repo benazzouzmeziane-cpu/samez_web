@@ -8,15 +8,15 @@ export const metadata: Metadata = {
 
 export default function AProposPage() {
   return (
-    <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
-      <div className="max-w-3xl">
-        <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">À propos</p>
-        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-8">
-          same<span>&apos;</span>z
+    <div className="pt-28 pb-24 px-6 max-w-6xl mx-auto">
+      <div className="max-w-2xl">
+        <p className="text-sm font-medium text-[var(--accent)] tracking-wide mb-4">À propos</p>
+        <h1 className="font-display text-4xl md:text-6xl font-semibold tracking-tight mb-10">
+          <span className="gradient-text">same&apos;z</span>
         </h1>
 
-        <div className="space-y-6 text-gray-600 leading-relaxed">
-          <p className="text-xl text-gray-800 font-light">
+        <div className="space-y-8 text-gray-600 leading-relaxed">
+          <p className="text-xl md:text-2xl text-gray-800 font-medium leading-snug">
             Développeur indépendant spécialisé dans les solutions logicielles sur mesure pour les entreprises et les entrepreneurs.
           </p>
 
@@ -36,29 +36,26 @@ export default function AProposPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 border border-gray-100 rounded-xl hover:border-[var(--accent)] transition-colors">
-            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-3">Contact</p>
-            <div className="space-y-1">
-              <a href="mailto:contact@samez.fr" className="block text-sm hover:text-gray-600 transition-colors">
+        <div className="mt-14 pt-10 border-t border-black/[0.06] grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div>
+            <p className="text-xs font-medium text-[var(--accent)] tracking-wide mb-3">Contact</p>
+            <div className="space-y-1.5">
+              <a href="mailto:contact@samez.fr" className="block text-sm text-gray-700 link-quiet">
                 contact@samez.fr
               </a>
-              <a href="tel:0752087416" className="block text-sm hover:text-gray-600 transition-colors">
+              <a href="tel:0752087416" className="block text-sm text-gray-700 link-quiet">
                 07 52 08 74 16
               </a>
             </div>
           </div>
-          <div className="p-6 border border-gray-100 rounded-xl hover:border-[var(--accent)] transition-colors">
-            <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-3">Disponibilité</p>
+          <div>
+            <p className="text-xs font-medium text-[var(--accent)] tracking-wide mb-3">Disponibilité</p>
             <p className="text-sm text-gray-600">Réponse sous 24h — du lundi au vendredi</p>
           </div>
         </div>
 
         <div className="mt-10">
-          <Link
-            href="/#contact"
-            className="inline-block px-8 py-3.5 bg-[var(--accent)] text-white text-sm font-medium rounded-full hover:bg-[var(--accent-dark)] transition-colors"
-          >
+          <Link href="/#contact" className="btn btn-primary">
             Démarrer un projet
           </Link>
         </div>

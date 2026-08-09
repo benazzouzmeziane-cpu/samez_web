@@ -2,28 +2,25 @@
 
 import Link from 'next/link'
 import ScrollReveal from '@/components/ui/ScrollReveal'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBolt, faChartLine, faPuzzlePiece, faRocket } from '@fortawesome/free-solid-svg-icons'
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
-const services: { icon: IconDefinition; title: string; description: string }[] = [
+const services = [
   {
-    icon: faBolt,
+    number: '01',
     title: 'Automatisation',
     description: 'Éliminez les tâches répétitives. Workflows automatisés, intégrations API, bots sur mesure.',
   },
   {
-    icon: faChartLine,
+    number: '02',
     title: 'Analyse de conversion',
     description: 'Tracking avancé, dashboards temps réel, A/B testing. Comprenez ce qui convertit.',
   },
   {
-    icon: faPuzzlePiece,
+    number: '03',
     title: 'Outils internes & extensions',
     description: 'Extensions Chrome, back-offices, outils de productivité taillés pour votre équipe.',
   },
   {
-    icon: faRocket,
+    number: '04',
     title: 'Applications métiers',
     description: 'Apps web robustes du cahier des charges à la production. SaaS, marketplace, API.',
   },
@@ -31,49 +28,43 @@ const services: { icon: IconDefinition; title: string; description: string }[] =
 
 export default function ServicesPreview() {
   return (
-    <section className="py-24 px-6 bg-[var(--gray-light)] relative overflow-hidden">
-      {/* Background blobs */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-100/30 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-teal-100/20 blur-3xl pointer-events-none" />
+    <section className="py-24 md:py-32 px-6 relative overflow-hidden">
+      <div className="absolute inset-0 mesh-bg opacity-60 pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative">
         <ScrollReveal>
-          <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">
+          <p className="text-sm font-medium text-[var(--accent)] tracking-wide mb-4">
             Services
           </p>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+          <h2 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-4 max-w-xl">
             Ce que je construis pour vous
           </h2>
-          <p className="text-lg text-gray-500 font-light max-w-xl mb-14">
+          <p className="text-lg text-gray-500 max-w-xl mb-16">
             Des solutions techniques concrètes qui résolvent vos problèmes business.
           </p>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <ul className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
           {services.map((s, i) => (
-            <ScrollReveal key={s.title} delay={i * 0.1}>
-              <div className="group glass-card p-7 rounded-2xl hover:border-[var(--accent)] hover:shadow-xl hover:shadow-emerald-100/60 transition-all duration-300 h-full">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-4 group-hover:from-[var(--accent)] group-hover:to-emerald-400 transition-all">
-                  <FontAwesomeIcon icon={s.icon} className="w-5 h-5 text-[var(--accent)] group-hover:text-white transition-colors" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 group-hover:text-[var(--accent)] transition-colors">
+            <ScrollReveal key={s.number} delay={i * 0.04}>
+              <li className="grid grid-cols-[auto_1fr] md:grid-cols-[4rem_1fr_1.2fr] gap-4 md:gap-8 py-8 md:py-10 items-baseline">
+                <span className="font-display text-sm font-semibold text-[var(--accent)] tabular-nums">
+                  {s.number}
+                </span>
+                <h3 className="font-display text-xl md:text-2xl font-semibold tracking-tight">
                   {s.title}
                 </h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{s.description}</p>
-              </div>
+                <p className="text-sm md:text-base text-gray-500 leading-relaxed col-span-2 md:col-span-1 md:col-start-3">
+                  {s.description}
+                </p>
+              </li>
             </ScrollReveal>
           ))}
-        </div>
+        </ul>
 
-        <ScrollReveal delay={0.4} className="mt-12 text-center">
-          <Link
-            href="/services"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-dark)] transition-colors"
-          >
+        <ScrollReveal delay={0.2} className="mt-12">
+          <Link href="/services" className="btn btn-secondary">
             Découvrir tous les services
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
           </Link>
         </ScrollReveal>
       </div>

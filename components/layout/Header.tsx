@@ -9,7 +9,6 @@ const navLinks = [
   { href: '/realisations', label: 'Réalisations' },
   { href: '/a-propos', label: 'À propos' },
   { href: '/espace-client', label: 'Espace client' },
-  { href: '/#contact', label: 'Contact' },
 ]
 
 export default function Header() {
@@ -19,60 +18,85 @@ export default function Header() {
   if (pathname.startsWith('/admin')) return null
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-emerald-100/60">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-md border-b border-black/[0.04]">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="text-xl font-semibold tracking-tight gradient-text">
+        <Link
+          href="/"
+          className="font-display text-xl font-semibold tracking-tight gradient-text"
+        >
           same<span>&apos;</span>z
         </Link>
 
-        {/* Nav desktop */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.slice(0, -1).map(link => (
+          {navLinks.map(link => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm text-gray-600 hover:text-black transition-colors"
+              className={`text-sm link-quiet ${
+                pathname === link.href || pathname.startsWith(link.href + '/')
+                  ? 'text-black'
+                  : 'text-gray-500'
+              }`}
             >
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/#contact"
-            className="text-sm px-5 py-2 bg-[var(--accent)] text-white rounded-full hover:bg-[var(--accent-dark)] transition-colors font-medium"
-          >
+          <Link href="/#contact" className="btn btn-primary !py-2.5 !px-4">
             Contact
           </Link>
         </nav>
 
-        {/* Burger mobile */}
         <button
-          className="md:hidden p-2"
+          type="button"
+          className="md:hidden p-2 btn !p-2"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
           aria-expanded={menuOpen}
           aria-controls="mobile-nav"
         >
-          <div className={`w-5 h-0.5 bg-black mb-1 transition-all ${menuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
-          <div className={`w-5 h-0.5 bg-black mb-1 transition-all ${menuOpen ? 'opacity-0' : ''}`} />
-          <div className={`w-5 h-0.5 bg-black transition-all ${menuOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
+          <span className="sr-only">{menuOpen ? 'Fermer' : 'Menu'}</span>
+          <div
+            className={`w-5 h-0.5 bg-black mb-1 transition-[transform,opacity] duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+              menuOpen ? 'rotate-45 translate-y-1.5' : ''
+            }`}
+          />
+          <div
+            className={`w-5 h-0.5 bg-black mb-1 transition-opacity duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+              menuOpen ? 'opacity-0' : ''
+            }`}
+          />
+          <div
+            className={`w-5 h-0.5 bg-black transition-[transform] duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+              menuOpen ? '-rotate-45 -translate-y-1.5' : ''
+            }`}
+          />
         </button>
       </div>
 
-      {/* Menu mobile */}
-      {menuOpen && (
-        <div id="mobile-nav" className="md:hidden border-t border-gray-100 bg-white">
-          {navLinks.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="block px-6 py-4 text-sm text-gray-700 hover:text-black border-b border-gray-50"
-              onClick={() => setMenuOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      )}
+      <div
+        id="mobile-nav"
+        className={`md:hidden overflow-hidden border-t border-black/[0.04] bg-white transition-[max-height,opacity] duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+          menuOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0 border-t-0'
+        }`}
+      >
+        {navLinks.map(link => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="block px-6 py-3.5 text-sm text-gray-700 link-quiet border-b border-black/[0.03]"
+            onClick={() => setMenuOpen(false)}
+          >
+            {link.label}
+          </Link>
+        ))}
+        <Link
+          href="/#contact"
+          className="block px-6 py-3.5 text-sm font-medium text-[var(--accent)]"
+          onClick={() => setMenuOpen(false)}
+        >
+          Contact
+        </Link>
+      </div>
     </header>
   )
 }

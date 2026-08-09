@@ -79,19 +79,21 @@ export default function EspaceClientPage() {
     }
   }
 
+  const inputClass =
+    'w-full px-4 py-3 border border-black/[0.08] bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-[border-color] duration-[var(--duration-ui)] ease'
+
   return (
-    <main className="min-h-[70vh] flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+    <main className="min-h-[70vh] flex items-center justify-center px-6 py-24 relative overflow-hidden">
+      <div className="absolute inset-0 mesh-bg opacity-40 pointer-events-none" />
+      <div className="relative w-full max-w-sm">
+        <div className="mb-10">
+          <p className="text-sm font-medium text-[var(--accent)] tracking-wide mb-3">
+            Compte
+          </p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">
             {mode === 'forgot' ? 'Mot de passe oublié' : 'Espace client'}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-2 leading-relaxed">
             {mode === 'forgot'
               ? 'Recevez un lien pour réinitialiser votre mot de passe'
               : 'Connectez-vous pour suivre vos documents'}
@@ -99,13 +101,10 @@ export default function EspaceClientPage() {
         </div>
 
         {mode === 'forgot' && forgotSent ? (
-          <div className="p-5 bg-[var(--accent-light)] rounded-xl text-center">
-            <svg className="w-8 h-8 text-[var(--accent)] mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            <p className="text-sm font-medium text-[var(--accent-dark)]">Si un compte existe, un email a été envoyé.</p>
-            <p className="text-xs text-[var(--accent)] mt-1">
-              Vérifiez votre boîte mail (et les indésirables).
+          <div className="py-6 border-y border-black/[0.06]">
+            <p className="font-display text-lg font-semibold mb-2">Email envoyé</p>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Si un compte existe, un email a été envoyé. Vérifiez aussi vos indésirables.
             </p>
             <button
               type="button"
@@ -114,7 +113,7 @@ export default function EspaceClientPage() {
                 setForgotSent(false)
                 setError('')
               }}
-              className="mt-4 text-xs text-[var(--accent)] hover:underline"
+              className="mt-4 text-sm text-[var(--accent)] underline underline-offset-2"
             >
               Retour à la connexion
             </button>
@@ -122,7 +121,7 @@ export default function EspaceClientPage() {
         ) : mode === 'forgot' ? (
           <form onSubmit={handleForgot} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
+              <label className="block text-sm font-medium mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -130,7 +129,7 @@ export default function EspaceClientPage() {
                 placeholder="votre@email.fr"
                 required
                 autoFocus
-                className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
+                className={inputClass}
               />
             </div>
 
@@ -139,7 +138,7 @@ export default function EspaceClientPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
+              className="btn btn-primary w-full disabled:opacity-50"
             >
               {loading ? 'Envoi...' : 'Envoyer le lien'}
             </button>
@@ -150,7 +149,7 @@ export default function EspaceClientPage() {
                 setMode('login')
                 setError('')
               }}
-              className="w-full text-xs text-gray-500 hover:text-[var(--accent)] transition-colors"
+              className="w-full text-sm text-gray-500 link-quiet"
             >
               Retour à la connexion
             </button>
@@ -158,19 +157,19 @@ export default function EspaceClientPage() {
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
+              <label className="block text-sm font-medium mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="votre@email.fr"
                 required
-                className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
+                className={inputClass}
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-gray-500">Mot de passe</label>
+                <label className="block text-sm font-medium">Mot de passe</label>
                 <button
                   type="button"
                   onClick={() => {
@@ -178,7 +177,7 @@ export default function EspaceClientPage() {
                     setError('')
                     setForgotSent(false)
                   }}
-                  className="text-xs text-[var(--accent)] hover:underline"
+                  className="text-xs text-[var(--accent)] underline underline-offset-2"
                 >
                   Mot de passe oublié ?
                 </button>
@@ -189,7 +188,7 @@ export default function EspaceClientPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full px-4 py-3 border border-gray-200 bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
+                className={inputClass}
               />
             </div>
 
@@ -198,22 +197,19 @@ export default function EspaceClientPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
+              className="btn btn-primary w-full disabled:opacity-50"
             >
               {loading ? 'Connexion...' : 'Se connecter'}
             </button>
           </form>
         )}
 
-        <div className="mt-8 p-5 bg-[#fafafa] rounded-xl border border-gray-100 text-center space-y-3">
-          <p className="text-sm font-medium text-gray-800">Pas encore de compte ?</p>
-          <p className="text-xs text-gray-500">
+        <div className="mt-10 pt-8 border-t border-black/[0.06] space-y-3">
+          <p className="font-display text-base font-semibold tracking-tight">Pas encore de compte ?</p>
+          <p className="text-sm text-gray-500 leading-relaxed">
             Créez votre accès en 1 minute : vous recevrez un email pour définir votre mot de passe.
           </p>
-          <Link
-            href="/#contact?compte=1"
-            className="inline-flex items-center justify-center w-full py-3 border-2 border-[var(--accent)] text-[var(--accent)] text-sm font-medium rounded-lg hover:bg-[var(--accent)] hover:text-white transition-colors"
-          >
+          <Link href="/#contact?compte=1" className="btn btn-secondary w-full">
             Créer mon compte
           </Link>
         </div>

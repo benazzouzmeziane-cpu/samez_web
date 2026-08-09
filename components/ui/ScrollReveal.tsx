@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import type { ReactNode } from 'react'
 
 interface ScrollRevealProps {
@@ -11,26 +11,44 @@ interface ScrollRevealProps {
   distance?: number
 }
 
+const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1]
+
+function offsetTransform(
+  direction: ScrollRevealProps['direction'],
+  distance: number,
+) {
+  switch (direction) {
+    case 'down':
+      return `translateY(${-distance}px)`
+    case 'left':
+      return `translateX(${distance}px)`
+    case 'right':
+      return `translateX(${-distance}px)`
+    case 'up':
+    default:
+      return `translateY(${distance}px)`
+  }
+}
+
 export default function ScrollReveal({
   children,
   className = '',
   delay = 0,
   direction = 'up',
-  distance = 30,
+  distance = 12,
 }: ScrollRevealProps) {
-  const directionOffset = {
-    up: { y: distance, x: 0 },
-    down: { y: -distance, x: 0 },
-    left: { x: distance, y: 0 },
-    right: { x: -distance, y: 0 },
+  const shouldReduceMotion = useReducedMotion()
+
+  if (shouldReduceMotion) {
+    return <div className={className}>{children}</div>
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, ...directionOffset[direction] }}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.6, delay, ease: [0.25, 0.1, 0.25, 1] }}
+      initial={{ opacity: 0, transform: offsetTransform(direction, distance) }}
+      whileInView={{ opacity: 1, transform: 'translate(0px, 0px)' }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.45, delay, ease: EASE_OUT }}
       className={className}
     >
       {children}

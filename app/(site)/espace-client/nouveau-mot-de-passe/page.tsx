@@ -131,7 +131,7 @@ function PasswordForm() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight mb-1">Lien expiré</h1>
+          <h1 className="font-display text-xl font-semibold tracking-tight mb-1">Lien expiré</h1>
           <p className="text-sm text-gray-500 mb-6">
             Ce lien n&apos;est plus valide. Demandez un nouveau lien
             {isRecovery ? ' de réinitialisation' : ' pour créer votre mot de passe'}.
@@ -159,7 +159,7 @@ function PasswordForm() {
               <button
                 type="submit"
                 disabled={resending}
-                className="w-full py-3 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
+                className="btn btn-primary w-full disabled:opacity-50"
               >
                 {resending ? 'Envoi...' : 'Renvoyer le lien'}
               </button>
@@ -184,7 +184,7 @@ function PasswordForm() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
             {isRecovery ? 'Nouveau mot de passe' : 'Créez votre mot de passe'}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -236,7 +236,7 @@ function PasswordForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
+              className="btn btn-primary w-full disabled:opacity-50"
             >
               {loading ? 'Enregistrement...' : isRecovery ? 'Enregistrer' : 'Créer mon mot de passe'}
             </button>

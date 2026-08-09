@@ -7,19 +7,19 @@ export const metadata: Metadata = {
 
 export default function MentionsLegalesPage() {
   return (
-    <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
+    <div className="pt-28 pb-24 px-6 max-w-6xl mx-auto">
       <div className="max-w-3xl">
-        <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
+        <p className="text-sm font-medium text-gray-400 tracking-wide mb-4">
           Juridique
         </p>
-        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-10">
+        <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-10">
           Mentions légales
         </h1>
 
         <div className="space-y-10 text-gray-600 leading-relaxed text-sm">
           {/* Éditeur */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">1. Éditeur du site</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">1. Éditeur du site</h2>
             <p>
               Le site <strong>samez.fr</strong> est édité par :
             </p>
@@ -36,13 +36,13 @@ export default function MentionsLegalesPage() {
 
           {/* Directeur de publication */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">2. Directeur de la publication</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">2. Directeur de la publication</h2>
             <p>Benazzouz Meziane — <a href="mailto:contact@samez.fr" className="underline underline-offset-2 hover:text-black transition-colors">contact@samez.fr</a></p>
           </section>
 
           {/* Hébergeur */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">3. Hébergement</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">3. Hébergement</h2>
             <ul className="space-y-1.5">
               <li><strong>Hébergeur :</strong> Vercel Inc.</li>
               <li><strong>Adresse :</strong> 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis</li>
@@ -52,7 +52,7 @@ export default function MentionsLegalesPage() {
 
           {/* Propriété intellectuelle */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">4. Propriété intellectuelle</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">4. Propriété intellectuelle</h2>
             <p>
               L&apos;ensemble du contenu du site samez.fr (textes, images, graphismes, logo, icônes, logiciels, etc.)
               est la propriété exclusive de same&apos;z ou de ses partenaires. Toute reproduction, représentation,
@@ -63,7 +63,7 @@ export default function MentionsLegalesPage() {
 
           {/* Responsabilité */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">5. Limitation de responsabilité</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">5. Limitation de responsabilité</h2>
             <p>
               same&apos;z s&apos;efforce de fournir des informations aussi précises que possible sur le site.
               Toutefois, same&apos;z ne pourra être tenu responsable des omissions, des inexactitudes et des
@@ -74,7 +74,7 @@ export default function MentionsLegalesPage() {
 
           {/* Données personnelles */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">6. Données personnelles</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">6. Données personnelles</h2>
             <p>
               Les informations recueillies via le formulaire de contact sont enregistrées dans un fichier
               informatisé pour le traitement de vos demandes. Elles sont conservées pendant 3 ans et sont
@@ -92,7 +92,7 @@ export default function MentionsLegalesPage() {
 
           {/* Cookies */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">7. Cookies</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">7. Cookies</h2>
             <p>
               Le site samez.fr utilise des cookies strictement nécessaires au fonctionnement du site
               (authentification, session). Aucun cookie publicitaire ou de tracking tiers n&apos;est utilisé.
@@ -101,7 +101,7 @@ export default function MentionsLegalesPage() {
 
           {/* Droit applicable */}
           <section>
-            <h2 className="text-lg font-semibold text-black mb-4">8. Droit applicable</h2>
+            <h2 className="font-display text-lg font-semibold text-black mb-4">8. Droit applicable</h2>
             <p>
               Les présentes mentions légales sont soumises au droit français. En cas de litige,
               les tribunaux de Paris seront seuls compétents.

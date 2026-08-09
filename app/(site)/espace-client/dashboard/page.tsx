@@ -70,18 +70,20 @@ export default async function EspaceClientDashboard() {
   const clientFirstName = client.name.split(' ')[0]
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-16">
+    <main className="max-w-4xl mx-auto px-6 py-24">
       {/* En-tête */}
-      <div className="flex items-start justify-between mb-10">
+      <div className="flex items-start justify-between mb-12">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[var(--accent-light)] flex items-center justify-center">
-            <span className="text-sm font-bold text-[var(--accent)]">
+          <div className="w-10 h-10 rounded-lg bg-[var(--accent-light)] flex items-center justify-center">
+            <span className="font-display text-sm font-semibold text-[var(--accent)]">
               {client.name.charAt(0).toUpperCase()}
             </span>
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Bonjour {clientFirstName}</h1>
-            <p className="text-sm text-gray-500">Voici l&apos;état de vos documents</p>
+            <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
+              Bonjour {clientFirstName}
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">Voici l&apos;état de vos documents</p>
           </div>
         </div>
         <ClientLogoutButton />
@@ -112,8 +114,8 @@ export default async function EspaceClientDashboard() {
               color: 'text-[var(--accent)]',
             },
           ].map((stat) => (
-            <div key={stat.label} className="p-4 bg-[#fafafa] rounded-xl border border-gray-100 text-center">
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+            <div key={stat.label} className="p-4 border border-black/[0.06] rounded-lg text-center">
+              <p className={`font-display text-2xl font-semibold ${stat.color}`}>{stat.value}</p>
               <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
             </div>
           ))}
@@ -153,22 +155,22 @@ export default async function EspaceClientDashboard() {
             const displayStatus = isOverdue ? 'en retard' : piece.status
 
             return (
-              <div key={piece.id} className="p-5 bg-white rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+              <div key={piece.id} className="p-5 bg-white rounded-lg border border-black/[0.06]">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider">
+                      <span className="text-xs font-medium text-[var(--accent)] tracking-wide">
                         {piece.type === 'devis' ? 'Devis' : 'Facture'}
                       </span>
-                      <span className={`inline-block px-2 py-0.5 text-[10px] font-medium rounded-full ${STATUS_STYLES[displayStatus] || ''}`}>
+                      <span className={`inline-block px-2 py-0.5 text-[10px] font-medium rounded-md ${STATUS_STYLES[displayStatus] || ''}`}>
                         {displayStatus === 'en retard' ? 'En retard' : (STATUS_LABELS[piece.status] || piece.status)}
                       </span>
                     </div>
-                    <p className="font-mono text-sm font-semibold">{piece.number}</p>
+                    <p className="font-display text-sm font-semibold">{piece.number}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-gray-900">{totalTTC.toFixed(2)} €</p>
-                    <p className="text-[10px] text-gray-400 uppercase">TTC</p>
+                    <p className="font-display text-lg font-semibold text-gray-900">{totalTTC.toFixed(2)} €</p>
+                    <p className="text-[10px] text-gray-400 tracking-wide">TTC</p>
                   </div>
                 </div>
 

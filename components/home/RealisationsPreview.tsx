@@ -16,59 +16,54 @@ export default async function RealisationsPreview() {
   if (!realisations || realisations.length === 0) return null
 
   return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-50/50 blur-3xl pointer-events-none" />
-      <div className="max-w-6xl mx-auto px-6">
-        <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">
+    <section className="py-24 md:py-32 relative overflow-hidden bg-[var(--gray-light)]">
+      <div className="max-w-6xl mx-auto px-6 mb-14">
+        <p className="text-sm font-medium text-[var(--accent)] tracking-wide mb-4">
           Réalisations
         </p>
-        <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+        <h2 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-4 max-w-xl">
           Derniers projets
         </h2>
-        <p className="text-lg text-gray-500 font-light max-w-xl mb-14">
+        <p className="text-lg text-gray-500 max-w-xl">
           Un aperçu de quelques projets menés à bien.
         </p>
       </div>
 
-      {/* Scroll horizontal mobile, grille desktop */}
-      <div className="max-w-6xl mx-auto px-6 md:px-6">
-        <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 md:pb-0 -mx-6 px-6 md:mx-0 md:px-0 scrollbar-hide">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="flex md:grid md:grid-cols-3 gap-8 overflow-x-auto md:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 md:pb-0 -mx-6 px-6 md:mx-0 md:px-0 scrollbar-hide">
           {realisations.map((r) => (
-            <div
+            <article
               key={r.id}
-              className="group glass-card rounded-2xl overflow-hidden hover:border-[var(--accent)] hover:shadow-xl hover:shadow-emerald-100/60 transition-all duration-300 snap-start shrink-0 w-[85vw] md:w-auto flex flex-col"
+              className="group snap-start shrink-0 w-[85vw] md:w-auto flex flex-col"
             >
               {r.image_url && (
-                <div className="relative overflow-hidden aspect-[16/10]">
+                <div className="relative overflow-hidden aspect-[16/10] mb-5 bg-emerald-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={r.image_url}
                     alt={r.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover transition-transform duration-[var(--duration-ui)] ease-[var(--ease-out)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-[1.02]"
                   />
                 </div>
               )}
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="text-lg font-semibold mb-2 leading-snug">{r.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed mb-5 flex-1">{r.description}</p>
-                <div className="mt-auto">
-                  <ProjectPreviewModal title={r.title} url={r.link} />
-                </div>
+              <h3 className="font-display text-xl font-semibold tracking-tight mb-2 leading-snug">
+                {r.title}
+              </h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-5 flex-1">
+                {r.description}
+              </p>
+              <div className="mt-auto">
+                <ProjectPreviewModal title={r.title} url={r.link} />
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 mt-12 text-center">
-          <Link
-            href="/realisations"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-dark)] transition-colors"
-          >
-            Voir toutes les réalisations
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </Link>
+      <div className="max-w-6xl mx-auto px-6 mt-14">
+        <Link href="/realisations" className="btn btn-secondary">
+          Voir toutes les réalisations
+        </Link>
       </div>
     </section>
   )

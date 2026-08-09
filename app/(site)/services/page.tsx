@@ -39,32 +39,34 @@ const services = [
 
 export default function ServicesPage() {
   return (
-    <div className="pt-24 pb-20 px-6 max-w-6xl mx-auto">
-      <div className="mb-16">
-        <p className="text-sm font-medium text-[var(--accent)] uppercase tracking-wider mb-4">Services</p>
-        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4">
+    <div className="pt-28 pb-24 px-6 max-w-6xl mx-auto">
+      <div className="mb-16 max-w-2xl">
+        <p className="text-sm font-medium text-[var(--accent)] tracking-wide mb-4">Services</p>
+        <h1 className="font-display text-4xl md:text-6xl font-semibold tracking-tight mb-5">
           Ce que je fais
         </h1>
-        <p className="text-xl text-gray-500 font-light max-w-2xl">
+        <p className="text-xl text-gray-500 leading-relaxed">
           Des solutions logicielles robustes qui font gagner du temps et augmentent vos revenus.
         </p>
       </div>
 
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-black/[0.06] border-y border-black/[0.06]">
         {services.map((s) => (
-          <div key={s.number} className="py-10 grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div key={s.number} className="py-12 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
             <div className="md:col-span-1">
-              <span className="text-sm text-[var(--accent)] font-mono font-semibold">{s.number}</span>
+              <span className="font-display text-sm font-semibold text-[var(--accent)] tabular-nums">
+                {s.number}
+              </span>
             </div>
             <div className="md:col-span-5">
-              <h2 className="text-xl font-semibold mb-3">{s.title}</h2>
+              <h2 className="font-display text-2xl font-semibold tracking-tight mb-3">{s.title}</h2>
               <p className="text-gray-500 leading-relaxed">{s.description}</p>
             </div>
             <div className="md:col-span-5 md:col-start-8">
-              <ul className="space-y-1.5">
+              <ul className="space-y-2">
                 {s.details.map((d) => (
-                  <li key={d} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="w-1 h-1 bg-[var(--accent)] rounded-full inline-block flex-shrink-0" />
+                  <li key={d} className="flex items-start gap-3 text-sm text-gray-600">
+                    <span className="mt-2 w-1 h-1 bg-[var(--accent)] rounded-full shrink-0" />
                     {d}
                   </li>
                 ))}
@@ -74,12 +76,9 @@ export default function ServicesPage() {
         ))}
       </div>
 
-      <div className="mt-16 pt-10 border-t border-gray-100">
-        <p className="text-lg text-gray-600 mb-4">Un projet en tête ?</p>
-        <Link
-          href="/#contact"
-          className="inline-block px-8 py-3.5 bg-[var(--accent)] text-white text-sm font-medium rounded-full hover:bg-[var(--accent-dark)] transition-colors"
-        >
+      <div className="mt-16 pt-10 border-t border-black/[0.06]">
+        <p className="font-display text-xl font-semibold tracking-tight mb-5">Un projet en tête ?</p>
+        <Link href="/#contact" className="btn btn-primary">
           Prendre contact
         </Link>
       </div>
