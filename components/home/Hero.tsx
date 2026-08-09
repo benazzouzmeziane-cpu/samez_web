@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
+import HeroIsometric from '@/components/home/HeroIsometric'
 
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1]
 
@@ -11,6 +12,7 @@ export default function Hero() {
   return (
     <section className="relative min-h-[100svh] overflow-hidden flex items-end md:items-center">
       <div className="absolute inset-0 mesh-bg" />
+      <HeroIsometric />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-28 pb-16 md:py-32">
         <motion.div
