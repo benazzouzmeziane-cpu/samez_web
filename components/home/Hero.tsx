@@ -2,12 +2,6 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import dynamic from 'next/dynamic'
-
-const HeroFramePlayer = dynamic(() => import('./HeroFramePlayer'), {
-  ssr: false,
-  loading: () => <div className="absolute inset-0 mesh-bg" />,
-})
 
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1]
 
@@ -16,15 +10,7 @@ export default function Hero() {
 
   return (
     <section className="relative min-h-[100svh] overflow-hidden flex items-end md:items-center">
-      {/* Full-bleed visual plane */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 mesh-bg" />
-        <div className="absolute inset-0 opacity-90 max-md:opacity-70">
-          <HeroFramePlayer cover className="min-h-full" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/40 md:via-white/85 md:to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-white/50 md:hidden" />
-      </div>
+      <div className="absolute inset-0 mesh-bg" />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-28 pb-16 md:py-32">
         <motion.div
