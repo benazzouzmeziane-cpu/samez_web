@@ -31,14 +31,16 @@ ADMIN_EMAILS=contact@samez.fr
 SMTP_USER=
 SMTP_PASSWORD=
 
-# Optionnel — création de compte client via formulaire public (désactivée par défaut)
-# CONTACT_ALLOW_PUBLIC_ACCOUNT_CREATION=true
-# CONTACT_ACCOUNT_CREATION_SECRET=...
+# Création de compte client via formulaire public (#contact)
+CONTACT_ALLOW_PUBLIC_ACCOUNT_CREATION=true
+# CONTACT_ACCOUNT_CREATION_SECRET=...   # optionnel, chemin interne
 ```
+
+Sur Vercel, ajouter aussi `CONTACT_ALLOW_PUBLIC_ACCOUNT_CREATION=true`.
 
 ## Sécurité / Supabase
 
-1. Exécuter `supabase/schema.sql` (ou la migration `supabase/migrations/20260807_fix_rls_admin_role.sql` si le schéma existe déjà).
+1. Exécuter `supabase/schema.sql` (ou les migrations dans `supabase/migrations/`, dont storage + `replace_piece_lines`).
 2. Attribuer le rôle admin aux comptes allowlistés :
 
 ```sql

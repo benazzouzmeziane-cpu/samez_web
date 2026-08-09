@@ -201,17 +201,29 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           setSaving(false)
           return
         }
+      }
 
-        // Sauvegarder les lignes existantes pour rollback si l'insert échoue
-        const { data: previousLines } = await supabase
-          .from('piece_lines')
-          .select('description, quantity, unit_price, order_index')
-          .eq('piece_id', piece!.id)
+      const linePayload = lines
+        .filter((l) => l.description.trim())
+        .map((l, i) => ({
+          description: l.description.trim(),
+          quantity: Number(l.quantity),
+          unit_price: Number(l.unit_price),
+          order_index: i,
+        }))
 
+      // Remplacement atomique (transaction SQL) — fallback delete/insert si RPC absente
+      const { error: rpcErr } = await supabase.rpc('replace_piece_lines', {
+        p_piece_id: pieceId,
+        p_lines: linePayload,
+      })
+
+      if (rpcErr) {
+        console.warn('[PieceForm] replace_piece_lines RPC unavailable, fallback:', rpcErr.message)
         const { error: deleteErr } = await supabase
           .from('piece_lines')
           .delete()
-          .eq('piece_id', piece!.id)
+          .eq('piece_id', pieceId)
 
         if (deleteErr) {
           setError('Erreur lors de la mise à jour des lignes.')
@@ -219,44 +231,10 @@ export default function PieceForm({ piece, clients, mode, initialType, initialCl
           return
         }
 
-        const linePayload = lines
-          .filter((l) => l.description.trim())
-          .map((l, i) => ({
-            piece_id: pieceId,
-            description: l.description,
-            quantity: Number(l.quantity),
-            unit_price: Number(l.unit_price),
-            order_index: i,
-          }))
-
         if (linePayload.length > 0) {
-          const { error: linesErr } = await supabase.from('piece_lines').insert(linePayload)
-          if (linesErr) {
-            if (previousLines && previousLines.length > 0) {
-              await supabase.from('piece_lines').insert(
-                previousLines.map((l) => ({ ...l, piece_id: piece!.id }))
-              )
-            }
-            setError('Erreur lors de la sauvegarde des lignes. Anciennes lignes restaurées.')
-            setSaving(false)
-            return
-          }
-        }
-      }
-
-      if (mode === 'create') {
-        const linePayload = lines
-          .filter((l) => l.description.trim())
-          .map((l, i) => ({
-            piece_id: pieceId,
-            description: l.description,
-            quantity: Number(l.quantity),
-            unit_price: Number(l.unit_price),
-            order_index: i,
-          }))
-
-        if (linePayload.length > 0) {
-          const { error: linesErr } = await supabase.from('piece_lines').insert(linePayload)
+          const { error: linesErr } = await supabase.from('piece_lines').insert(
+            linePayload.map((l) => ({ ...l, piece_id: pieceId }))
+          )
           if (linesErr) {
             setError('Erreur lors de la sauvegarde des lignes.')
             setSaving(false)

@@ -139,7 +139,7 @@ export async function POST(request: Request) {
 
     let accountCreated = false
     if (canCreateAccount) {
-      accountCreated = await createClientAccount(supabase, data)
+      accountCreated = await createClientAccount(supabase, data, request)
     } else if (data.createAccount) {
       console.warn('[contact] Account creation blocked by security checks')
     }
@@ -165,10 +165,13 @@ export async function POST(request: Request) {
 
 async function createClientAccount(
   supabase: ReturnType<typeof createAdminClient>,
-  data: { name: string; email: string; phone?: string }
+  data: { name: string; email: string; phone?: string },
+  request: Request
 ): Promise<boolean> {
+  const email = data.email.toLowerCase().trim()
+
   const { error: clientError } = await supabase.from('clients').upsert(
-    [{ name: data.name, email: data.email, phone: data.phone || null }],
+    [{ name: data.name, email, phone: data.phone || null }],
     { onConflict: 'email' }
   )
   if (clientError) {
@@ -176,7 +179,7 @@ async function createClientAccount(
   }
 
   const { error: authError } = await supabase.auth.admin.createUser({
-    email: data.email,
+    email,
     email_confirm: true,
     app_metadata: { role: 'client' },
     user_metadata: { name: data.name },
@@ -188,7 +191,7 @@ async function createClientAccount(
 
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'magiclink',
-    email: data.email,
+    email,
   })
 
   if (linkError) {
@@ -202,14 +205,31 @@ async function createClientAccount(
     return false
   }
 
-  const inviteUrl = `https://samez.fr/espace-client/nouveau-mot-de-passe?token_hash=${tokenHash}&type=magiclink`
+  // Garantir le claim client (comptes existants créés avant le durcissement RLS)
+  const linkedUser = linkData.user
+  if (linkedUser?.id && linkedUser.app_metadata?.role !== 'client') {
+    const { error: metaErr } = await supabase.auth.admin.updateUserById(linkedUser.id, {
+      app_metadata: { ...linkedUser.app_metadata, role: 'client' },
+      user_metadata: { ...linkedUser.user_metadata, name: data.name },
+    })
+    if (metaErr) {
+      console.warn('[contact] failed to sync client role:', metaErr.message)
+    }
+  }
+
+  const baseUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'https://samez.fr'
+      : `http://${request.headers.get('host') || 'localhost:3000'}`
+  const inviteUrl = `${baseUrl}/espace-client/nouveau-mot-de-passe?token_hash=${tokenHash}&type=magiclink`
+
   try {
     await sendClientInviteEmail({
       name: data.name,
-      email: data.email,
+      email,
       inviteUrl,
     })
-    console.log('[contact] Invite email sent to:', data.email)
+    console.log('[contact] Invite email sent to:', email)
     return true
   } catch (inviteEmailError) {
     console.error('[contact] Invite email send failed:', inviteEmailError)

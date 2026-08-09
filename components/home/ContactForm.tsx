@@ -17,8 +17,11 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
+type SuccessKind = 'message' | 'message_and_account' | 'message_account_failed'
+
 export default function ContactForm() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [successKind, setSuccessKind] = useState<SuccessKind>('message')
   const [startedAt] = useState(() => Date.now())
 
   const {
@@ -42,6 +45,14 @@ export default function ContactForm() {
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error()
+
+      const result = await res.json().catch(() => ({}))
+      if (data.createAccount) {
+        setSuccessKind(result.accountCreated ? 'message_and_account' : 'message_account_failed')
+      } else {
+        setSuccessKind('message')
+      }
+
       setStatus('success')
       reset()
     } catch {
@@ -63,14 +74,28 @@ export default function ContactForm() {
             Réponse sous 24h — <a href="mailto:contact@samez.fr" className="hover:text-black transition-colors underline underline-offset-2">contact@samez.fr</a>
           </p>
 
-          {/* Blobs décoratifs */}
           <div className="absolute top-0 right-0 w-[350px] h-[350px] rounded-full bg-emerald-100/30 blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[250px] h-[250px] rounded-full bg-teal-100/20 blur-3xl pointer-events-none" />
 
           {status === 'success' ? (
             <div className="p-6 glass-card rounded-2xl">
               <p className="font-medium mb-1">Message envoyé.</p>
-              <p className="text-sm text-gray-500">Je vous recontacte sous 24h.</p>
+              {successKind === 'message_and_account' && (
+                <p className="text-sm text-gray-500">
+                  Un email vient de vous être envoyé pour créer votre mot de passe et accéder à l&apos;espace client.
+                  Vérifiez aussi vos indésirables.
+                </p>
+              )}
+              {successKind === 'message_account_failed' && (
+                <p className="text-sm text-gray-500">
+                  Votre message est bien reçu. L&apos;accès espace client n&apos;a pas pu être créé automatiquement —
+                  nous vous recontactons sous 24h, ou écrivez à{' '}
+                  <a href="mailto:contact@samez.fr" className="underline underline-offset-2">contact@samez.fr</a>.
+                </p>
+              )}
+              {successKind === 'message' && (
+                <p className="text-sm text-gray-500">Je vous recontacte sous 24h.</p>
+              )}
               <button
                 onClick={() => setStatus('idle')}
                 className="mt-4 text-sm underline underline-offset-2 hover:text-gray-600"
@@ -129,18 +154,21 @@ export default function ContactForm() {
                 )}
               </div>
 
-              <label className="flex items-start gap-3 cursor-pointer select-none">
+              <label className="flex items-start gap-3 cursor-pointer select-none p-4 rounded-xl border border-emerald-100/80 bg-white/50">
                 <input
                   {...register('createAccount')}
                   type="checkbox"
                   className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer"
                 />
                 <span className="text-sm text-gray-600">
-                  Je souhaite un accès espace client (nous vous enverrons les instructions après validation)
+                  <span className="font-medium text-gray-800">Créer mon espace client</span>
+                  <span className="block mt-1 text-xs text-gray-500 leading-relaxed">
+                    Vous recevrez un email pour définir votre mot de passe, puis pourrez suivre devis et factures sur{' '}
+                    <span className="text-[var(--accent)]">samez.fr/espace-client</span>.
+                  </span>
                 </span>
               </label>
 
-              {/* Honeypot anti-bot: ce champ doit rester vide */}
               <input
                 {...register('website')}
                 type="text"

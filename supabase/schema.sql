@@ -207,3 +207,44 @@ $$;
 
 REVOKE ALL ON FUNCTION public.next_piece_number(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.next_piece_number(TEXT) TO authenticated;
+
+-- Remplacement atomique des lignes
+CREATE OR REPLACE FUNCTION public.replace_piece_lines(
+  p_piece_id UUID,
+  p_lines JSONB DEFAULT '[]'::jsonb
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF (auth.jwt() -> 'app_metadata' ->> 'role') IS DISTINCT FROM 'admin' THEN
+    RAISE EXCEPTION 'accès refusé';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pieces WHERE id = p_piece_id) THEN
+    RAISE EXCEPTION 'pièce introuvable';
+  END IF;
+
+  DELETE FROM piece_lines WHERE piece_id = p_piece_id;
+
+  INSERT INTO piece_lines (piece_id, description, quantity, unit_price, order_index)
+  SELECT
+    p_piece_id,
+    trim(line->>'description'),
+    COALESCE(NULLIF(line->>'quantity', '')::NUMERIC, 1),
+    COALESCE(NULLIF(line->>'unit_price', '')::NUMERIC, 0),
+    COALESCE(NULLIF(line->>'order_index', '')::INTEGER, ord::INTEGER)
+  FROM jsonb_array_elements(COALESCE(p_lines, '[]'::jsonb)) WITH ORDINALITY AS t(line, ord)
+  WHERE trim(COALESCE(line->>'description', '')) <> '';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.replace_piece_lines(UUID, JSONB) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.replace_piece_lines(UUID, JSONB) TO authenticated;
+
+-- Storage : bucket images portfolio (policies aussi dans migrations/)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('realisations', 'realisations', true)
+ON CONFLICT (id) DO UPDATE SET public = true;

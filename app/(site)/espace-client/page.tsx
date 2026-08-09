@@ -207,11 +207,10 @@ export default function EspaceClientPage() {
 
         <div className="mt-8 p-4 bg-[#fafafa] rounded-xl border border-gray-100 text-center">
           <p className="text-xs text-gray-500">
-            Pas encore de compte ? Contactez-nous via le{' '}
-            <Link href="/#contact" className="text-[var(--accent)] hover:underline">formulaire</Link>
-            {' '}ou à{' '}
-            <a href="mailto:contact@samez.fr" className="text-[var(--accent)] hover:underline">contact@samez.fr</a>
-            {' '}— nous créerons votre accès.
+            Pas encore de compte ? Remplissez le{' '}
+            <Link href="/#contact" className="text-[var(--accent)] hover:underline">formulaire de contact</Link>
+            {' '}en cochant <span className="font-medium">« Créer mon espace client »</span>
+            {' '}— vous recevrez un email pour définir votre mot de passe.
           </p>
         </div>
       </div>
