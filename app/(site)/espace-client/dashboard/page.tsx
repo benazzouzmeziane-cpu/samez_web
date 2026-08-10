@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  brouillon: 'bg-gray-100 text-gray-500',
+  brouillon: 'bg-white/10 text-slate-400',
   envoyée: 'bg-blue-50 text-blue-600',
   payée: 'bg-emerald-50 text-emerald-600',
   annulée: 'bg-red-50 text-red-400',
@@ -47,13 +47,13 @@ export default async function EspaceClientDashboard() {
   if (!client) {
     return (
       <main className="max-w-4xl mx-auto px-6 py-16 text-center">
-        <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500">Votre espace n&apos;est pas encore configuré.</p>
-        <p className="text-xs text-gray-400 mt-1">Contactez-nous à <a href="mailto:contact@samez.fr" className="text-[var(--accent)] hover:underline">contact@samez.fr</a></p>
+        <p className="text-sm text-slate-400">Votre espace n&apos;est pas encore configuré.</p>
+        <p className="text-xs text-slate-500 mt-1">Contactez-nous à <a href="mailto:contact@samez.fr" className="text-[var(--accent)] hover:underline">contact@samez.fr</a></p>
       </main>
     )
   }
@@ -83,7 +83,7 @@ export default async function EspaceClientDashboard() {
             <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">
               Bonjour {clientFirstName}
             </h1>
-            <p className="text-sm text-gray-500 mt-0.5">Voici l&apos;état de vos documents</p>
+            <p className="text-sm text-slate-400 mt-0.5">Voici l&apos;état de vos documents</p>
           </div>
         </div>
         <ClientLogoutButton />
@@ -96,7 +96,7 @@ export default async function EspaceClientDashboard() {
             {
               label: 'Documents',
               value: pieces.length,
-              color: 'text-gray-900',
+              color: 'text-white',
             },
             {
               label: 'Devis',
@@ -106,7 +106,7 @@ export default async function EspaceClientDashboard() {
             {
               label: 'Factures',
               value: pieces.filter((p: { type: string }) => p.type === 'facture').length,
-              color: 'text-gray-900',
+              color: 'text-white',
             },
             {
               label: 'Payées',
@@ -116,7 +116,7 @@ export default async function EspaceClientDashboard() {
           ].map((stat) => (
             <div key={stat.label} className="p-4 border border-black/[0.06] rounded-lg text-center">
               <p className={`font-display text-2xl font-semibold ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+              <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -124,14 +124,14 @@ export default async function EspaceClientDashboard() {
 
       {/* Liste des pièces */}
       {!pieces || pieces.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="text-center py-20 text-slate-500">
+          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
           <p className="text-sm">Aucun document pour le moment.</p>
-          <p className="text-xs text-gray-300 mt-1">Vos devis et factures apparaîtront ici.</p>
+          <p className="text-xs text-slate-500 mt-1">Vos devis et factures apparaîtront ici.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -155,7 +155,7 @@ export default async function EspaceClientDashboard() {
             const displayStatus = isOverdue ? 'en retard' : piece.status
 
             return (
-              <div key={piece.id} className="p-5 bg-white rounded-lg border border-black/[0.06]">
+              <div key={piece.id} className="p-5 bg-[var(--navy-soft)] rounded-lg border border-black/[0.06]">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -169,12 +169,12 @@ export default async function EspaceClientDashboard() {
                     <p className="font-display text-sm font-semibold">{piece.number}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-display text-lg font-semibold text-gray-900">{totalTTC.toFixed(2)} €</p>
-                    <p className="text-[10px] text-gray-400 tracking-wide">TTC</p>
+                    <p className="font-display text-lg font-semibold text-white">{totalTTC.toFixed(2)} €</p>
+                    <p className="text-[10px] text-slate-500 tracking-wide">TTC</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-400">
                   <span>
                     Émis le{' '}
                     {new Date(piece.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -194,10 +194,10 @@ export default async function EspaceClientDashboard() {
                 </div>
 
                 {/* Détail des lignes */}
-                <div className="mt-4 pt-3 border-t border-gray-50">
+                <div className="mt-4 pt-3 border-t border-white/10">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="text-gray-400">
+                      <tr className="text-slate-500">
                         <th className="text-left font-medium pb-1">Prestation</th>
                         <th className="text-right font-medium pb-1 w-14">Qté</th>
                         <th className="text-right font-medium pb-1 w-20">P.U. HT</th>
@@ -206,7 +206,7 @@ export default async function EspaceClientDashboard() {
                     </thead>
                     <tbody>
                       {piece.piece_lines?.map((line: PieceLine, i: number) => (
-                        <tr key={i} className="text-gray-600">
+                        <tr key={i} className="text-slate-300">
                           <td className="py-0.5">{line.description}</td>
                           <td className="text-right py-0.5">{line.quantity}</td>
                           <td className="text-right py-0.5">{line.unit_price.toFixed(2)} €</td>
@@ -215,15 +215,15 @@ export default async function EspaceClientDashboard() {
                       ))}
                     </tbody>
                   </table>
-                  <div className="flex justify-end mt-2 pt-2 border-t border-gray-50 gap-4 text-xs">
-                    <span className="text-gray-400">HT : {totalHT.toFixed(2)} €</span>
-                    <span className="text-gray-400">TVA ({piece.tva_rate}%) : {(totalHT * piece.tva_rate / 100).toFixed(2)} €</span>
-                    <span className="font-semibold text-gray-900">TTC : {totalTTC.toFixed(2)} €</span>
+                  <div className="flex justify-end mt-2 pt-2 border-t border-white/10 gap-4 text-xs">
+                    <span className="text-slate-500">HT : {totalHT.toFixed(2)} €</span>
+                    <span className="text-slate-500">TVA ({piece.tva_rate}%) : {(totalHT * piece.tva_rate / 100).toFixed(2)} €</span>
+                    <span className="font-semibold text-white">TTC : {totalTTC.toFixed(2)} €</span>
                   </div>
                 </div>
 
                 {/* Télécharger PDF */}
-                <div className="mt-3 pt-3 border-t border-gray-50 flex justify-end">
+                <div className="mt-3 pt-3 border-t border-white/10 flex justify-end">
                   <a
                     href={`/api/pieces/pdf/${piece.id}`}
                     target="_blank"
@@ -243,7 +243,7 @@ export default async function EspaceClientDashboard() {
       )}
 
       {/* Footer */}
-      <div className="mt-16 text-center text-xs text-gray-400">
+      <div className="mt-16 text-center text-xs text-slate-500">
         <p>Un doute ou une question ? Contactez-nous à{' '}
           <a href="mailto:contact@samez.fr" className="text-[var(--accent)] hover:underline">contact@samez.fr</a>
         </p>

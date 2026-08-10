@@ -1,20 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --gray: #6b7280;
-  --gray-light: #f4faf7;
-  --border: #e5e7eb;
-  --accent: #059669;
+  --background: #0b162c;
+  --foreground: #f4f7fb;
+  --navy: #0b162c;
+  --navy-soft: #0f1f3d;
+  --navy-card: #152a4a;
+  --surface: #ffffff;
+  --surface-muted: #f3f6fa;
+  --gray: #94a3b8;
+  --gray-light: #1a2d4d;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --accent: #10b981;
   --accent-light: #d1fae5;
-  --accent-dark: #047857;
-  --mesh-1: #d1fae5;
-  --mesh-2: #a7f3d0;
-  --mesh-3: #ecfdf5;
-  --mesh-4: #f0fdf4;
+  --accent-dark: #059669;
+  --accent-dim: rgba(16, 185, 129, 0.15);
 
-  /* Emil motion tokens */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --duration-press: 160ms;
@@ -37,18 +39,18 @@
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #047857 0%, #059669 45%, #10b981 100%);
+  background: linear-gradient(135deg, #059669 0%, #10b981 45%, #34d399 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .mesh-bg {
-  background-color: #ffffff;
+  background-color: var(--navy);
   background-image:
-    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(167, 243, 208, 0.35) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 10%, rgba(209, 250, 229, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse 40% 50% at 50% 100%, rgba(236, 253, 245, 0.4) 0%, transparent 60%);
+    radial-gradient(ellipse 70% 50% at 15% 10%, rgba(16, 185, 129, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 90% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(15, 31, 61, 0.9) 0%, transparent 60%);
 }
 
 .btn {
@@ -60,7 +62,7 @@
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   transition:
     transform var(--duration-press) var(--ease-out),
     background-color var(--duration-ui) ease,
@@ -69,7 +71,6 @@
     opacity var(--duration-ui) ease;
 }
 
-/* Let Tailwind visibility utilities (e.g. md:hidden) win over .btn display */
 .btn.md\:hidden,
 .btn.hidden {
   display: none;
@@ -87,19 +88,20 @@
 
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: #042f2e;
+  font-weight: 600;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .btn-primary:hover {
-    background: var(--accent-dark);
+    background: #34d399;
   }
 }
 
 .btn-secondary {
   background: transparent;
   color: var(--foreground);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -109,14 +111,70 @@
   }
 }
 
+.btn-on-light {
+  background: var(--navy);
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-on-light:hover {
+    background: #152a4a;
+  }
+}
+
 .link-quiet {
   transition: color var(--duration-ui) ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .link-quiet:hover {
-    color: var(--foreground);
+    color: var(--accent);
   }
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.marquee__track {
+  display: flex;
+  width: max-content;
+  gap: 2.5rem;
+  animation: marquee 40s linear infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .marquee:hover .marquee__track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.faq-item summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item[open] .faq-chevron {
+  transform: rotate(45deg);
 }
 
 * {
@@ -146,7 +204,7 @@ h1, h2, h3, h4, .font-display {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #334155;
   border-radius: 2px;
 }
 
@@ -156,78 +214,6 @@ h1, h2, h3, h4, .font-display {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
-}
-
-/* Hero isometric system — marketing ambient motion */
-.hero-iso__stage {
-  animation: hero-iso-enter 500ms var(--ease-out) both;
-}
-
-.hero-iso__mod {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: hero-iso-float 6s var(--ease-in-out) infinite;
-}
-
-.hero-iso__mod--1 { animation-duration: 6.2s; animation-delay: 0s; }
-.hero-iso__mod--2 { animation-duration: 5.4s; animation-delay: -1.2s; }
-.hero-iso__mod--3 { animation-duration: 6.8s; animation-delay: -0.6s; }
-.hero-iso__mod--4 { animation-duration: 5.8s; animation-delay: -2s; }
-
-.hero-iso__flow {
-  animation: hero-iso-flow 2.4s linear infinite;
-}
-
-.hero-iso__flow--b { animation-duration: 2.8s; animation-delay: -0.4s; }
-.hero-iso__flow--c { animation-duration: 3.2s; animation-delay: -1s; }
-.hero-iso__flow--d,
-.hero-iso__flow--e { animation-duration: 2s; }
-
-.hero-iso__node {
-  animation: hero-iso-node 3.2s var(--ease-in-out) infinite;
-}
-
-.hero-iso__node--2 { animation-delay: -0.8s; }
-.hero-iso__node--3 { animation-delay: -1.6s; }
-.hero-iso__node--4 { animation-delay: -2.4s; }
-
-@keyframes hero-iso-enter {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes hero-iso-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes hero-iso-flow {
-  to {
-    stroke-dashoffset: -64;
-  }
-}
-
-@keyframes hero-iso-node {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: translateY(0);
-  }
-  50% {
-    opacity: 0.75;
-    transform: translateY(-2px);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -243,11 +229,7 @@ h1, h2, h3, h4, .font-display {
     transform: none;
   }
 
-  .hero-iso__stage,
-  .hero-iso__mod,
-  .hero-iso__flow,
-  .hero-iso__node {
+  .marquee__track {
     animation: none;
   }
-
 }

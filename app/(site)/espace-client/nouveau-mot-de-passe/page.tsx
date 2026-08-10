@@ -116,7 +116,7 @@ function PasswordForm() {
       <main className="min-h-[70vh] flex items-center justify-center">
         <div className="text-center">
           <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-xs text-gray-400">Vérification du lien...</p>
+          <p className="text-xs text-slate-500">Vérification du lien...</p>
         </div>
       </main>
     )
@@ -132,7 +132,7 @@ function PasswordForm() {
             </svg>
           </div>
           <h1 className="font-display text-xl font-semibold tracking-tight mb-1">Lien expiré</h1>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-sm text-slate-400 mb-6">
             Ce lien n&apos;est plus valide. Demandez un nouveau lien
             {isRecovery ? ' de réinitialisation' : ' pour créer votre mot de passe'}.
           </p>
@@ -166,7 +166,7 @@ function PasswordForm() {
             </form>
           )}
 
-          <p className="text-xs text-gray-400 mt-6">
+          <p className="text-xs text-slate-500 mt-6">
             Vous avez déjà un mot de passe ?{' '}
             <a href="/espace-client" className="text-[var(--accent)] hover:underline">Se connecter</a>
           </p>
@@ -187,7 +187,7 @@ function PasswordForm() {
           <h1 className="font-display text-2xl font-semibold tracking-tight">
             {isRecovery ? 'Nouveau mot de passe' : 'Créez votre mot de passe'}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             {isRecovery
               ? 'Choisissez un nouveau mot de passe pour votre espace'
               : 'Choisissez un mot de passe sécurisé pour accéder à votre espace'}
@@ -207,7 +207,7 @@ function PasswordForm() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Nouveau mot de passe</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Nouveau mot de passe</label>
               <input
                 type="password"
                 value={password}
@@ -219,7 +219,7 @@ function PasswordForm() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Confirmer le mot de passe</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Confirmer le mot de passe</label>
               <input
                 type="password"
                 value={confirmPassword}
@@ -244,7 +244,7 @@ function PasswordForm() {
         )}
 
         <div className="mt-8 text-center">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-slate-500">
             Besoin d&apos;aide ?{' '}
             <a href="mailto:contact@samez.fr" className="text-[var(--accent)] hover:underline">contact@samez.fr</a>
           </p>

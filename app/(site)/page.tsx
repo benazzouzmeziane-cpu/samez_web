@@ -1,8 +1,14 @@
 import type { Metadata } from 'next'
 import Hero from '@/components/home/Hero'
-import ServicesPreview from '@/components/home/ServicesPreview'
-import RealisationsPreview from '@/components/home/RealisationsPreview'
+import StackStrip from '@/components/home/StackStrip'
+import Constat from '@/components/home/Constat'
+import Expertises from '@/components/home/Expertises'
+import Prestations from '@/components/home/Prestations'
+import CaseStudies from '@/components/home/CaseStudies'
 import Process from '@/components/home/Process'
+import AboutTeaser from '@/components/home/AboutTeaser'
+import Faq from '@/components/home/Faq'
+import FinalCta from '@/components/home/FinalCta'
 import ContactForm from '@/components/home/ContactForm'
 
 export const metadata: Metadata = {
@@ -15,9 +21,15 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <ServicesPreview />
-      <RealisationsPreview />
+      <StackStrip />
+      <Constat />
+      <Expertises />
+      <Prestations />
+      <CaseStudies />
       <Process />
+      <AboutTeaser />
+      <Faq />
+      <FinalCta />
       <ContactForm />
     </>
   )

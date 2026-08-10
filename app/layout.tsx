@@ -114,7 +114,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased bg-white text-[var(--foreground)] font-[family-name:var(--font-figtree)]">
+      <body className="antialiased bg-[var(--navy)] text-[var(--foreground)] font-[family-name:var(--font-figtree)]">
         {children}
         <Analytics />
       </body>

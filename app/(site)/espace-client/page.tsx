@@ -80,7 +80,7 @@ export default function EspaceClientPage() {
   }
 
   const inputClass =
-    'w-full px-4 py-3 border border-black/[0.08] bg-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-[border-color] duration-[var(--duration-ui)] ease'
+    'w-full px-4 py-3 border border-white/10 bg-[var(--navy)] text-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-[border-color] duration-[var(--duration-ui)] ease'
 
   return (
     <main className="min-h-[70vh] flex items-center justify-center px-6 py-24 relative overflow-hidden">
@@ -93,7 +93,7 @@ export default function EspaceClientPage() {
           <h1 className="font-display text-3xl font-semibold tracking-tight">
             {mode === 'forgot' ? 'Mot de passe oublié' : 'Espace client'}
           </h1>
-          <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+          <p className="text-sm text-slate-400 mt-2 leading-relaxed">
             {mode === 'forgot'
               ? 'Recevez un lien pour réinitialiser votre mot de passe'
               : 'Connectez-vous pour suivre vos documents'}
@@ -101,9 +101,9 @@ export default function EspaceClientPage() {
         </div>
 
         {mode === 'forgot' && forgotSent ? (
-          <div className="py-6 border-y border-black/[0.06]">
+          <div className="py-6 border-y border-white/10">
             <p className="font-display text-lg font-semibold mb-2">Email envoyé</p>
-            <p className="text-sm text-gray-500 leading-relaxed">
+            <p className="text-sm text-slate-400 leading-relaxed">
               Si un compte existe, un email a été envoyé. Vérifiez aussi vos indésirables.
             </p>
             <button
@@ -149,7 +149,7 @@ export default function EspaceClientPage() {
                 setMode('login')
                 setError('')
               }}
-              className="w-full text-sm text-gray-500 link-quiet"
+              className="w-full text-sm text-slate-400 link-quiet"
             >
               Retour à la connexion
             </button>
@@ -204,9 +204,9 @@ export default function EspaceClientPage() {
           </form>
         )}
 
-        <div className="mt-10 pt-8 border-t border-black/[0.06] space-y-3">
+        <div className="mt-10 pt-8 border-t border-white/10 space-y-3">
           <p className="font-display text-base font-semibold tracking-tight">Pas encore de compte ?</p>
-          <p className="text-sm text-gray-500 leading-relaxed">
+          <p className="text-sm text-slate-400 leading-relaxed">
             Créez votre accès en 1 minute : vous recevrez un email pour définir votre mot de passe.
           </p>
           <Link href="/#contact?compte=1" className="btn btn-secondary w-full">
