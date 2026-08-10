@@ -194,11 +194,11 @@ h1, h2, h3, h4, .font-display {
 @keyframes hero-iso-enter {
   from {
     opacity: 0;
-    transform: translateY(calc(-50% + 12px));
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translateY(-50%);
+    transform: translateY(0);
   }
 }
 
@@ -250,7 +250,4 @@ h1, h2, h3, h4, .font-display {
     animation: none;
   }
 
-  .hero-iso__stage {
-    transform: translateY(-50%);
-  }
 }
