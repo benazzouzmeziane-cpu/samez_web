@@ -128,6 +128,112 @@ export async function sendClientInviteEmail(data: {
   })
 }
 
+export async function sendBookingAdminEmail(data: {
+  name: string
+  email: string
+  phone?: string
+  startsAtLabel: string
+  notes?: string
+}) {
+  const name = escapeHtml(data.name)
+  const email = escapeHtml(data.email)
+  const phone = data.phone ? escapeHtml(data.phone) : ''
+  const when = escapeHtml(data.startsAtLabel)
+  const notes = data.notes ? escapeHtml(data.notes) : ''
+
+  await transporter.sendMail({
+    from: `same'z <${process.env.SMTP_USER}>`,
+    to: process.env.SMTP_USER || 'contact@samez.fr',
+    replyTo: data.email,
+    subject: `Nouveau RDV — ${data.startsAtLabel} — ${data.name.replace(/[\r\n]/g, ' ').slice(0, 60)}`,
+    text: [
+      'Nouveau rendez-vous réservé',
+      '',
+      `Quand: ${data.startsAtLabel}`,
+      `Nom: ${data.name}`,
+      `Email: ${data.email}`,
+      data.phone ? `Téléphone: ${data.phone}` : null,
+      data.notes ? `Notes: ${data.notes}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 24px;">Nouveau rendez-vous</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr><td style="padding: 8px 0; font-weight: 600; width: 120px;">Quand</td><td style="padding: 8px 0;">${when}</td></tr>
+          <tr><td style="padding: 8px 0; font-weight: 600;">Nom</td><td style="padding: 8px 0;">${name}</td></tr>
+          <tr><td style="padding: 8px 0; font-weight: 600;">Email</td><td style="padding: 8px 0;"><a href="mailto:${email}">${email}</a></td></tr>
+          ${phone ? `<tr><td style="padding: 8px 0; font-weight: 600;">Téléphone</td><td style="padding: 8px 0;">${phone}</td></tr>` : ''}
+          ${notes ? `<tr><td style="padding: 8px 0; font-weight: 600; vertical-align: top;">Notes</td><td style="padding: 8px 0; white-space: pre-wrap;">${notes}</td></tr>` : ''}
+        </table>
+      </div>
+    `,
+  })
+}
+
+export async function sendBookingConfirmationEmail(data: {
+  name: string
+  email: string
+  startsAtLabel: string
+  icsContent: string
+  meetLink?: string
+}) {
+  const name = escapeHtml(data.name)
+  const when = escapeHtml(data.startsAtLabel)
+  const meet = data.meetLink ? escapeHtml(data.meetLink) : ''
+
+  await transporter.sendMail({
+    from: `same'z <${process.env.SMTP_USER}>`,
+    to: data.email,
+    subject: `Confirmation — Échange same'z le ${data.startsAtLabel}`,
+    text: [
+      `Bonjour ${data.name},`,
+      '',
+      `Votre échange de 45 minutes est bien réservé.`,
+      `Quand: ${data.startsAtLabel} (heure de Paris)`,
+      data.meetLink
+        ? `Lien visio: ${data.meetLink}`
+        : 'Le lien visio Google Meet vous sera confirmé par email avant le rendez-vous.',
+      '',
+      'Un fichier calendrier (.ics) est joint à cet email.',
+      '',
+      "À bientôt — same'z",
+      'contact@samez.fr — 07 52 08 74 16',
+    ].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+        <div style="background: #059669; padding: 32px; text-align: center;">
+          <h1 style="color: #fff; font-size: 24px; margin: 0; font-weight: 700;">same'z</h1>
+          <p style="color: #d1fae5; font-size: 12px; margin: 4px 0 0; text-transform: uppercase; letter-spacing: 1px;">Échange confirmé</p>
+        </div>
+        <div style="padding: 32px;">
+          <h2 style="font-size: 20px; font-weight: 600; margin: 0 0 16px;">Bonjour ${name},</h2>
+          <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 16px;">
+            Votre échange de <strong>45 minutes</strong> est bien réservé.
+          </p>
+          <p style="color: #047857; font-size: 16px; font-weight: 600; margin: 0 0 16px;">${when}</p>
+          ${
+            meet
+              ? `<p style="color: #374151; font-size: 14px; margin: 0 0 16px;">Lien visio : <a href="${meet}" style="color: #059669;">${meet}</a></p>`
+              : `<p style="color: #6b7280; font-size: 14px; margin: 0 0 16px;">Le lien visio Google Meet vous sera confirmé par email avant le rendez-vous.</p>`
+          }
+          <p style="color: #6b7280; font-size: 12px; margin: 0;">Un fichier calendrier (.ics) est joint — ajoutez-le à votre agenda.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+          <p style="color: #9ca3af; font-size: 11px; margin: 0;">same'z — contact@samez.fr — 07 52 08 74 16</p>
+        </div>
+      </div>
+    `,
+    attachments: [
+      {
+        filename: 'rendez-vous-samez.ics',
+        content: data.icsContent,
+        contentType: 'text/calendar; charset=utf-8',
+      },
+    ],
+  })
+}
+
 export async function sendPasswordResetEmail(data: {
   name: string
   email: string
