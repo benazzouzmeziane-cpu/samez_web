@@ -44,10 +44,10 @@ export default function Header() {
               </Link>
             ))}
             <Link
-              href="/#contact"
+              href="/reserver"
               className="btn btn-primary !py-2.5 !px-4 !rounded-full !text-[var(--navy)]"
             >
-              Discuter du projet
+              Réserver 45 min
             </Link>
           </nav>
 
@@ -94,11 +94,11 @@ export default function Header() {
             </Link>
           ))}
           <Link
-            href="/#contact"
+            href="/reserver"
             className="block px-5 py-3.5 text-sm font-semibold text-[var(--accent-dark)]"
             onClick={() => setMenuOpen(false)}
           >
-            Discuter du projet
+            Réserver 45 min
           </Link>
         </div>
       </div>

@@ -3,16 +3,22 @@ import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import {
   BOOKING_DURATION_MIN,
+  BOOKING_MAX_DAYS_AHEAD,
+  BOOKING_MIN_LEAD_MS,
   BOOKING_SLOTS,
   BOOKING_TZ,
   buildIcs,
   formatParisDate,
-  isWeekdayParis,
+  isBookableDay,
   parisLocalToUtc,
   slotEnd,
   type BookingSlot,
 } from '@/lib/booking'
 import { sendBookingAdminEmail, sendBookingConfirmationEmail } from '@/lib/email'
+import {
+  createCalendarEventWithMeet,
+  isGoogleCalendarConfigured,
+} from '@/lib/google-calendar'
 
 const postSchema = z.object({
   name: z.string().min(2).max(120),
@@ -159,54 +165,100 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    if (!isWeekdayParis(data.date)) {
-      return NextResponse.json({ error: 'Les week-ends ne sont pas disponibles.' }, { status: 400 })
+    if (!isBookableDay(data.date)) {
+      return NextResponse.json(
+        { error: 'Ce jour n’est pas disponible (week-end ou jour férié).' },
+        { status: 400 }
+      )
     }
 
     const startsAt = parisLocalToUtc(data.date, data.slot)
     const endsAt = slotEnd(startsAt)
     const now = new Date()
 
-    if (startsAt.getTime() <= now.getTime() + 60 * 60 * 1000) {
+    if (startsAt.getTime() <= now.getTime() + BOOKING_MIN_LEAD_MS) {
       return NextResponse.json(
         { error: 'Choisissez un créneau au moins 1 heure à l’avance.' },
         { status: 400 }
       )
     }
 
-    // Max 60 days ahead
-    if (startsAt.getTime() > now.getTime() + 60 * 24 * 60 * 60 * 1000) {
+    if (startsAt.getTime() > now.getTime() + BOOKING_MAX_DAYS_AHEAD * 24 * 60 * 60 * 1000) {
       return NextResponse.json({ error: 'Créneau trop lointain.' }, { status: 400 })
     }
 
+    let googleEventId: string | null = null
+    let meetLink: string | undefined = process.env.BOOKING_MEET_LINK || undefined
+
+    if (isGoogleCalendarConfigured()) {
+      try {
+        const gcal = await createCalendarEventWithMeet({
+          summary: `Échange same'z — ${data.name.trim()}`,
+          description: [
+            "Échange découverte same'z (45 min).",
+            `Client: ${data.name.trim()} <${data.email.trim()}>`,
+            data.phone ? `Tél: ${data.phone.trim()}` : null,
+            data.notes ? `Notes: ${data.notes.trim()}` : null,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          startsAt,
+          endsAt,
+          attendeeEmail: data.email.trim().toLowerCase(),
+          attendeeName: data.name.trim(),
+        })
+        if (gcal) {
+          googleEventId = gcal.eventId
+          if (gcal.meetLink) meetLink = gcal.meetLink
+        }
+      } catch (gErr) {
+        console.error('[booking POST] Google Calendar failed', gErr)
+        // Fallback: booking + emails sans Meet dynamique
+      }
+    }
+
     const supabase = createAdminClient()
-    const { data: inserted, error } = await supabase
+    const baseRow = {
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
+      phone: data.phone?.trim() || null,
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt.toISOString(),
+      status: 'confirmed' as const,
+      notes: data.notes?.trim() || null,
+    }
+
+    let { data: inserted, error } = await supabase
       .from('bookings')
       .insert({
-        name: data.name.trim(),
-        email: data.email.trim().toLowerCase(),
-        phone: data.phone?.trim() || null,
-        starts_at: startsAt.toISOString(),
-        ends_at: endsAt.toISOString(),
-        status: 'confirmed',
-        notes: data.notes?.trim() || null,
+        ...baseRow,
+        google_event_id: googleEventId,
+        meet_link: meetLink || null,
       })
       .select('id')
       .single()
 
-    if (error) {
-      if (error.code === '23505') {
+    // Colonnes Google absentes tant que la migration 20260812 n'est pas appliquée
+    if (error && /google_event_id|meet_link/.test(error.message)) {
+      ;({ data: inserted, error } = await supabase
+        .from('bookings')
+        .insert(baseRow)
+        .select('id')
+        .single())
+    }
+
+    if (error || !inserted) {
+      if (error?.code === '23505') {
         return NextResponse.json(
           { error: 'Ce créneau vient d’être pris. Choisissez un autre horaire.' },
           { status: 409 }
         )
       }
-      console.error('[booking POST]', error.message)
+      console.error('[booking POST]', error?.message)
       return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
     const label = formatLabel(startsAt)
-    const meetLink = process.env.BOOKING_MEET_LINK || undefined
     const ics = buildIcs({
       startsAt,
       endsAt,
@@ -234,7 +286,6 @@ export async function POST(request: Request) {
       ])
     } catch (mailErr) {
       console.error('[booking POST] email failed', mailErr)
-      // Booking is saved; don't fail the user hard
     }
 
     return NextResponse.json({
@@ -242,6 +293,7 @@ export async function POST(request: Request) {
       id: inserted.id,
       startsAt: startsAt.toISOString(),
       label,
+      meetLink: meetLink || null,
     })
   } catch (e) {
     console.error('[booking POST]', e)

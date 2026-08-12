@@ -13,6 +13,7 @@ export default async function AdminDashboard() {
     devisCount,
     facturesCount,
     unpaidCount,
+    upcomingBookings,
   ] = await Promise.all([
     supabase.from('contacts').select('*', { count: 'exact', head: true }),
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('read', false),
@@ -25,6 +26,11 @@ export default async function AdminDashboard() {
       .eq('type', 'facture')
       .neq('status', 'payée')
       .neq('status', 'annulée'),
+    supabase
+      .from('bookings')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'confirmed')
+      .gte('starts_at', new Date().toISOString()),
   ])
 
   const totalContacts = contactsCount.count ?? 0
@@ -33,8 +39,16 @@ export default async function AdminDashboard() {
   const devis = devisCount.count ?? 0
   const factures = facturesCount.count ?? 0
   const unpaidPieces = unpaidCount.count ?? 0
+  const bookingsUpcoming = upcomingBookings.count ?? 0
 
   const stats = [
+    {
+      label: 'RDV à venir',
+      value: bookingsUpcoming,
+      sub: 'confirmés',
+      accent: bookingsUpcoming > 0,
+      href: '/admin/bookings',
+    },
     {
       label: 'Messages',
       value: totalContacts,
@@ -72,7 +86,7 @@ export default async function AdminDashboard() {
         <p className="text-sm text-gray-500">Vue d&apos;ensemble de votre activité</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
         {stats.map((s) => (
           <Link
             key={s.label}
@@ -104,6 +118,12 @@ export default async function AdminDashboard() {
             className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
           >
             + Nouvelle facture
+          </Link>
+          <Link
+            href="/admin/bookings"
+            className="px-5 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+          >
+            Voir les RDV
           </Link>
           <Link
             href="/admin/contacts"

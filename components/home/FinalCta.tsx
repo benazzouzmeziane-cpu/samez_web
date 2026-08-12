@@ -31,8 +31,8 @@ export default function FinalCta() {
               </li>
             ))}
           </ul>
-          <Link href="/#contact" className="btn btn-primary">
-            Écrire mon besoin
+          <Link href="/reserver" className="btn btn-primary">
+            Réserver mon créneau
           </Link>
           <p className="text-xs text-slate-500 mt-4">
             Sans engagement · 45 minutes · 100 % en visio

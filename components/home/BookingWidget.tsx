@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BOOKING_SLOTS } from '@/lib/booking'
+import { BOOKING_MIN_LEAD_MS, BOOKING_SLOTS } from '@/lib/booking'
+import { isFrenchHoliday } from '@/lib/holidays-fr'
 
 const WEEKDAYS = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM']
 
@@ -53,6 +54,7 @@ export default function BookingWidget() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [successLabel, setSuccessLabel] = useState('')
+  const [successMeet, setSuccessMeet] = useState('')
 
   const range = useMemo(() => {
     const from = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -89,6 +91,7 @@ export default function BookingWidget() {
     const wd = date.getDay()
     if (wd === 0 || wd === 6) return false
     const ds = toDateStr(year, month, day)
+    if (isFrenchHoliday(ds)) return false
     const freeSlots = BOOKING_SLOTS.filter(
       s => !taken.some(t => t.date === ds && t.slot === s)
     )
@@ -104,7 +107,7 @@ export default function BookingWidget() {
         const [hh, mm] = s.split(':').map(Number)
         const slotDate = new Date(now)
         slotDate.setHours(hh, mm, 0, 0)
-        if (slotDate.getTime() <= now.getTime() + 60 * 60 * 1000) return false
+        if (slotDate.getTime() <= now.getTime() + BOOKING_MIN_LEAD_MS) return false
       }
       return true
     })
@@ -146,6 +149,7 @@ export default function BookingWidget() {
         return
       }
       setSuccessLabel(data.label || '')
+      setSuccessMeet(data.meetLink || '')
       setStep('success')
       await loadTaken()
     } catch {
@@ -166,9 +170,21 @@ export default function BookingWidget() {
         </div>
         <div className="px-5 py-8 text-center">
           <p className="font-display text-base font-semibold mb-2 capitalize">{successLabel}</p>
-          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+          {successMeet ? (
+            <a
+              href={successMeet}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex mt-3 text-sm font-medium text-[var(--accent-dark)] underline"
+            >
+              Ouvrir le lien Meet
+            </a>
+          ) : null}
+          <p className="text-sm text-slate-500 leading-relaxed mb-6 mt-3">
             Un email de confirmation avec fichier calendrier (.ics) vous a été envoyé.
-            Le lien visio vous sera précisé avant l&apos;échange.
+            {successMeet
+              ? ' Le lien Meet est prêt — vous le retrouverez aussi dans l’email.'
+              : ' Le lien visio vous sera précisé avant l’échange.'}
           </p>
           <button
             type="button"
@@ -182,6 +198,7 @@ export default function BookingWidget() {
               setPhone('')
               setNotes('')
               setSuccessLabel('')
+              setSuccessMeet('')
             }}
           >
             Réserver un autre créneau
@@ -276,7 +293,7 @@ export default function BookingWidget() {
               {openSlots.length === 0 ? (
                 <p className="text-xs text-slate-500">Aucun créneau libre ce jour.</p>
               ) : (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {openSlots.map(s => (
                     <button
                       key={s}

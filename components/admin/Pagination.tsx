@@ -28,7 +28,10 @@ export default function Pagination({ currentPage, totalPages, basePath }: Props)
   // Always show last page
   if (totalPages > 1) pages.push(totalPages)
 
-  const href = (page: number) => `${basePath}?page=${page}`
+  const href = (page: number) => {
+    const sep = basePath.includes('?') ? '&' : '?'
+    return `${basePath}${sep}page=${page}`
+  }
 
   return (
     <div className="flex items-center justify-center gap-1 mt-8">

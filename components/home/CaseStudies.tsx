@@ -9,11 +9,11 @@ const cases = [
     problem:
       'Un produit mobile à lancer pour de vrai : stores, parcours, sync, pas une démo Figma.',
     system:
-      'Application native publiée sur App Store et Play Store, conçue et maintenue comme un produit en production.',
+      'Application publiée sur App Store et Google Play, conçue et maintenue comme un produit en production.',
     metrics: [
-      { value: 'iOS + Android', label: 'Stores' },
+      { value: '2 stores', label: 'App Store + Play' },
       { value: 'Live', label: 'En production' },
-      { value: 'Produit', label: 'Pas un MVP jetable' },
+      { value: 'Native', label: 'iOS & Android' },
     ],
     href: undefined as string | undefined,
   },
@@ -23,11 +23,11 @@ const cases = [
     problem:
       'Créer des fiches et des pages à la main ne scale pas. Il fallait un système, pas un rédacteur à temps plein.',
     system:
-      'Agents IA pour la création de fiches produit et de pages SEO — du brief à la publication, avec garde-fous.',
+      'Chaîne agents IA pour fiches produit et pages SEO — du brief à la publication, avec garde-fous — en ligne sur macarteimprimee.com.',
     metrics: [
-      { value: 'Agents IA', label: 'En production' },
-      { value: 'Fiches + SEO', label: 'Chaîne complète' },
-      { value: 'macarteimprimee.com', label: 'En ligne' },
+      { value: 'Fiches', label: 'Génération assistée' },
+      { value: 'SEO', label: 'Pages publiées' },
+      { value: 'Live', label: 'macarteimprimee.com' },
     ],
     href: 'https://macarteimprimee.com',
   },
@@ -37,11 +37,11 @@ const cases = [
     problem:
       'Un site à moderniser et des process encore trop manuels entre les outils.',
     system:
-      'Refonte du site et automatisations mixtes (code + no-code) pour fluidifier le quotidien opérationnel.',
+      'Refonte du site public et automatisations mixtes (code + no-code) pour fluidifier le quotidien opérationnel — univercarte.com.',
     metrics: [
-      { value: 'Refonte', label: 'Site livré' },
-      { value: 'Code + no-code', label: 'Automatisations' },
-      { value: 'univercarte.com', label: 'En ligne' },
+      { value: 'Site', label: 'Refonte livrée' },
+      { value: 'Automations', label: 'Code + no-code' },
+      { value: 'Live', label: 'univercarte.com' },
     ],
     href: 'https://univercarte.com',
   },

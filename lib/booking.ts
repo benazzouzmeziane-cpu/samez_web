@@ -1,7 +1,13 @@
+import { isFrenchHoliday } from '@/lib/holidays-fr'
+
 /** Créneaux proposés (Europe/Paris), durée 45 min */
-export const BOOKING_SLOTS = ['09:30', '11:00', '14:00', '16:30'] as const
+export const BOOKING_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:30'] as const
 export const BOOKING_DURATION_MIN = 45
 export const BOOKING_TZ = 'Europe/Paris'
+/** Antécédence minimale avant un créneau */
+export const BOOKING_MIN_LEAD_MS = 60 * 60 * 1000
+/** Horizon max de réservation */
+export const BOOKING_MAX_DAYS_AHEAD = 60
 
 export type BookingSlot = (typeof BOOKING_SLOTS)[number]
 
@@ -9,7 +15,6 @@ export type BookingSlot = (typeof BOOKING_SLOTS)[number]
 export function parisLocalToUtc(dateStr: string, timeStr: string): Date {
   const desired = `${dateStr}T${timeStr}:00`
   let utc = new Date(`${desired}Z`)
-  // Two passes cover DST edges reliably enough for booking slots
   for (let i = 0; i < 2; i++) {
     const inParis = utc
       .toLocaleString('sv-SE', { timeZone: BOOKING_TZ })
@@ -37,6 +42,11 @@ export function isWeekdayParis(dateStr: string): boolean {
     weekday: 'short',
   }).format(utc)
   return wd !== 'Sat' && wd !== 'Sun'
+}
+
+/** Jour ouvrable réservable (semaine + hors jours fériés FR) */
+export function isBookableDay(dateStr: string): boolean {
+  return isWeekdayParis(dateStr) && !isFrenchHoliday(dateStr)
 }
 
 export function slotEnd(startsAt: Date): Date {

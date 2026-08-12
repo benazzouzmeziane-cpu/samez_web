@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import BookingWidget from '@/components/home/BookingWidget'
 
 const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1]
 
@@ -41,8 +40,8 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-wrap gap-3 mb-10">
-              <Link href="/#contact" className="btn btn-primary">
-                Discuter de votre projet
+              <Link href="/reserver" className="btn btn-primary">
+                Réserver 45 min
               </Link>
               <Link href="/#cas" className="btn btn-secondary">
                 Voir ce qui tourne déjà
@@ -71,7 +70,35 @@ export default function Hero() {
             transition={{ duration: 0.55, delay: 0.12, ease: EASE_OUT }}
             className="lg:justify-self-end w-full"
           >
-            <BookingWidget />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 md:p-8 backdrop-blur-sm">
+              <p className="text-xs font-semibold tracking-wider text-[var(--accent)] uppercase mb-3">
+                Échange découverte
+              </p>
+              <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight mb-4">
+                Clarifiez ce qu&apos;il faut construire — en 45 minutes
+              </h2>
+              <p className="text-sm text-slate-300 leading-relaxed mb-6">
+                Process, priorités, faisabilité. Visio Meet, sans engagement. Créneaux en semaine
+                (Europe/Paris).
+              </p>
+              <ul className="space-y-2 mb-8 text-sm text-slate-300">
+                <li className="flex gap-2">
+                  <span className="text-[var(--accent)]">✓</span>
+                  Choix du créneau en ligne
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-[var(--accent)]">✓</span>
+                  Confirmation + invitation calendrier
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-[var(--accent)]">✓</span>
+                  Lien Meet dédié
+                </li>
+              </ul>
+              <Link href="/reserver" className="btn btn-primary w-full !rounded-xl">
+                Choisir un créneau
+              </Link>
+            </div>
           </motion.div>
         </div>
       </div>

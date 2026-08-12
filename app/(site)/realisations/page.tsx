@@ -107,8 +107,8 @@ export default async function RealisationsPage() {
         <p className="font-display text-xl font-semibold tracking-tight mb-5">
           Vous avez un projet similaire ?
         </p>
-        <Link href="/#contact" className="btn btn-primary">
-          Discutons-en
+        <Link href="/reserver" className="btn btn-primary">
+          Réserver 45 min
         </Link>
       </div>
     </div>
