@@ -1,27 +1,34 @@
 import { generatedDocumentSchema, type GeneratedDocument, type GenerationBrief } from '@/lib/seo/schema'
 import { newBlockId } from '@/lib/seo/paths'
 
-export const PROMPT_VERSION = 'samez-seo-v2'
+export const PROMPT_VERSION = 'samez-seo-v3'
 
+/**
+ * Identifiants officiels NVIDIA NIM hosted (docs LLM APIs, 11 août 2026) :
+ * https://docs.api.nvidia.com/nim/reference/llm-apis.md
+ *
+ * Les 70B+ sont exclus en tête : ils existent mais dépassent le délai serverless.
+ * Mixtral 8x22B a renvoyé 404 sur l’API hosted — retiré.
+ */
 const RETIRED_NIM_MODELS = new Set([
   'mistralai/mistral-medium-3.5-128b',
   'mistralai/mistral-medium-3-instruct',
+  'mistralai/mistral-small-4-119b-2603',
+  'mistralai/mixtral-8x22b-instruct',
 ])
 
-/**
- * Ordre : meilleure rédaction FR d’abord, puis modèles plus stables sur l’API hosted NVIDIA.
- * Si un identifiant est retiré (410) ou indisponible, on passe au suivant.
- */
 export const NIM_WRITING_CASCADE = [
-  'meta/llama-3.3-70b-instruct',
-  'nvidia/llama-3.3-nemotron-super-49b-v1.5',
-  'meta/llama-3.1-70b-instruct',
-  'mistralai/mixtral-8x22b-instruct',
-  'nvidia/nemotron-3-super-120b-a12b',
-  'mistralai/mistral-small-4-119b-2603',
+  'nvidia/nemotron-3.5-lightning-30b-a3b',
+  'mistralai/mistral-nemotron',
+  'nvidia/nemotron-3-nano-30b-a3b',
+  'openai/gpt-oss-20b',
+  'meta/llama-3.1-8b-instruct',
+  'microsoft/phi-4-mini-instruct',
 ] as const
 
 export const DEFAULT_NIM_MODEL = NIM_WRITING_CASCADE[0]
+
+const SLOW_MODEL = /70b|49b|120b|128b|253b|405b|480b|550b/i
 
 export function resolveNimCascade(): string[] {
   const extra = (process.env.NVIDIA_NIM_MODELS || '')
@@ -29,7 +36,9 @@ export function resolveNimCascade(): string[] {
     .map(item => item.trim())
     .filter(Boolean)
   const preferred = process.env.NVIDIA_NIM_MODEL?.trim()
-  const ordered = [...extra, preferred, ...NIM_WRITING_CASCADE].filter(
+  const preferredFast = preferred && !SLOW_MODEL.test(preferred) ? [preferred] : []
+  const preferredSlow = preferred && SLOW_MODEL.test(preferred) ? [preferred] : []
+  const ordered = [...preferredFast, ...extra, ...NIM_WRITING_CASCADE, ...preferredSlow].filter(
     (item): item is string => typeof item === 'string' && item.length > 0 && !RETIRED_NIM_MODELS.has(item)
   )
   return [...new Set(ordered)]
@@ -86,15 +95,47 @@ function messageText(message?: { content?: unknown }): string {
   return ''
 }
 
-function isRetryableStatus(status: number, body: string) {
-  if ([404, 408, 409, 410, 422, 429, 500, 502, 503, 504, 524].includes(status)) return true
-  if (status !== 400) return false
-  return /end of life|no longer available|not found|unknown model|does not exist|gone|invalid model|model_not_found/i.test(
-    body
-  )
+function nimError(message: string, status?: number) {
+  const error = new Error(message) as Error & { status?: number }
+  error.status = status
+  return error
 }
 
-const SYSTEM_PROMPT_USER = SYSTEM_PROMPT
+async function listHostedModelIds(apiKey: string, baseUrl: string): Promise<Set<string> | null> {
+  try {
+    const response = await fetch(`${baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+      signal: AbortSignal.timeout(8_000),
+    })
+    if (!response.ok) return null
+    const json = (await response.json()) as { data?: { id?: string }[] }
+    const ids = (json.data ?? []).map(item => item.id).filter((id): id is string => Boolean(id))
+    return ids.length > 0 ? new Set(ids) : null
+  } catch {
+    return null
+  }
+}
+
+async function probeModel(apiKey: string, baseUrl: string, model: string): Promise<true | string> {
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      max_tokens: 4,
+      messages: [{ role: 'user', content: 'Réponds uniquement: ok' }],
+    }),
+    signal: AbortSignal.timeout(12_000),
+  })
+  const body = await response.text()
+  if (response.ok) return true
+  return `${response.status} ${body.slice(0, 120)}`
+}
 
 export async function generateSeoDocument(
   brief: GenerationBrief
@@ -107,6 +148,12 @@ export async function generateSeoDocument(
   const apiKey = process.env.NVIDIA_API_KEY
   const baseUrl = (process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '')
   if (!apiKey) throw new Error('NVIDIA_API_KEY manquante')
+
+  const hosted = await listHostedModelIds(apiKey, baseUrl)
+  const candidates = resolveNimCascade()
+    .filter(model => !hosted || hosted.has(model))
+    .slice(0, 5)
+  const queue = candidates.length > 0 ? candidates : resolveNimCascade().slice(0, 5)
 
   const userPrompt = JSON.stringify(
     {
@@ -147,17 +194,7 @@ export async function generateSeoDocument(
     2
   )
 
-  const call = async (model: string, repair?: string) => {
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT_USER },
-      { role: 'user', content: userPrompt },
-    ]
-    if (repair) {
-      messages.push({
-        role: 'user',
-        content: `Le JSON précédent est invalide : ${repair}. Réécris un JSON unique conforme au schéma.`,
-      })
-    }
+  const complete = async (model: string) => {
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -168,20 +205,17 @@ export async function generateSeoDocument(
       body: JSON.stringify({
         model,
         temperature: 0.2,
-        max_tokens: 4096,
-        messages,
+        max_tokens: 2500,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt },
+        ],
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(40_000),
     })
     const body = await response.text()
     if (!response.ok) {
-      const error = new Error(`NVIDIA NIM ${response.status}: ${body.slice(0, 280)}`) as Error & {
-        retryable?: boolean
-        status?: number
-      }
-      error.status = response.status
-      error.retryable = isRetryableStatus(response.status, body)
-      throw error
+      throw nimError(`NVIDIA NIM ${response.status}: ${body.slice(0, 220)}`, response.status)
     }
     let json: {
       choices?: { message?: { content?: unknown } }[]
@@ -190,16 +224,10 @@ export async function generateSeoDocument(
     try {
       json = JSON.parse(body) as typeof json
     } catch {
-      const error = new Error(`NVIDIA NIM réponse non JSON: ${body.slice(0, 180)}`) as Error & {
-        retryable?: boolean
-        status?: number
-      }
-      error.retryable = true
-      error.status = 502
-      throw error
+      throw nimError(`NVIDIA NIM réponse non JSON: ${body.slice(0, 160)}`, 502)
     }
     const content = messageText(json.choices?.[0]?.message)
-    if (!content.trim()) throw new Error('Réponse IA vide')
+    if (!content.trim()) throw nimError('Réponse IA vide', 502)
     return {
       content,
       usage: {
@@ -213,34 +241,36 @@ export async function generateSeoDocument(
   const errors: string[] = []
   let usage = { prompt: 0, completion: 0 }
 
-  for (const model of resolveNimCascade().slice(0, 4)) {
+  for (const model of queue) {
     attempted.push(model)
     try {
-      const first = await call(model)
+      const probe = await probeModel(apiKey, baseUrl, model)
+      if (probe !== true) {
+        errors.push(`${model}: indisponible (${probe})`)
+        if (/\b401\b|\b403\b/.test(probe)) {
+          throw new Error('Clé NVIDIA refusée. Vérifiez NVIDIA_API_KEY sur Vercel.')
+        }
+        continue
+      }
+      const first = await complete(model)
       usage = {
         prompt: usage.prompt + first.usage.prompt,
         completion: usage.completion + first.usage.completion,
       }
-      try {
-        const parsed = generatedDocumentSchema.parse(extractJson(first.content))
-        return { document: assignBlockIds(parsed), usage, model, attempted }
-      } catch (parseError) {
-        const reason = parseError instanceof Error ? parseError.message : 'JSON invalide'
-        errors.push(`${model}: JSON invalide (${reason.slice(0, 80)})`)
-      }
+      const parsed = generatedDocumentSchema.parse(extractJson(first.content))
+      return { document: assignBlockIds(parsed), usage, model, attempted }
     } catch (error) {
       const status = (error as { status?: number }).status
       const name = error instanceof Error ? error.name : ''
       const message = error instanceof Error ? error.message : 'échec'
-      errors.push(`${model}: ${message}`)
       if (status === 401 || status === 403) {
         throw new Error('Clé NVIDIA refusée. Vérifiez NVIDIA_API_KEY sur Vercel.')
       }
-      if (name === 'TimeoutError' || name === 'AbortError') {
-        errors[errors.length - 1] = `${model}: délai dépassé`
-      }
+      errors.push(
+        name === 'TimeoutError' || name === 'AbortError' ? `${model}: délai dépassé` : `${model}: ${message}`
+      )
     }
   }
 
-  throw new Error(`Aucun modèle NVIDIA n’a pu rédiger. ${errors.slice(-3).join(' · ')}`)
+  throw new Error(`Aucun modèle NVIDIA n’a pu rédiger. ${errors.join(' · ')}`)
 }

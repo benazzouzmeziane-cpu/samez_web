@@ -5,7 +5,7 @@ import { generationBriefSchema } from '@/lib/seo/schema'
 import { generateSeoDocument, PROMPT_VERSION, resolveNimModel } from '@/lib/ai/nvidia-nim'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 90
 
 export async function POST(request: Request) {
   const supabase = await createClient()
