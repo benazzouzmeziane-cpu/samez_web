@@ -35,6 +35,7 @@ export default function Footer() {
             <p className="section-label mb-1">Navigation</p>
             <Link href="/services" className="text-sm text-slate-300 link-quiet">Services</Link>
             <Link href="/realisations" className="text-sm text-slate-300 link-quiet">Réalisations</Link>
+            <Link href="/guides" className="text-sm text-slate-300 link-quiet">Guides</Link>
             <Link href="/a-propos" className="text-sm text-slate-300 link-quiet">À propos</Link>
             <Link href="/#contact" className="text-sm text-slate-300 link-quiet">Contact</Link>
           </div>

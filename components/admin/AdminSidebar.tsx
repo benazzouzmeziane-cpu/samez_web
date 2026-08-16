@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGauge, faEnvelope, faFileInvoice, faArrowRightFromBracket, faPlus, faBriefcase, faCalendarCheck } from '@fortawesome/free-solid-svg-icons'
+import { faGauge, faEnvelope, faFileInvoice, faArrowRightFromBracket, faPlus, faBriefcase, faCalendarCheck, faNewspaper } from '@fortawesome/free-solid-svg-icons'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: faGauge, exact: true },
+  { href: '/admin/seo', label: 'Contenus SEO', icon: faNewspaper },
   { href: '/admin/contacts', label: 'Messages', icon: faEnvelope },
   { href: '/admin/bookings', label: 'Rendez-vous', icon: faCalendarCheck },
   { href: '/admin/pieces', label: 'Pièces', icon: faFileInvoice },
