@@ -1,7 +1,12 @@
-import { generatedDocumentSchema, type GeneratedDocument, type GenerationBrief } from '@/lib/seo/schema'
+import {
+  contentBlockSchema,
+  generatedDocumentSchema,
+  type GeneratedDocument,
+  type GenerationBrief,
+} from '@/lib/seo/schema'
 import { newBlockId } from '@/lib/seo/paths'
 
-export const PROMPT_VERSION = 'samez-seo-v5'
+export const PROMPT_VERSION = 'samez-seo-v6'
 
 /**
  * Identifiants officiels NVIDIA NIM hosted (docs LLM APIs, 11 août 2026).
@@ -49,19 +54,139 @@ export function resolveNimModel() {
   return resolveNimCascade()[0] || DEFAULT_NIM_MODEL
 }
 
-const SYSTEM_PROMPT = `Rédacteur SEO same'z (FR). Réponds UNIQUEMENT par un JSON valide, sans markdown ni raisonnement.
+const SYSTEM_PROMPT = `Rédacteur SEO same'z (FR). Réponds UNIQUEMENT par un JSON compact et valide. Pas de markdown autour, pas de raisonnement, pas de virgule finale.
 Règles : utile, pas de chiffres/clients/tarifs inventés, vouvoiement, pas de pages ville sans preuve.
-Blocs requis (id courts h1,a1,m1,c1) : hero, answer, markdown (## / ###), cta vers /reserver.
-Ajoute 2 FAQ. reviewFlags pour tout ce qui n'est pas dans le brief.`
+Exactement 4 blocs (h1,a1,m1,c1) : hero, answer, markdown court (<=400 car, ## / ###), cta vers /reserver.
+2 FAQ courtes. reviewFlags si une info manque. Ferme tous les crochets.`
+
+function repairJson(text: string): string {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/```(?:json)?/g, '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/,\s*([}\]])/g, '$1')
+    .trim()
+}
+
+function closeTruncatedJson(text: string): string {
+  let inString = false
+  let escape = false
+  const stack: string[] = []
+  for (const ch of text) {
+    if (inString) {
+      if (escape) {
+        escape = false
+        continue
+      }
+      if (ch === '\\') {
+        escape = true
+        continue
+      }
+      if (ch === '"') inString = false
+      continue
+    }
+    if (ch === '"') {
+      inString = true
+      continue
+    }
+    if (ch === '{') stack.push('}')
+    else if (ch === '[') stack.push(']')
+    else if ((ch === '}' || ch === ']') && stack.length) stack.pop()
+  }
+  let closed = text
+  if (inString) closed += '"'
+  closed = closed.replace(/,\s*$/, '')
+  closed = closed.replace(/,?\s*"[^"\\]*"\s*:\s*$/, '')
+  closed = closed.replace(/,?\s*"[^"\\]*$/, '')
+  closed = closed.replace(/,\s*$/, '')
+  while (stack.length) closed += stack.pop()
+  return closed
+}
 
 function extractJson(text: string): unknown {
-  const stripped = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
-  const fenced = stripped.match(/```(?:json)?\s*([\s\S]*?)```/)
-  const raw = fenced ? fenced[1] : stripped
-  const start = raw.indexOf('{')
+  const stripped = repairJson(text)
+  const start = stripped.indexOf('{')
+  if (start === -1) throw new Error('Réponse IA sans JSON')
+  const raw = stripped.slice(start)
   const end = raw.lastIndexOf('}')
-  if (start === -1 || end === -1) throw new Error('Réponse IA sans JSON')
-  return JSON.parse(raw.slice(start, end + 1))
+  const candidates = [
+    end === -1 ? raw : raw.slice(0, end + 1),
+    raw,
+    closeTruncatedJson(raw),
+    closeTruncatedJson(repairJson(raw)),
+  ]
+  let lastError = 'JSON IA invalide'
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate)
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : lastError
+    }
+  }
+  throw new Error(lastError)
+}
+
+function finalizeDocument(value: unknown, brief: GenerationBrief): GeneratedDocument {
+  if (!value || typeof value !== 'object') throw new Error('JSON IA vide')
+  const raw = value as Record<string, unknown>
+  const blocks: unknown[] = []
+  for (const block of Array.isArray(raw.blocks) ? raw.blocks : []) {
+    if (!block || typeof block !== 'object') continue
+    const next = { ...(block as Record<string, unknown>), id: String((block as { id?: string }).id || newBlockId()) }
+    if (contentBlockSchema.safeParse(next).success) blocks.push(next)
+  }
+  const hasType = (type: string) =>
+    blocks.some(block => block && typeof block === 'object' && (block as { type?: string }).type === type)
+  if (!hasType('cta')) {
+    blocks.push({
+      id: 'c1',
+      type: 'cta',
+      heading: 'Réserver 45 minutes',
+      href: brief.ctaHref || '/reserver',
+      label: brief.ctaLabel || 'Réserver 45 min',
+    })
+  }
+  if (blocks.length < 3) {
+    blocks.push({
+      id: 'm1',
+      type: 'markdown',
+      markdown: `## ${brief.keywordPrimary}\n\n${brief.brief.slice(0, 400)}`,
+    })
+  }
+  const title = String(raw.title || brief.title || brief.keywordPrimary).slice(0, 120)
+  const metaTitle = String(raw.metaTitle || title).slice(0, 70)
+  let metaDescription = String(raw.metaDescription || raw.excerpt || '')
+  if (metaDescription.length < 50) {
+    metaDescription = `${metaDescription} Accompagnement same'z : site, automatisations et offre claire pour TPE/PME.`.slice(
+      0,
+      170
+    )
+  }
+  const flags = Array.isArray(raw.reviewFlags) ? raw.reviewFlags.map(String) : []
+  if (!raw.metaDescription || String(raw.metaDescription).length < 50) {
+    flags.push('Méta description complétée automatiquement : à relire.')
+  }
+  return generatedDocumentSchema.parse({
+    ...raw,
+    title: title.length >= 4 ? title : `${brief.keywordPrimary} | same'z`,
+    h1: String(raw.h1 || title).slice(0, 140),
+    metaTitle: metaTitle.length >= 10 ? metaTitle : `${title} | same'z`.slice(0, 70),
+    metaDescription,
+    keywordPrimary: String(raw.keywordPrimary || brief.keywordPrimary),
+    searchIntent: raw.searchIntent || brief.searchIntent,
+    audience: raw.audience || brief.audience,
+    entities: Array.isArray(raw.entities) ? raw.entities : [],
+    blocks,
+    faq: Array.isArray(raw.faq) ? raw.faq : [],
+    sources: Array.isArray(raw.sources) ? raw.sources : [],
+    suggestedLinks: Array.isArray(raw.suggestedLinks)
+      ? raw.suggestedLinks
+      : [{ path: '/reserver', anchorText: 'Réserver 45 min' }],
+    ctaLabel: raw.ctaLabel || brief.ctaLabel || 'Réserver 45 min',
+    ctaHref: raw.ctaHref || brief.ctaHref || '/reserver',
+    reviewFlags: flags,
+  })
 }
 
 function assignBlockIds(payload: GeneratedDocument): GeneratedDocument {
@@ -264,7 +389,7 @@ export async function generateSeoDocument(
         model,
         temperature: 0.2,
         top_p: 0.9,
-        max_tokens: 1000,
+        max_tokens: 2200,
         stream: true,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
@@ -304,7 +429,7 @@ export async function generateSeoDocument(
         prompt: usage.prompt + first.usage.prompt,
         completion: usage.completion + first.usage.completion,
       }
-      const parsed = generatedDocumentSchema.parse(extractJson(first.content))
+      const parsed = finalizeDocument(extractJson(first.content), brief)
       return { document: assignBlockIds(parsed), usage, model, attempted }
     } catch (error) {
       const status = (error as { status?: number }).status
@@ -316,9 +441,8 @@ export async function generateSeoDocument(
       errors.push(
         name === 'TimeoutError' || name === 'AbortError' ? `${model}: délai dépassé` : `${model}: ${message}`
       )
-      if (name === 'TimeoutError' || name === 'AbortError' || !isUnavailableStatus(status)) {
-        break
-      }
+      if (name === 'TimeoutError' || name === 'AbortError') break
+      if (!isUnavailableStatus(status)) continue
     }
   }
 
