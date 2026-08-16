@@ -17,6 +17,7 @@ import {
 import { buildChecklist, canPublish } from '@/lib/seo/checklist'
 import { generatedToVersionInput } from '@/lib/seo/from-generated'
 import { documentPath, typeLabel } from '@/lib/seo/paths'
+import { readApiJson } from '@/lib/seo/http'
 import {
   BLOCK_TYPES,
   SEARCH_INTENTS,
@@ -192,9 +193,15 @@ export default function SeoDocumentEditor({
           ctaLabel: form.ctaLabel || 'Réserver 45 min',
         }),
       })
-      const json = await response.json()
+      const json = await readApiJson<{
+        error?: string
+        document?: GeneratedDocument
+        model?: string
+        reviewFlags?: string[]
+      }>(response)
       if (!response.ok) throw new Error(json.error || 'Génération impossible')
-      const generated = json.document as GeneratedDocument
+      const generated = json.document
+      if (!generated) throw new Error('Réponse IA incomplète')
       const next = {
         ...generatedToVersionInput(generated, {
           slug: form.slug,

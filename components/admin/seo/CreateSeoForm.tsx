@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { applyGeneratedDraft, createSeoDocument } from '@/lib/seo/actions'
 import { generatedToVersionInput } from '@/lib/seo/from-generated'
+import { readApiJson } from '@/lib/seo/http'
 import { documentPath, slugify, typeLabel } from '@/lib/seo/paths'
 import {
   DOCUMENT_TYPES,
@@ -76,13 +77,16 @@ export default function CreateSeoForm() {
           ctaLabel: 'Réserver 45 min',
         }),
       })
-      const json = await response.json()
+      const json = await readApiJson<{ error?: string; document?: GeneratedDocument }>(response)
       if (!response.ok) {
         router.push(`/admin/seo/${created.documentId}`)
         throw new Error(json.error || 'Page créée, mais la génération a échoué. Complétez le brief dans l’éditeur.')
       }
-
-      const generated = json.document as GeneratedDocument
+      const generated = json.document
+      if (!generated) {
+        router.push(`/admin/seo/${created.documentId}`)
+        throw new Error('Page créée, mais la génération a renvoyé une réponse vide.')
+      }
       const next = generatedToVersionInput(generated, {
         slug: nextSlug,
         canonicalPath: documentPath(type, nextSlug),

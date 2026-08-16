@@ -4,7 +4,8 @@ import { isAdminUser } from '@/lib/admin'
 import { generationBriefSchema } from '@/lib/seo/schema'
 import { generateSeoDocument, PROMPT_VERSION, resolveNimModel } from '@/lib/ai/nvidia-nim'
 
-export const maxDuration = 300
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export async function POST(request: Request) {
   const supabase = await createClient()
