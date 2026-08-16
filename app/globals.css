@@ -216,6 +216,72 @@ h1, h2, h3, h4, .font-display {
   display: none;
 }
 
+.client-nav-item {
+  transition:
+    background-color var(--duration-ui) ease,
+    color var(--duration-ui) ease,
+    transform var(--duration-press) var(--ease-out);
+}
+
+.client-nav-item:active {
+  transform: scale(0.97);
+}
+
+.client-press {
+  transition: transform var(--duration-press) var(--ease-out);
+}
+
+.client-press:active {
+  transform: scale(0.97);
+}
+
+.client-enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-ui) var(--ease-out),
+    transform var(--duration-ui) var(--ease-out);
+}
+
+@starting-style {
+  .client-enter {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.client-enter:nth-child(1) { transition-delay: 0ms; }
+.client-enter:nth-child(2) { transition-delay: 40ms; }
+.client-enter:nth-child(3) { transition-delay: 80ms; }
+.client-enter:nth-child(4) { transition-delay: 120ms; }
+.client-enter:nth-child(5) { transition-delay: 160ms; }
+.client-enter:nth-child(6) { transition-delay: 200ms; }
+
+.client-doc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--duration-ui) var(--ease-out),
+    opacity 160ms var(--ease-out);
+}
+
+.client-doc-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .client-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  .client-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -231,5 +297,29 @@ h1, h2, h3, h4, .font-display {
 
   .marquee__track {
     animation: none;
+  }
+
+  .client-nav-item,
+  .client-press,
+  .client-enter,
+  .client-doc-panel {
+    transition: opacity 200ms ease;
+    transform: none;
+  }
+
+  .client-nav-item:active,
+  .client-press:active {
+    transform: none;
+  }
+
+  @starting-style {
+    .client-enter {
+      opacity: 0;
+      transform: none;
+    }
+  }
+
+  .client-enter {
+    transition-delay: 0ms;
   }
 }

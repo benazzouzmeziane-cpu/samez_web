@@ -15,7 +15,7 @@ export default function Header() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  if (pathname.startsWith('/admin')) return null
+  if (pathname.startsWith('/admin') || pathname.startsWith('/espace-client')) return null
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-3 pt-4 md:px-6 pointer-events-none">

@@ -47,17 +47,20 @@ export async function middleware(request: NextRequest) {
   }
 
   // --- Routes espace client ---
-  const isClientDashboard = pathname.startsWith('/espace-client/dashboard')
+  const isClientApp =
+    pathname.startsWith('/espace-client/dashboard') ||
+    pathname.startsWith('/espace-client/documents') ||
+    pathname.startsWith('/espace-client/compte')
   const isClientLoginPage = pathname === '/espace-client'
 
-  if (isClientDashboard && !user) {
+  if (isClientApp && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/espace-client'
     return NextResponse.redirect(url)
   }
 
-  // Admin sur le dashboard client → renvoyer vers l'admin
-  if (isClientDashboard && user && isAdminAllowed(user.email)) {
+  // Admin sur le portail client → renvoyer vers l'admin
+  if (isClientApp && user && isAdminAllowed(user.email)) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin'
     return NextResponse.redirect(url)

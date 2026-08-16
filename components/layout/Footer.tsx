@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 export default function Footer() {
   const pathname = usePathname()
 
-  if (pathname.startsWith('/admin')) return null
+  if (pathname.startsWith('/admin') || pathname.startsWith('/espace-client')) return null
 
   return (
     <footer className="border-t border-white/10 mt-auto bg-[var(--navy)]">
