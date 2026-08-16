@@ -6,7 +6,10 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader'
 export default function NouveauSeoPage() {
   return (
     <div>
-      <AdminPageHeader title="Nouveau contenu" description="Une URL, une intention, un brouillon." />
+      <AdminPageHeader
+        title="Demander une page"
+        description="Donnez la consigne à l’agent. Il crée un brouillon à relire, jamais une page publiée."
+      />
       <CreateSeoForm />
     </div>
   )

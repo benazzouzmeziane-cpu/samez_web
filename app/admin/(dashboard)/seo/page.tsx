@@ -59,7 +59,7 @@ export default async function AdminSeoListPage({
               Redirections
             </Link>
             <Link href="/admin/seo/nouveau" className="btn btn-primary !py-2.5 !px-4">
-              Nouveau
+              Demander une page
             </Link>
           </>
         }
@@ -92,7 +92,7 @@ export default async function AdminSeoListPage({
       {filtered.length === 0 ? (
         <AdminEmptyState
           title="Aucun contenu"
-          body="Créez une page, ou préremplissez les 6 brouillons prioritaires."
+          body="Donnez une consigne à l’agent, ou préremplissez les 6 brouillons prioritaires."
           action={
             <div className="flex justify-center gap-2">
               <form action={seedDefaultSeoDrafts}>
@@ -101,7 +101,7 @@ export default async function AdminSeoListPage({
                 </button>
               </form>
               <Link href="/admin/seo/nouveau" className="btn btn-primary !py-2.5 !px-4">
-                Nouveau
+                Demander une page
               </Link>
             </div>
           }

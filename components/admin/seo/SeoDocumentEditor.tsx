@@ -48,7 +48,7 @@ type Props = {
   suggestions: Suggestion[]
 }
 
-const TABS = ['Contenu', 'SEO', 'GEO', 'Maillage', 'Données', 'Publication', 'Historique'] as const
+const TABS = ['Agent', 'Contenu', 'SEO', 'GEO', 'Maillage', 'Données', 'Publication', 'Historique'] as const
 
 function versionToInput(document: SeoDocument, version: SeoDocumentVersion): VersionInput {
   return {
@@ -100,7 +100,7 @@ export default function SeoDocumentEditor({
   suggestions,
 }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Contenu')
+  const [tab, setTab] = useState<(typeof TABS)[number]>('Agent')
   const [form, setForm] = useState<VersionInput>(() => versionToInput(document, version))
   const [links, setLinks] = useState<LinkRow[]>(initialLinks)
   const [versionId, setVersionId] = useState(version.id)
@@ -240,6 +240,48 @@ export default function SeoDocumentEditor({
         {typeLabel(document.type)} · {status} · v{version.version_number}
         {version.ai_generated ? ' · généré IA' : ''}
       </p>
+
+      {tab === 'Agent' ? (
+        <div className="max-w-2xl space-y-4 rounded-2xl border border-black/[0.06] bg-white p-5">
+          <p className="text-sm font-semibold text-[var(--navy)]">Consigne pour l’agent</p>
+          <p className="text-sm text-slate-500">
+            L’agent réécrit ce brouillon. Relisez ensuite l’onglet Contenu. Rien n’est mis en ligne automatiquement.
+          </p>
+          <textarea
+            value={brief}
+            onChange={e => setBrief(e.target.value)}
+            placeholder="Décrivez la page à rédiger : sujet, preuves same’z, angle, appel à l’action…"
+            className="w-full min-h-32 px-3 py-2.5 border border-black/[0.08] text-sm rounded-lg"
+          />
+          <textarea
+            value={proofs}
+            onChange={e => setProofs(e.target.value)}
+            placeholder="Preuves same’z uniquement (clients, livrables, faits vérifiables)"
+            className="w-full min-h-20 px-3 py-2.5 border border-black/[0.08] text-sm rounded-lg"
+          />
+          <input
+            value={angle}
+            onChange={e => setAngle(e.target.value)}
+            placeholder="Angle éditorial (optionnel)"
+            className="w-full px-3 py-2.5 border border-black/[0.08] text-sm rounded-lg"
+          />
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={generating || brief.trim().length < 20}
+            className="btn btn-primary !py-2.5 !px-4 disabled:opacity-50"
+          >
+            {generating ? 'L’agent rédige…' : 'Demander à l’agent de rédiger'}
+          </button>
+          {reviewFlags.length > 0 ? (
+            <ul className="text-sm text-amber-700 list-disc pl-5">
+              {reviewFlags.map(flag => (
+                <li key={flag}>{flag}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       {tab === 'Contenu' ? (
         <div className="grid lg:grid-cols-2 gap-8">
@@ -576,42 +618,9 @@ export default function SeoDocumentEditor({
 
       {tab === 'Publication' ? (
         <div className="space-y-6">
-          <div className="p-4 bg-[#fafafa] rounded-xl space-y-3">
-            <p className="text-xs font-medium text-gray-400 uppercase">Assistant IA</p>
-            <textarea
-              value={brief}
-              onChange={e => setBrief(e.target.value)}
-              placeholder="Brief, mot-clé, intention, cible, CTA…"
-              className="w-full min-h-32 px-3 py-2.5 border border-gray-200 text-sm rounded-lg"
-            />
-            <textarea
-              value={proofs}
-              onChange={e => setProofs(e.target.value)}
-              placeholder="Preuves same’z uniquement (clients, livrables, faits vérifiables)"
-              className="w-full min-h-20 px-3 py-2.5 border border-gray-200 text-sm rounded-lg"
-            />
-            <input
-              value={angle}
-              onChange={e => setAngle(e.target.value)}
-              placeholder="Angle éditorial (optionnel)"
-              className="w-full px-3 py-2.5 border border-gray-200 text-sm rounded-lg"
-            />
-            <button
-              type="button"
-              onClick={onGenerate}
-              disabled={generating || brief.trim().length < 20}
-              className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg disabled:opacity-50"
-            >
-              {generating ? 'Génération…' : 'Générer un brouillon (Mistral)'}
-            </button>
-            {reviewFlags.length > 0 ? (
-              <ul className="text-sm text-amber-700 list-disc pl-5">
-                {reviewFlags.map(flag => (
-                  <li key={flag}>{flag}</li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
+          <p className="text-sm text-slate-500">
+            Pour (re)générer le texte, utilisez l’onglet Agent. Ici : relecture humaine, programmation et publication.
+          </p>
           <ul className="space-y-2">
             {checklist.map(item => (
               <li key={item.id} className="text-sm flex gap-2">
