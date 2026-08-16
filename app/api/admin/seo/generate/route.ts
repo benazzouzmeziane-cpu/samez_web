@@ -4,6 +4,8 @@ import { isAdminUser } from '@/lib/admin'
 import { generationBriefSchema } from '@/lib/seo/schema'
 import { generateSeoDocument, PROMPT_VERSION, resolveNimModel } from '@/lib/ai/nvidia-nim'
 
+export const maxDuration = 300
+
 export async function POST(request: Request) {
   const supabase = await createClient()
   const {
@@ -54,6 +56,8 @@ export async function POST(request: Request) {
       document: result.document,
       reviewFlags: result.document.reviewFlags,
       usage: result.usage,
+      model: result.model,
+      attempted: result.attempted,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Génération impossible'

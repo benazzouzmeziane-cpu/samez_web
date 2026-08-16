@@ -1,13 +1,44 @@
 import { generatedDocumentSchema, type GeneratedDocument, type GenerationBrief } from '@/lib/seo/schema'
 import { newBlockId } from '@/lib/seo/paths'
 
-export const PROMPT_VERSION = 'samez-seo-v1'
-export const DEFAULT_NIM_MODEL = 'mistralai/mistral-small-4-119b-2603'
-const RETIRED_NIM_MODELS = new Set(['mistralai/mistral-medium-3.5-128b'])
+export const PROMPT_VERSION = 'samez-seo-v2'
+
+const RETIRED_NIM_MODELS = new Set([
+  'mistralai/mistral-medium-3.5-128b',
+  'mistralai/mistral-medium-3-instruct',
+])
+
+/**
+ * Ordre : meilleure rédaction FR d’abord, puis modèles plus stables sur l’API hosted NVIDIA.
+ * Si un identifiant est retiré (410) ou indisponible, on passe au suivant.
+ */
+export const NIM_WRITING_CASCADE = [
+  'nvidia/nemotron-3-super-120b-a12b',
+  'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+  'meta/llama-3.3-70b-instruct',
+  'mistralai/mistral-small-4-119b-2603',
+  'mistralai/mistral-nemotron',
+  'nvidia/llama-3.1-nemotron-70b-instruct',
+  'meta/llama-3.1-70b-instruct',
+  'mistralai/mixtral-8x22b-instruct',
+] as const
+
+export const DEFAULT_NIM_MODEL = NIM_WRITING_CASCADE[0]
+
+export function resolveNimCascade(): string[] {
+  const extra = (process.env.NVIDIA_NIM_MODELS || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+  const preferred = process.env.NVIDIA_NIM_MODEL?.trim()
+  const ordered = [...extra, preferred, ...NIM_WRITING_CASCADE].filter(
+    (item): item is string => typeof item === 'string' && item.length > 0 && !RETIRED_NIM_MODELS.has(item)
+  )
+  return [...new Set(ordered)]
+}
 
 export function resolveNimModel() {
-  const requested = process.env.NVIDIA_NIM_MODEL || DEFAULT_NIM_MODEL
-  return RETIRED_NIM_MODELS.has(requested) ? DEFAULT_NIM_MODEL : requested
+  return resolveNimCascade()[0] || DEFAULT_NIM_MODEL
 }
 
 const SYSTEM_PROMPT = `Tu rédiges des pages SEO/GEO en français pour same'z, développeur indépendant.
@@ -26,9 +57,9 @@ Règles non négociables :
 - N'écris pas de pages locales "ville" sans preuve locale fournie.`
 
 function extractJson(text: string): unknown {
-  const trimmed = text.trim()
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/)
-  const raw = fenced ? fenced[1] : trimmed
+  const stripped = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+  const fenced = stripped.match(/```(?:json)?\s*([\s\S]*?)```/)
+  const raw = fenced ? fenced[1] : stripped
   const start = raw.indexOf('{')
   const end = raw.lastIndexOf('}')
   if (start === -1 || end === -1) throw new Error('Réponse IA sans JSON')
@@ -42,12 +73,41 @@ function assignBlockIds(payload: GeneratedDocument): GeneratedDocument {
   }
 }
 
+function messageText(message?: { content?: unknown }): string {
+  const content = message?.content
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) {
+    return content
+      .map(part => {
+        if (typeof part === 'string') return part
+        if (part && typeof part === 'object' && 'text' in part) return String((part as { text?: string }).text || '')
+        return ''
+      })
+      .join('')
+  }
+  return ''
+}
+
+function isRetryableStatus(status: number, body: string) {
+  if ([404, 408, 409, 410, 422, 429, 500, 502, 503, 504, 524].includes(status)) return true
+  if (status !== 400) return false
+  return /end of life|no longer available|not found|unknown model|does not exist|gone|invalid model|model_not_found/i.test(
+    body
+  )
+}
+
+const SYSTEM_PROMPT_USER = SYSTEM_PROMPT
+
 export async function generateSeoDocument(
   brief: GenerationBrief
-): Promise<{ document: GeneratedDocument; usage: { prompt: number; completion: number }; model: string }> {
+): Promise<{
+  document: GeneratedDocument
+  usage: { prompt: number; completion: number }
+  model: string
+  attempted: string[]
+}> {
   const apiKey = process.env.NVIDIA_API_KEY
   const baseUrl = (process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '')
-  const model = resolveNimModel()
   if (!apiKey) throw new Error('NVIDIA_API_KEY manquante')
 
   const userPrompt = JSON.stringify(
@@ -89,9 +149,9 @@ export async function generateSeoDocument(
     2
   )
 
-  const call = async (repair?: string) => {
+  const call = async (model: string, repair?: string) => {
     const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: SYSTEM_PROMPT_USER },
       { role: 'user', content: userPrompt },
     ]
     if (repair) {
@@ -111,20 +171,26 @@ export async function generateSeoDocument(
         model,
         temperature: 0.2,
         max_tokens: 8192,
-        reasoning_effort: 'none',
         messages,
       }),
+      signal: AbortSignal.timeout(90_000),
     })
+    const body = await response.text()
     if (!response.ok) {
-      const body = await response.text()
-      throw new Error(`NVIDIA NIM ${response.status}: ${body.slice(0, 300)}`)
+      const error = new Error(`NVIDIA NIM ${response.status}: ${body.slice(0, 280)}`) as Error & {
+        retryable?: boolean
+        status?: number
+      }
+      error.status = response.status
+      error.retryable = isRetryableStatus(response.status, body)
+      throw error
     }
-    const json = (await response.json()) as {
-      choices?: { message?: { content?: string } }[]
+    const json = JSON.parse(body) as {
+      choices?: { message?: { content?: unknown } }[]
       usage?: { prompt_tokens?: number; completion_tokens?: number }
     }
-    const content = json.choices?.[0]?.message?.content
-    if (!content) throw new Error('Réponse IA vide')
+    const content = messageText(json.choices?.[0]?.message)
+    if (!content.trim()) throw new Error('Réponse IA vide')
     return {
       content,
       usage: {
@@ -134,21 +200,40 @@ export async function generateSeoDocument(
     }
   }
 
-  const first = await call()
-  try {
-    const parsed = generatedDocumentSchema.parse(extractJson(first.content))
-    return { document: assignBlockIds(parsed), usage: first.usage, model }
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : 'JSON invalide'
-    const second = await call(reason)
-    const parsed = generatedDocumentSchema.parse(extractJson(second.content))
-    return {
-      document: assignBlockIds(parsed),
-      usage: {
-        prompt: first.usage.prompt + second.usage.prompt,
-        completion: first.usage.completion + second.usage.completion,
-      },
-      model,
+  const attempted: string[] = []
+  const errors: string[] = []
+  let usage = { prompt: 0, completion: 0 }
+
+  for (const model of resolveNimCascade()) {
+    attempted.push(model)
+    try {
+      const first = await call(model)
+      usage = {
+        prompt: usage.prompt + first.usage.prompt,
+        completion: usage.completion + first.usage.completion,
+      }
+      try {
+        const parsed = generatedDocumentSchema.parse(extractJson(first.content))
+        return { document: assignBlockIds(parsed), usage, model, attempted }
+      } catch (parseError) {
+        const reason = parseError instanceof Error ? parseError.message : 'JSON invalide'
+        const second = await call(model, reason)
+        usage = {
+          prompt: usage.prompt + second.usage.prompt,
+          completion: usage.completion + second.usage.completion,
+        }
+        const parsed = generatedDocumentSchema.parse(extractJson(second.content))
+        return { document: assignBlockIds(parsed), usage, model, attempted }
+      }
+    } catch (error) {
+      const status = (error as { status?: number }).status
+      const message = error instanceof Error ? error.message : 'échec'
+      errors.push(`${model}: ${message}`)
+      if (status === 401 || status === 403) {
+        throw new Error('Clé NVIDIA refusée. Vérifiez NVIDIA_API_KEY sur Vercel.')
+      }
     }
   }
+
+  throw new Error(`Aucun modèle NVIDIA n’a pu rédiger. ${errors.slice(-3).join(' · ')}`)
 }

@@ -208,7 +208,7 @@ export default function SeoDocumentEditor({
       setStatus('draft')
       setForm(next)
       setReviewFlags(generated.reviewFlags || [])
-      setMessage('Brouillon généré — relecture obligatoire avant publication')
+      setMessage(`Brouillon généré par ${json.model || 'l’agent'} — relecture obligatoire avant publication`)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Génération impossible')
