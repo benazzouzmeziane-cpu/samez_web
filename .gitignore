@@ -39,6 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
+# Cloudflare Workers
+workers/**/node_modules
+workers/**/.wrangler
+
 # temp files
 tmpclaude-*
 next-env.d.ts

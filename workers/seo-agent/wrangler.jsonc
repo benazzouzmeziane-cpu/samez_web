@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "samez-seo-agent",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "ai": {
+    "binding": "AI"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "SeoWriter", "class_name": "SeoWriter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SeoWriter"] }]
+}

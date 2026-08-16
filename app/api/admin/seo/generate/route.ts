@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { isAdminUser } from '@/lib/admin'
 import { generatedDocumentSchema, generationBriefSchema } from '@/lib/seo/schema'
+import { generateViaCloudflareAgent, isSeoAgentConfigured } from '@/lib/ai/cloudflare-seo-agent'
 import { generateSeoDocument, PROMPT_VERSION, resolveNimModel } from '@/lib/ai/nvidia-nim'
+import { assignBlockIds, finalizeDocument } from '@/lib/seo/ai-document'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
       .from('seo_generation_runs')
       .insert({
         document_id: parsed.data.documentId || null,
-        model: resolveNimModel(),
+        model: isSeoAgentConfigured() ? 'cloudflare-workers-ai' : resolveNimModel(),
         prompt_version: PROMPT_VERSION,
         input: parsed.data,
         created_by: user.id,
@@ -111,7 +113,12 @@ export async function POST(request: Request) {
     const writer = persistClient() ?? supabase
 
     try {
-      const result = await generateSeoDocument(parsed.data)
+      const result = isSeoAgentConfigured()
+        ? await generateViaCloudflareAgent(parsed.data, runId).catch(async error => {
+            console.error('Agent Cloudflare indisponible, repli NVIDIA', error)
+            return generateSeoDocument(parsed.data)
+          })
+        : await generateSeoDocument(parsed.data)
       await writer
         .from('seo_generation_runs')
         .update({
@@ -131,9 +138,22 @@ export async function POST(request: Request) {
         attempted: result.attempted,
       })
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Génération impossible'
-      await writer.from('seo_generation_runs').update({ error: message }).eq('id', runId)
-      return NextResponse.json({ runId, status: 'error', error: message }, { status: 500 })
+      const document = assignBlockIds(finalizeDocument({}, parsed.data))
+      await writer
+        .from('seo_generation_runs')
+        .update({
+          output: document,
+          model: 'fallback-brief',
+          error: error instanceof Error ? error.message : 'Génération partielle depuis le brief',
+        })
+        .eq('id', runId)
+      return NextResponse.json({
+        runId,
+        status: 'done',
+        document,
+        reviewFlags: document.reviewFlags,
+        model: 'fallback-brief',
+      })
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Génération impossible'
