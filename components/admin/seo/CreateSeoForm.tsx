@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { applyGeneratedDraft, createSeoDocument } from '@/lib/seo/actions'
 import { generatedToVersionInput } from '@/lib/seo/from-generated'
-import { readApiJson } from '@/lib/seo/http'
+import { readApiJson, waitForSeoGeneration } from '@/lib/seo/http'
 import { documentPath, slugify, typeLabel } from '@/lib/seo/paths'
 import {
   DOCUMENT_TYPES,
@@ -77,11 +77,18 @@ export default function CreateSeoForm() {
           ctaLabel: 'Réserver 45 min',
         }),
       })
-      const json = await readApiJson<{ error?: string; document?: GeneratedDocument }>(response)
+      const started = await readApiJson<{ error?: string; runId?: string; document?: GeneratedDocument }>(
+        response
+      )
       if (!response.ok) {
         router.push(`/admin/seo/${created.documentId}`)
-        throw new Error(json.error || 'Page créée, mais la génération a échoué. Complétez le brief dans l’éditeur.')
+        throw new Error(started.error || 'Page créée, mais la génération a échoué. Complétez le brief dans l’éditeur.')
       }
+      const json = started.document
+        ? started
+        : started.runId
+          ? await waitForSeoGeneration<GeneratedDocument>(started.runId)
+          : started
       const generated = json.document
       if (!generated) {
         router.push(`/admin/seo/${created.documentId}`)

@@ -1,14 +1,12 @@
 import { generatedDocumentSchema, type GeneratedDocument, type GenerationBrief } from '@/lib/seo/schema'
 import { newBlockId } from '@/lib/seo/paths'
 
-export const PROMPT_VERSION = 'samez-seo-v3'
+export const PROMPT_VERSION = 'samez-seo-v4'
 
 /**
- * Identifiants officiels NVIDIA NIM hosted (docs LLM APIs, 11 août 2026) :
+ * Identifiants officiels NVIDIA NIM hosted (docs LLM APIs, 11 août 2026).
+ * Petits modèles d’abord : un ping + une cascade 70B dépassent le délai Vercel.
  * https://docs.api.nvidia.com/nim/reference/llm-apis.md
- *
- * Les 70B+ sont exclus en tête : ils existent mais dépassent le délai serverless.
- * Mixtral 8x22B a renvoyé 404 sur l’API hosted — retiré.
  */
 const RETIRED_NIM_MODELS = new Set([
   'mistralai/mistral-medium-3.5-128b',
@@ -18,17 +16,16 @@ const RETIRED_NIM_MODELS = new Set([
 ])
 
 export const NIM_WRITING_CASCADE = [
-  'nvidia/nemotron-3.5-lightning-30b-a3b',
-  'mistralai/mistral-nemotron',
-  'nvidia/nemotron-3-nano-30b-a3b',
-  'openai/gpt-oss-20b',
-  'meta/llama-3.1-8b-instruct',
+  'meta/llama-3.2-3b-instruct',
   'microsoft/phi-4-mini-instruct',
+  'meta/llama-3.1-8b-instruct',
+  'nvidia/llama-3.1-nemotron-nano-8b-v1',
+  'nvidia/nemotron-3-nano-30b-a3b',
 ] as const
 
 export const DEFAULT_NIM_MODEL = NIM_WRITING_CASCADE[0]
 
-const SLOW_MODEL = /70b|49b|120b|128b|253b|405b|480b|550b/i
+const SLOW_MODEL = /70b|49b|120b|128b|253b|405b|480b|550b|lightning/i
 
 export function resolveNimCascade(): string[] {
   const extra = (process.env.NVIDIA_NIM_MODELS || '')
@@ -36,32 +33,22 @@ export function resolveNimCascade(): string[] {
     .map(item => item.trim())
     .filter(Boolean)
   const preferred = process.env.NVIDIA_NIM_MODEL?.trim()
-  const preferredFast = preferred && !SLOW_MODEL.test(preferred) ? [preferred] : []
-  const preferredSlow = preferred && SLOW_MODEL.test(preferred) ? [preferred] : []
-  const ordered = [...preferredFast, ...extra, ...NIM_WRITING_CASCADE, ...preferredSlow].filter(
-    (item): item is string => typeof item === 'string' && item.length > 0 && !RETIRED_NIM_MODELS.has(item)
+  const usable = (model: string) =>
+    Boolean(model) && !RETIRED_NIM_MODELS.has(model) && !SLOW_MODEL.test(model)
+  const ordered = [preferred, ...extra, ...NIM_WRITING_CASCADE].filter(
+    (item): item is string => typeof item === 'string' && usable(item)
   )
-  return [...new Set(ordered)]
+  return [...new Set(ordered)].slice(0, 2)
 }
 
 export function resolveNimModel() {
   return resolveNimCascade()[0] || DEFAULT_NIM_MODEL
 }
 
-const SYSTEM_PROMPT = `Tu rédiges des pages SEO/GEO en français pour same'z, développeur indépendant.
-Tu produis UNIQUEMENT un JSON valide, sans markdown autour.
-
-Règles non négociables :
-- Contenu utile à un humain, pas une page fabriquée pour manipuler Google.
-- N'invente aucun chiffre, client, résultat, tarif, date, citation ou preuve.
-- Si une information n'est pas fournie dans le brief, ne l'affirme pas. Ajoute-la dans reviewFlags.
-- Réponds d'abord clairement (bloc type "answer"), puis développe.
-- Structure : hero, answer, markdown/steps, faq, sources, cta.
-- Chaque bloc a un id UUID et un type parmi : hero, answer, markdown, list, steps, comparison, stats, quote, media, faq, sources, cta, related.
-- markdown : titres ## / ### uniquement, pas de HTML.
-- Liens internes suggérés uniquement vers des chemins fournis ou évidents du site samez.fr (/services, /reserver, /realisations, /a-propos).
-- Français naturel, tutoiement interdit, vouvoiement.
-- N'écris pas de pages locales "ville" sans preuve locale fournie.`
+const SYSTEM_PROMPT = `Rédacteur SEO same'z (FR). Réponds UNIQUEMENT par un JSON valide, sans markdown.
+Règles : utile, pas de chiffres/clients/tarifs inventés, vouvoiement, pas de pages ville sans preuve.
+Blocs requis (id courts h1,a1,m1,c1) : hero, answer, markdown (## / ###), cta vers /reserver.
+Ajoute 2 FAQ. reviewFlags pour tout ce qui n'est pas dans le brief.`
 
 function extractJson(text: string): unknown {
   const stripped = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
@@ -101,40 +88,8 @@ function nimError(message: string, status?: number) {
   return error
 }
 
-async function listHostedModelIds(apiKey: string, baseUrl: string): Promise<Set<string> | null> {
-  try {
-    const response = await fetch(`${baseUrl}/models`, {
-      headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
-      signal: AbortSignal.timeout(8_000),
-    })
-    if (!response.ok) return null
-    const json = (await response.json()) as { data?: { id?: string }[] }
-    const ids = (json.data ?? []).map(item => item.id).filter((id): id is string => Boolean(id))
-    return ids.length > 0 ? new Set(ids) : null
-  } catch {
-    return null
-  }
-}
-
-async function probeModel(apiKey: string, baseUrl: string, model: string): Promise<true | string> {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      max_tokens: 4,
-      messages: [{ role: 'user', content: 'Réponds uniquement: ok' }],
-    }),
-    signal: AbortSignal.timeout(12_000),
-  })
-  const body = await response.text()
-  if (response.ok) return true
-  return `${response.status} ${body.slice(0, 120)}`
+function isUnavailableStatus(status?: number) {
+  return status === 400 || status === 404 || status === 410 || status === 422
 }
 
 export async function generateSeoDocument(
@@ -149,50 +104,46 @@ export async function generateSeoDocument(
   const baseUrl = (process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '')
   if (!apiKey) throw new Error('NVIDIA_API_KEY manquante')
 
-  const hosted = await listHostedModelIds(apiKey, baseUrl)
-  const candidates = resolveNimCascade()
-    .filter(model => !hosted || hosted.has(model))
-    .slice(0, 5)
-  const queue = candidates.length > 0 ? candidates : resolveNimCascade().slice(0, 5)
-
-  const userPrompt = JSON.stringify(
-    {
-      type: brief.type,
-      slug: brief.slug,
-      title: brief.title,
+  const queue = resolveNimCascade()
+  const userPrompt = JSON.stringify({
+    type: brief.type,
+    slug: brief.slug,
+    title: brief.title,
+    keywordPrimary: brief.keywordPrimary,
+    searchIntent: brief.searchIntent,
+    audience: brief.audience,
+    brief: brief.brief,
+    proofs: brief.proofs || '',
+    sources: brief.sources || [],
+    angle: brief.angle || '',
+    ctaHref: brief.ctaHref || '/reserver',
+    ctaLabel: brief.ctaLabel || 'Réserver 45 min',
+    attendu: {
+      title: '',
+      h1: '',
+      excerpt: '',
+      metaTitle: '<=70',
+      metaDescription: '50-160',
       keywordPrimary: brief.keywordPrimary,
       searchIntent: brief.searchIntent,
       audience: brief.audience,
-      brief: brief.brief,
-      proofs: brief.proofs || '',
-      sources: brief.sources || [],
-      angle: brief.angle || '',
-      ctaHref: brief.ctaHref || '/reserver',
-      ctaLabel: brief.ctaLabel || 'Réserver 45 min',
-      schemaHint: {
-        title: 'string',
-        h1: 'string',
-        excerpt: 'string',
-        metaTitle: 'string <=70',
-        metaDescription: 'string 50-160',
-        keywordPrimary: 'string',
-        searchIntent: brief.searchIntent,
-        audience: 'string',
-        entities: [{ name: 'string', type: 'string' }],
-        factualSummary: 'string',
-        blocks: [],
-        faq: [{ question: 'string', answer: 'string' }],
-        sources: [{ label: 'string', url: 'string' }],
-        suggestedLinks: [{ path: '/reserver', anchorText: 'Réserver 45 min' }],
-        extraJsonLd: null,
-        ctaLabel: 'string',
-        ctaHref: '/reserver',
-        reviewFlags: ['éléments à vérifier'],
-      },
+      entities: [{ name: "same'z", type: 'Organization' }],
+      factualSummary: '',
+      blocks: [
+        { id: 'h1', type: 'hero', heading: '', subheading: '' },
+        { id: 'a1', type: 'answer', text: '' },
+        { id: 'm1', type: 'markdown', markdown: '## ...\\n### ...' },
+        { id: 'c1', type: 'cta', heading: '', href: '/reserver', label: 'Réserver 45 min' },
+      ],
+      faq: [{ question: '', answer: '' }],
+      sources: [],
+      suggestedLinks: [{ path: '/reserver', anchorText: 'Réserver 45 min' }],
+      extraJsonLd: null,
+      ctaLabel: 'Réserver 45 min',
+      ctaHref: '/reserver',
+      reviewFlags: [],
     },
-    null,
-    2
-  )
+  })
 
   const complete = async (model: string) => {
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -205,13 +156,13 @@ export async function generateSeoDocument(
       body: JSON.stringify({
         model,
         temperature: 0.2,
-        max_tokens: 2500,
+        max_tokens: 1200,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
         ],
       }),
-      signal: AbortSignal.timeout(40_000),
+      signal: AbortSignal.timeout(28_000),
     })
     const body = await response.text()
     if (!response.ok) {
@@ -244,14 +195,6 @@ export async function generateSeoDocument(
   for (const model of queue) {
     attempted.push(model)
     try {
-      const probe = await probeModel(apiKey, baseUrl, model)
-      if (probe !== true) {
-        errors.push(`${model}: indisponible (${probe})`)
-        if (/\b401\b|\b403\b/.test(probe)) {
-          throw new Error('Clé NVIDIA refusée. Vérifiez NVIDIA_API_KEY sur Vercel.')
-        }
-        continue
-      }
       const first = await complete(model)
       usage = {
         prompt: usage.prompt + first.usage.prompt,
@@ -269,6 +212,9 @@ export async function generateSeoDocument(
       errors.push(
         name === 'TimeoutError' || name === 'AbortError' ? `${model}: délai dépassé` : `${model}: ${message}`
       )
+      if (name === 'TimeoutError' || name === 'AbortError' || !isUnavailableStatus(status)) {
+        break
+      }
     }
   }
 
