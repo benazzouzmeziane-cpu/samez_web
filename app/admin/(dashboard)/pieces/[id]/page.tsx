@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import PieceForm from '@/components/admin/PieceForm'
 import PiecePDFButton from '@/components/admin/PiecePDFButton'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { notFound } from 'next/navigation'
 
 export default async function PieceDetailPage({
@@ -36,37 +37,24 @@ export default async function PieceDetailPage({
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-2">
-            {piece.type === 'devis' ? 'Devis' : 'Facture'}
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {piece.number}
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {piece.clients?.name ?? 'Sans client'} — {totalTTC.toFixed(2)} € TTC
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PiecePDFButton pieceId={piece.id} />
-        </div>
-      </div>
+      <AdminPageHeader
+        title={piece.number}
+        description={`${piece.clients?.name ?? 'Sans client'} — ${totalTTC.toFixed(2)} € TTC`}
+        actions={<PiecePDFButton pieceId={piece.id} />}
+      />
 
-      <div className="mt-10">
-        <PieceForm
-          piece={{
-            ...piece,
-            client_id: piece.client_id ?? undefined,
-            due_date: piece.due_date ?? undefined,
-            notes: piece.notes ?? undefined,
-            paid_date: piece.paid_date ?? undefined,
-            payment_method: piece.payment_method ?? undefined,
-          }}
-          clients={clients ?? []}
-          mode="edit"
-        />
-      </div>
+      <PieceForm
+        piece={{
+          ...piece,
+          client_id: piece.client_id ?? undefined,
+          due_date: piece.due_date ?? undefined,
+          notes: piece.notes ?? undefined,
+          paid_date: piece.paid_date ?? undefined,
+          payment_method: piece.payment_method ?? undefined,
+        }}
+        clients={clients ?? []}
+        mode="edit"
+      />
     </div>
   )
 }

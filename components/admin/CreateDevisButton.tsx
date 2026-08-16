@@ -59,7 +59,7 @@ export default function CreateDevisButton({ name, email, phone, contactId }: Pro
     <button
       onClick={handleClick}
       disabled={loading}
-      className="text-xs px-3 py-1 rounded-full bg-[var(--accent-light)] text-[var(--accent-dark)] font-medium hover:bg-[var(--accent)] hover:text-white transition-colors disabled:opacity-50"
+      className="client-press text-xs px-3 py-1.5 rounded-full bg-emerald-50 text-[var(--accent-dark)] font-medium disabled:opacity-50"
     >
       {loading ? '...' : 'Créer un devis'}
     </button>

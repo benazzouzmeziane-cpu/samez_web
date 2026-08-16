@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import RedirectForm from '@/components/admin/seo/RedirectForm'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import AdminEmptyState from '@/components/admin/AdminEmptyState'
 
 export default async function SeoRedirectsPage() {
   const supabase = await createClient()
@@ -9,16 +11,24 @@ export default async function SeoRedirectsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight mb-1">Redirections 301</h1>
-      <p className="text-sm text-gray-500 mb-8">Conservées lors d’un changement de slug.</p>
+      <AdminPageHeader
+        title="Redirections"
+        description="Conservées lors d’un changement de slug."
+      />
       <RedirectForm />
-      <ul className="mt-8 space-y-2">
-        {(data ?? []).map(item => (
-          <li key={item.id} className="text-sm p-3 bg-[#fafafa] rounded-lg">
-            {item.from_path} → {item.to_path}
-          </li>
-        ))}
-      </ul>
+      {(data ?? []).length === 0 ? (
+        <div className="mt-8">
+          <AdminEmptyState title="Aucune redirection" body="Elles apparaîtront ici après un changement de slug." />
+        </div>
+      ) : (
+        <ul className="mt-8 rounded-2xl border border-black/[0.06] bg-white overflow-hidden">
+          {(data ?? []).map((item) => (
+            <li key={item.id} className="text-sm px-5 py-3 border-b border-black/[0.06] last:border-b-0 font-mono">
+              {item.from_path} → {item.to_path}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

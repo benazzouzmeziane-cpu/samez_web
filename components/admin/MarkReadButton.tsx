@@ -33,7 +33,7 @@ export default function MarkReadButton({ id }: { id: string }) {
       onClick={handleMark}
       disabled={loading}
       title={error || undefined}
-      className="text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-400 hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
+      className="client-press text-xs px-3 py-1.5 rounded-full border border-black/10 text-slate-500 disabled:opacity-50"
     >
       {error ? 'Réessayer' : loading ? '...' : 'Marquer lu'}
     </button>

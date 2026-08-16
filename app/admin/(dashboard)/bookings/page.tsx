@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import CancelBookingButton from '@/components/admin/CancelBookingButton'
 import Pagination from '@/components/admin/Pagination'
 import { BOOKING_TZ } from '@/lib/booking'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import AdminEmptyState from '@/components/admin/AdminEmptyState'
+import AdminChip from '@/components/admin/AdminChip'
 
 const PAGE_SIZE = 20
 
@@ -73,72 +76,59 @@ export default async function AdminBookingsPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Rendez-vous</h1>
-        {(upcomingCount ?? 0) > 0 && (
-          <span className="px-3 py-1 bg-[var(--accent-light)] text-[var(--accent-dark)] text-xs font-semibold rounded-full">
-            {upcomingCount} à venir
-          </span>
-        )}
-      </div>
-      <p className="text-sm text-gray-500 mb-6">
-        {total} rendez-vous
-        {statusFilter === 'confirmed'
-          ? ' confirmés'
-          : statusFilter === 'cancelled'
-            ? ' annulés'
-            : ''}
-      </p>
+      <AdminPageHeader
+        title="Rendez-vous"
+        description={`${total} ${
+          statusFilter === 'confirmed' ? 'confirmés' : statusFilter === 'cancelled' ? 'annulés' : 'au total'
+        }`}
+        badge={
+          (upcomingCount ?? 0) > 0 ? (
+            <span className="px-2.5 py-1 bg-emerald-50 text-[var(--accent-dark)] text-xs font-semibold rounded-full">
+              {upcomingCount} à venir
+            </span>
+          ) : null
+        }
+      />
 
-      <div className="flex gap-2 mb-8 text-xs">
-        {[
-          { key: 'confirmed', label: 'Confirmés' },
-          { key: 'cancelled', label: 'Annulés' },
-          { key: 'all', label: 'Tous' },
-        ].map(f => (
-          <a
-            key={f.key}
-            href={`/admin/bookings?status=${f.key}`}
-            className={`px-3 py-1.5 rounded-lg border transition-colors ${
-              statusFilter === f.key
-                ? 'border-[var(--accent)] bg-[var(--accent-light)] text-[var(--accent-dark)] font-medium'
-                : 'border-gray-200 text-gray-500 hover:border-gray-300'
-            }`}
-          >
-            {f.label}
-          </a>
-        ))}
+      <div className="flex gap-2 mb-6">
+        <AdminChip href="/admin/bookings?status=confirmed" active={statusFilter === 'confirmed'}>
+          Confirmés
+        </AdminChip>
+        <AdminChip href="/admin/bookings?status=cancelled" active={statusFilter === 'cancelled'}>
+          Annulés
+        </AdminChip>
+        <AdminChip href="/admin/bookings?status=all" active={statusFilter === 'all'}>
+          Tous
+        </AdminChip>
       </div>
 
       {rows.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">Aucun rendez-vous pour l&apos;instant.</p>
-        </div>
+        <AdminEmptyState title="Aucun rendez-vous" body="Les créneaux réservés sur /reserver apparaîtront ici." />
       ) : (
         <div className="space-y-3">
-          {rows.map(b => {
+          {rows.map((b) => {
             const isPast = new Date(b.starts_at).getTime() < Date.now()
             const cancelled = b.status === 'cancelled'
             return (
               <div
                 key={b.id}
-                className={`p-5 rounded-xl border ${
+                className={`rounded-2xl border p-5 ${
                   cancelled
-                    ? 'bg-[#fafafa] border-gray-100 opacity-70'
+                    ? 'bg-white border-black/[0.06] opacity-60'
                     : isPast
-                      ? 'bg-[#fafafa] border-gray-100'
-                      : 'bg-white border-[var(--accent)]/25 shadow-sm'
+                      ? 'bg-white border-black/[0.06]'
+                      : 'bg-white border-[var(--accent)]/25'
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div>
                     <p className="font-medium text-sm mb-1">{b.name}</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      <a href={`mailto:${b.email}`} className="hover:text-[var(--accent)]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <a href={`mailto:${b.email}`} className="link-quiet">
                         {b.email}
                       </a>
                       {b.phone && (
-                        <a href={`tel:${b.phone}`} className="hover:text-[var(--accent)]">
+                        <a href={`tel:${b.phone}`} className="link-quiet">
                           {b.phone}
                         </a>
                       )}
@@ -146,25 +136,23 @@ export default async function AdminBookingsPage({
                     <p className="text-sm font-semibold text-[var(--accent-dark)] mt-3 capitalize">
                       {formatWhen(b.starts_at)}
                     </p>
-                    {b.notes && (
-                      <p className="text-xs text-gray-500 mt-2 whitespace-pre-wrap">{b.notes}</p>
-                    )}
+                    {b.notes && <p className="text-xs text-slate-500 mt-2 whitespace-pre-wrap">{b.notes}</p>}
                     {b.meet_link && (
                       <a
                         href={b.meet_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block text-xs text-[var(--accent)] mt-2 hover:underline"
+                        className="inline-block text-xs text-[var(--accent-dark)] mt-2"
                       >
-                        Lien Meet →
+                        Lien Meet
                       </a>
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span
-                      className={`text-[10px] font-semibold px-2 py-1 rounded-md ${
+                      className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
                         cancelled
-                          ? 'bg-gray-100 text-gray-500'
+                          ? 'bg-slate-100 text-slate-500'
                           : isPast
                             ? 'bg-slate-100 text-slate-500'
                             : 'bg-emerald-50 text-emerald-700'

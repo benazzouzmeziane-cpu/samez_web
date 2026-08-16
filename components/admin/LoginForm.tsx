@@ -2,8 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import AuthSplit from '@/components/client/AuthSplit'
 
-export default function AdminLoginPage() {
+const inputClass =
+  'w-full px-4 py-3 border border-white/10 bg-[var(--navy)] text-white text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-[border-color] duration-[var(--duration-ui)] ease'
+
+export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -25,7 +29,6 @@ export default function AdminLoginPage() {
       return
     }
 
-    // Vérifier allowlist + synchroniser app_metadata.role = admin (RLS)
     const ensureRes = await fetch('/api/auth/ensure-admin', { method: 'POST' })
     const ensureData = await ensureRes.json().catch(() => ({ allowed: false }))
 
@@ -41,54 +44,49 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafafa] px-6">
-      <div className="w-full max-w-sm bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
-            <span className="text-white text-sm font-bold">s</span>
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            same<span>&apos;</span>z
-          </h1>
+    <AuthSplit
+      eyebrow="Admin"
+      title="Console"
+      subtitle="Messages, pièces, rendez-vous et contenus — un seul endroit."
+      brandTitle={
+        <>
+          La console,
+          <br />
+          pas un back-office.
+        </>
+      }
+      brandBody="Ce qui attend une action, puis le reste. Rien de plus."
+      points={['SEO versionné', 'Devis et factures', 'RDV et messages']}
+    >
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+            className={inputClass}
+            placeholder="contact@samez.fr"
+          />
         </div>
-        <p className="text-sm text-gray-500 mb-8">Console admin</p>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoFocus
-              className="w-full px-4 py-3 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
-              placeholder="contact@samez.fr"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Mot de passe</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-200 text-sm rounded-lg outline-none focus:border-[var(--accent)] transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-500">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Connexion...' : 'Se connecter'}
-          </button>
-        </form>
-      </div>
-    </div>
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Mot de passe</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className={inputClass}
+            placeholder="••••••••"
+          />
+        </div>
+        {error && <p className="text-sm text-red-400">{error}</p>}
+        <button type="submit" disabled={loading} className="btn btn-primary w-full disabled:opacity-50">
+          {loading ? 'Connexion...' : 'Se connecter'}
+        </button>
+      </form>
+    </AuthSplit>
   )
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 
 export default function AuthSplit({
@@ -5,11 +6,27 @@ export default function AuthSplit({
   title,
   subtitle,
   children,
+  brandTitle = (
+    <>
+      Vos documents,
+      <br />
+      au même endroit.
+    </>
+  ),
+  brandBody = 'Devis, factures et prochains échanges — un espace calme, comme on le ferait pour un produit.',
+  points = [
+    'PDF toujours à jour',
+    'Statut de chaque pièce, sans relance',
+    'Un interlocuteur : contact@samez.fr',
+  ],
 }: {
   eyebrow?: string
   title: string
   subtitle: string
-  children: React.ReactNode
+  children: ReactNode
+  brandTitle?: ReactNode
+  brandBody?: string
+  points?: string[]
 }) {
   return (
     <main className="min-h-dvh grid lg:grid-cols-2">
@@ -20,19 +37,15 @@ export default function AuthSplit({
 
         <div className="relative max-w-md">
           <p className="font-display text-4xl font-semibold tracking-tight leading-[1.1] mb-4">
-            Vos documents,
-            <br />
-            au même endroit.
+            {brandTitle}
           </p>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            Devis, factures et prochains échanges — un espace calme, comme on le ferait pour un produit.
-          </p>
+          <p className="text-sm text-slate-400 leading-relaxed">{brandBody}</p>
         </div>
 
         <ul className="relative space-y-3 text-sm text-slate-400">
-          <li>PDF toujours à jour</li>
-          <li>Statut de chaque pièce, sans relance</li>
-          <li>Un interlocuteur : contact@samez.fr</li>
+          {points.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
         </ul>
       </aside>
 

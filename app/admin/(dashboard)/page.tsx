@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import { IconArrow } from '@/components/client/icons'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -14,6 +16,7 @@ export default async function AdminDashboard() {
     facturesCount,
     unpaidCount,
     upcomingBookings,
+    seoCount,
   ] = await Promise.all([
     supabase.from('contacts').select('*', { count: 'exact', head: true }),
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('read', false),
@@ -31,108 +34,124 @@ export default async function AdminDashboard() {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'confirmed')
       .gte('starts_at', new Date().toISOString()),
+    supabase.from('seo_documents').select('*', { count: 'exact', head: true }),
   ])
 
-  const totalContacts = contactsCount.count ?? 0
   const unreadContacts = unreadCount.count ?? 0
-  const totalClients = clientsCount.count ?? 0
-  const devis = devisCount.count ?? 0
-  const factures = facturesCount.count ?? 0
   const unpaidPieces = unpaidCount.count ?? 0
   const bookingsUpcoming = upcomingBookings.count ?? 0
 
+  const nextAction =
+    unreadContacts > 0
+      ? {
+          title: `${unreadContacts} message${unreadContacts > 1 ? 's' : ''} non lu${unreadContacts > 1 ? 's' : ''}`,
+          body: 'Répondre ou transformer en devis.',
+          href: '/admin/contacts',
+          cta: 'Ouvrir les messages',
+          tone: 'warn',
+        }
+      : bookingsUpcoming > 0
+        ? {
+            title: `${bookingsUpcoming} rendez-vous à venir`,
+            body: 'Vérifier les liens Meet et les créneaux.',
+            href: '/admin/bookings',
+            cta: 'Voir le calendrier',
+            tone: 'info',
+          }
+        : unpaidPieces > 0
+          ? {
+              title: `${unpaidPieces} facture${unpaidPieces > 1 ? 's' : ''} en attente`,
+              body: 'Relancer ou marquer comme payée.',
+              href: '/admin/pieces',
+              cta: 'Ouvrir les pièces',
+              tone: 'warn',
+            }
+          : {
+              title: 'Rien n’attend',
+              body: 'Messages, RDV et factures sont à jour.',
+              href: '/admin/seo',
+              cta: 'Travailler le SEO',
+              tone: 'ok',
+            }
+
+  const toneClass: Record<string, string> = {
+    warn: 'border-amber-200 bg-amber-50',
+    info: 'border-black/[0.06] bg-white',
+    ok: 'border-emerald-200 bg-emerald-50',
+  }
+
   const stats = [
-    {
-      label: 'RDV à venir',
-      value: bookingsUpcoming,
-      sub: 'confirmés',
-      accent: bookingsUpcoming > 0,
-      href: '/admin/bookings',
-    },
+    { label: 'RDV à venir', value: bookingsUpcoming, sub: 'confirmés', accent: bookingsUpcoming > 0, href: '/admin/bookings' },
     {
       label: 'Messages',
-      value: totalContacts,
+      value: contactsCount.count ?? 0,
       sub: `${unreadContacts} non lu${unreadContacts > 1 ? 's' : ''}`,
       accent: unreadContacts > 0,
       href: '/admin/contacts',
     },
-    {
-      label: 'Clients',
-      value: totalClients,
-      sub: 'enregistrés',
-      accent: false,
-      href: '/admin/contacts',
-    },
-    {
-      label: 'Devis',
-      value: devis,
-      sub: 'créés',
-      accent: false,
-      href: '/admin/pieces',
-    },
+    { label: 'Clients', value: clientsCount.count ?? 0, sub: 'enregistrés', accent: false, href: '/admin/contacts' },
     {
       label: 'Factures',
-      value: factures,
+      value: facturesCount.count ?? 0,
       sub: `${unpaidPieces} en attente`,
       accent: unpaidPieces > 0,
       href: '/admin/pieces',
     },
+    { label: 'SEO', value: seoCount.error ? 0 : (seoCount.count ?? 0), sub: `${devisCount.count ?? 0} devis`, accent: false, href: '/admin/seo' },
   ]
 
   return (
     <div>
-      <div className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight mb-1">Dashboard</h1>
-        <p className="text-sm text-gray-500">Vue d&apos;ensemble de votre activité</p>
-      </div>
+      <AdminPageHeader title="Accueil" description="Ce qui demande une action, puis le reste." />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+      <section className={`rounded-2xl border p-5 md:p-6 mb-8 ${toneClass[nextAction.tone]}`}>
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500 mb-2">
+          Prochaine action
+        </p>
+        <p className="font-display text-xl font-semibold tracking-tight">{nextAction.title}</p>
+        <p className="text-sm text-slate-500 mt-1">{nextAction.body}</p>
+        <Link
+          href={nextAction.href}
+          className="client-press inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-[var(--accent-dark)]"
+        >
+          {nextAction.cta}
+          <IconArrow className="w-3.5 h-3.5" />
+        </Link>
+      </section>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
         {stats.map((s) => (
           <Link
             key={s.label}
             href={s.href}
-            className="group p-5 bg-[#fafafa] rounded-xl border border-gray-100 hover:border-[var(--accent)] hover:shadow-sm transition-all"
+            className="client-press rounded-2xl border border-black/[0.06] bg-white p-4"
           >
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-3 group-hover:text-[var(--accent)] transition-colors">
-              {s.label}
-            </p>
-            <p className="text-3xl font-semibold tracking-tight mb-1">{s.value}</p>
-            <p className={`text-xs ${s.accent ? 'text-[var(--accent)] font-medium' : 'text-gray-400'}`}>
+            <p className="text-[11px] text-slate-500 mb-2">{s.label}</p>
+            <p className="font-display text-2xl font-semibold tracking-tight tabular-nums">{s.value}</p>
+            <p className={`text-xs mt-1 ${s.accent ? 'text-[var(--accent-dark)] font-medium' : 'text-slate-400'}`}>
               {s.sub}
             </p>
           </Link>
         ))}
       </div>
 
-      <div className="p-6 bg-[#fafafa] rounded-xl border border-gray-100">
-        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4">Accès rapide</h2>
-        <div className="flex gap-3 flex-wrap">
-          <Link
-            href="/admin/pieces/nouvelle?type=devis"
-            className="px-5 py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--accent-dark)] transition-colors"
-          >
-            + Nouveau devis
+      <section className="rounded-2xl border border-black/[0.06] bg-white p-5 md:p-6">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500 mb-4">Créer</p>
+        <div className="flex gap-2 flex-wrap">
+          <Link href="/admin/pieces/nouvelle?type=devis" className="btn btn-primary !py-2.5 !px-4">
+            Devis
           </Link>
-          <Link
-            href="/admin/pieces/nouvelle"
-            className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            + Nouvelle facture
+          <Link href="/admin/pieces/nouvelle" className="btn btn-on-light !py-2.5 !px-4">
+            Facture
           </Link>
-          <Link
-            href="/admin/bookings"
-            className="px-5 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-          >
-            Voir les RDV
+          <Link href="/admin/seo/nouveau" className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10">
+            Contenu SEO
           </Link>
-          <Link
-            href="/admin/contacts"
-            className="px-5 py-2.5 border border-gray-200 text-sm text-gray-600 rounded-lg hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-          >
-            Voir les messages
+          <Link href="/admin/realisations/nouvelle" className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10">
+            Réalisation
           </Link>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

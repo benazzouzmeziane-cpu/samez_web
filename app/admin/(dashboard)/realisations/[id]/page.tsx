@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import RealisationForm from '@/components/admin/RealisationForm'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { notFound } from 'next/navigation'
 
 export default async function RealisationDetailPage({
@@ -22,17 +23,10 @@ export default async function RealisationDetailPage({
 
   return (
     <div>
-      <div className="mb-10">
-        <p className="text-xs font-medium text-[var(--accent)] uppercase tracking-wider mb-2">
-          Réalisation
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {realisation.title}
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {realisation.published ? 'Publiée' : 'Brouillon'}
-        </p>
-      </div>
+      <AdminPageHeader
+        title={realisation.title}
+        description={realisation.published ? 'Publiée' : 'Brouillon'}
+      />
 
       <RealisationForm
         realisation={{

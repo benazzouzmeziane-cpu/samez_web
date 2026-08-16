@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import PieceForm from '@/components/admin/PieceForm'
 
 export default async function NouvellePiecePage({
@@ -20,8 +21,7 @@ export default async function NouvellePiecePage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight mb-1">Nouvelle pièce</h1>
-      <p className="text-sm text-gray-500 mb-10">Créer une facture ou un devis</p>
+      <AdminPageHeader title="Nouvelle pièce" description="Créer une facture ou un devis." />
       <PieceForm
         clients={clients ?? []}
         mode="create"

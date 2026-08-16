@@ -6,6 +6,10 @@ import { listDocuments, listDocumentVersions } from '@/lib/seo/queries'
 import { documentPath, typeLabel } from '@/lib/seo/paths'
 import { DOCUMENT_TYPES, VERSION_STATUSES } from '@/lib/seo/schema'
 import { seedDefaultSeoDrafts } from '@/lib/seo/seed'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import AdminEmptyState from '@/components/admin/AdminEmptyState'
+import AdminChip from '@/components/admin/AdminChip'
+import { SEO_STATUS_LABELS } from '@/components/admin/nav'
 
 export default async function AdminSeoListPage({
   searchParams,
@@ -22,12 +26,12 @@ export default async function AdminSeoListPage({
   }
 
   const rows = await Promise.all(
-    documents.map(async doc => {
+    documents.map(async (doc) => {
       const versions = await listDocumentVersions(supabase, doc.id)
-      const live = versions.find(v => v.status === 'published')
+      const live = versions.find((v) => v.status === 'published')
       const working = versions[0]
       return { doc, live, working }
-    })
+    }),
   )
   const filtered = rows.filter(({ doc, live, working }) => {
     if (type && doc.type !== type) return false
@@ -38,89 +42,97 @@ export default async function AdminSeoListPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Contenus SEO</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Pages, piliers et guides versionnés. L’IA ne publie jamais seule.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <form action={seedDefaultSeoDrafts}>
-            <button
-              type="submit"
-              className="px-4 py-2.5 border border-gray-200 text-sm rounded-lg"
+      <AdminPageHeader
+        title="Contenus SEO"
+        description="Pages, piliers et guides versionnés. L’IA ne publie jamais seule."
+        actions={
+          <>
+            <form action={seedDefaultSeoDrafts}>
+              <button type="submit" className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10">
+                6 brouillons
+              </button>
+            </form>
+            <Link
+              href="/admin/seo/redirections"
+              className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10"
             >
-              Préremplir les 6 brouillons
-            </button>
-          </form>
-          <Link
-            href="/admin/seo/redirections"
-            className="px-4 py-2.5 border border-gray-200 text-sm rounded-lg"
-          >
-            Redirections
-          </Link>
-          <Link
-            href="/admin/seo/nouveau"
-            className="px-5 py-2.5 bg-[var(--accent)] text-white text-sm font-medium rounded-lg"
-          >
-            + Nouveau
-          </Link>
-        </div>
-      </div>
+              Redirections
+            </Link>
+            <Link href="/admin/seo/nouveau" className="btn btn-primary !py-2.5 !px-4">
+              Nouveau
+            </Link>
+          </>
+        }
+      />
 
-      <div className="mt-6 flex flex-wrap gap-2 text-xs">
-        <Link
-          href="/admin/seo"
-          className={`px-3 py-1.5 rounded-lg border ${!type && !status ? 'border-[var(--accent)]' : 'border-gray-200'}`}
-        >
+      <div className="flex flex-wrap gap-2 mb-6">
+        <AdminChip href="/admin/seo" active={!type && !status}>
           Tous
-        </Link>
-        {DOCUMENT_TYPES.map(item => (
-          <Link
+        </AdminChip>
+        {DOCUMENT_TYPES.map((item) => (
+          <AdminChip
             key={item}
             href={`/admin/seo?type=${item}${status ? `&status=${status}` : ''}`}
-            className={`px-3 py-1.5 rounded-lg border ${type === item ? 'border-[var(--accent)]' : 'border-gray-200'}`}
+            active={type === item}
           >
             {typeLabel(item)}
-          </Link>
+          </AdminChip>
         ))}
-        {VERSION_STATUSES.map(item => (
-          <Link
+        {VERSION_STATUSES.map((item) => (
+          <AdminChip
             key={item}
             href={`/admin/seo?status=${item}${type ? `&type=${type}` : ''}`}
-            className={`px-3 py-1.5 rounded-lg border ${status === item ? 'border-[var(--accent)]' : 'border-gray-200'}`}
+            active={status === item}
           >
-            {item}
-          </Link>
+            {SEO_STATUS_LABELS[item] ?? item}
+          </AdminChip>
         ))}
       </div>
 
-      <div className="mt-8 space-y-3">
-        {filtered.length === 0 ? (
-          <p className="text-sm text-gray-400 py-16 text-center">
-            Aucun contenu. Créez une page ou préremplissez les 6 brouillons prioritaires.
-          </p>
-        ) : (
-          filtered.map(({ doc, live, working }) => (
+      {filtered.length === 0 ? (
+        <AdminEmptyState
+          title="Aucun contenu"
+          body="Créez une page, ou préremplissez les 6 brouillons prioritaires."
+          action={
+            <div className="flex justify-center gap-2">
+              <form action={seedDefaultSeoDrafts}>
+                <button type="submit" className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10">
+                  Préremplir
+                </button>
+              </form>
+              <Link href="/admin/seo/nouveau" className="btn btn-primary !py-2.5 !px-4">
+                Nouveau
+              </Link>
+            </div>
+          }
+        />
+      ) : (
+        <div className="rounded-2xl border border-black/[0.06] bg-white overflow-hidden">
+          {filtered.map(({ doc, live, working }) => (
             <Link
               key={doc.id}
               href={`/admin/seo/${doc.id}`}
-              className="flex items-center justify-between gap-4 p-4 bg-[#fafafa] rounded-xl border border-gray-100 hover:border-[var(--accent)]"
+              className="client-press flex items-center justify-between gap-4 px-5 py-4 border-b border-black/[0.06] last:border-b-0"
             >
-              <div>
-                <p className="text-sm font-semibold">{working?.title || doc.slug}</p>
-                <p className="text-xs text-gray-500 mt-1">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{working?.title || doc.slug}</p>
+                <p className="text-xs text-slate-500 mt-0.5 truncate">
                   {typeLabel(doc.type)} · {documentPath(doc.type, doc.slug)}
                 </p>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full border font-medium">
-                {live ? 'Publié' : working?.status || 'brouillon'}
+              <span
+                className={`shrink-0 text-[11px] px-2 py-0.5 rounded-md font-medium ${
+                  live
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {live ? 'Publié' : SEO_STATUS_LABELS[working?.status || 'draft']}
               </span>
             </Link>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

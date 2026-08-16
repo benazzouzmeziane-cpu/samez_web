@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SeoDocumentEditor from '@/components/admin/seo/SeoDocumentEditor'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { getWorkingBundle, listDocuments, listIncomingLinks, listInternalLinks } from '@/lib/seo/queries'
 
 export default async function SeoEditPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,8 +38,7 @@ export default async function SeoEditPage({ params }: { params: Promise<{ id: st
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight mb-1">{bundle.version.title}</h1>
-      <p className="text-sm text-gray-500 mb-8">{bundle.path}</p>
+      <AdminPageHeader title={bundle.version.title} description={bundle.path} />
       <SeoDocumentEditor
         document={bundle.document}
         version={bundle.version}
