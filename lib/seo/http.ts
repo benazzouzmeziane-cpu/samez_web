@@ -25,7 +25,7 @@ export type GenerationRunResponse<T> = {
   usage?: { prompt: number; completion: number }
 }
 
-export async function waitForSeoGeneration<T>(runId: string, timeoutMs = 55_000): Promise<GenerationRunResponse<T>> {
+export async function waitForSeoGeneration<T>(runId: string, timeoutMs = 70_000): Promise<GenerationRunResponse<T>> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     const response = await fetch(`/api/admin/seo/generate?runId=${encodeURIComponent(runId)}`)

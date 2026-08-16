@@ -1,4 +1,4 @@
-import { after, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { isAdminUser } from '@/lib/admin'
 import { generatedDocumentSchema, generationBriefSchema } from '@/lib/seo/schema'
@@ -110,25 +110,31 @@ export async function POST(request: Request) {
     const runId = runInsert.data.id
     const writer = persistClient() ?? supabase
 
-    after(async () => {
-      try {
-        const result = await generateSeoDocument(parsed.data)
-        await writer
-          .from('seo_generation_runs')
-          .update({
-            output: result.document,
-            prompt_tokens: result.usage.prompt,
-            completion_tokens: result.usage.completion,
-            model: result.model,
-          })
-          .eq('id', runId)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Génération impossible'
-        await writer.from('seo_generation_runs').update({ error: message }).eq('id', runId)
-      }
-    })
-
-    return NextResponse.json({ runId, status: 'pending', model: resolveNimModel() })
+    try {
+      const result = await generateSeoDocument(parsed.data)
+      await writer
+        .from('seo_generation_runs')
+        .update({
+          output: result.document,
+          prompt_tokens: result.usage.prompt,
+          completion_tokens: result.usage.completion,
+          model: result.model,
+        })
+        .eq('id', runId)
+      return NextResponse.json({
+        runId,
+        status: 'done',
+        document: result.document,
+        reviewFlags: result.document.reviewFlags,
+        usage: result.usage,
+        model: result.model,
+        attempted: result.attempted,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Génération impossible'
+      await writer.from('seo_generation_runs').update({ error: message }).eq('id', runId)
+      return NextResponse.json({ runId, status: 'error', error: message }, { status: 500 })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Génération impossible'
     return jsonError(message, 500)

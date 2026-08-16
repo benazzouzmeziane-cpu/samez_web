@@ -1,31 +1,35 @@
 import { generatedDocumentSchema, type GeneratedDocument, type GenerationBrief } from '@/lib/seo/schema'
 import { newBlockId } from '@/lib/seo/paths'
 
-export const PROMPT_VERSION = 'samez-seo-v4'
+export const PROMPT_VERSION = 'samez-seo-v5'
 
 /**
  * Identifiants officiels NVIDIA NIM hosted (docs LLM APIs, 11 août 2026).
- * Petits modèles d’abord : un ping + une cascade 70B dépassent le délai Vercel.
  * https://docs.api.nvidia.com/nim/reference/llm-apis.md
+ *
+ * L’API hosted peut répondre 202 (file NVCF) : il faut suivre NVCF-REQID.
+ * Lightning est rapide si le raisonnement interne est coupé.
  */
 const RETIRED_NIM_MODELS = new Set([
   'mistralai/mistral-medium-3.5-128b',
   'mistralai/mistral-medium-3-instruct',
   'mistralai/mistral-small-4-119b-2603',
   'mistralai/mixtral-8x22b-instruct',
+  'meta/llama-3.2-3b-instruct',
+  'meta/llama-3.2-1b-instruct',
 ])
 
 export const NIM_WRITING_CASCADE = [
-  'meta/llama-3.2-3b-instruct',
-  'microsoft/phi-4-mini-instruct',
-  'meta/llama-3.1-8b-instruct',
-  'nvidia/llama-3.1-nemotron-nano-8b-v1',
+  'nvidia/nemotron-3.5-lightning-30b-a3b',
   'nvidia/nemotron-3-nano-30b-a3b',
+  'microsoft/phi-4-mini-instruct',
+  'mistralai/mistral-nemotron',
 ] as const
 
 export const DEFAULT_NIM_MODEL = NIM_WRITING_CASCADE[0]
 
-const SLOW_MODEL = /70b|49b|120b|128b|253b|405b|480b|550b|lightning/i
+const SLOW_MODEL = /70b|49b|120b|128b|253b|405b|480b|550b/i
+const NVCF_STATUS = 'https://api.nvcf.nvidia.com/v2/nvcf/pexec/status'
 
 export function resolveNimCascade(): string[] {
   const extra = (process.env.NVIDIA_NIM_MODELS || '')
@@ -45,7 +49,7 @@ export function resolveNimModel() {
   return resolveNimCascade()[0] || DEFAULT_NIM_MODEL
 }
 
-const SYSTEM_PROMPT = `Rédacteur SEO same'z (FR). Réponds UNIQUEMENT par un JSON valide, sans markdown.
+const SYSTEM_PROMPT = `Rédacteur SEO same'z (FR). Réponds UNIQUEMENT par un JSON valide, sans markdown ni raisonnement.
 Règles : utile, pas de chiffres/clients/tarifs inventés, vouvoiement, pas de pages ville sans preuve.
 Blocs requis (id courts h1,a1,m1,c1) : hero, answer, markdown (## / ###), cta vers /reserver.
 Ajoute 2 FAQ. reviewFlags pour tout ce qui n'est pas dans le brief.`
@@ -67,7 +71,7 @@ function assignBlockIds(payload: GeneratedDocument): GeneratedDocument {
   }
 }
 
-function messageText(message?: { content?: unknown }): string {
+function messageText(message?: { content?: unknown; reasoning_content?: unknown }): string {
   const content = message?.content
   if (typeof content === 'string') return content
   if (Array.isArray(content)) {
@@ -90,6 +94,106 @@ function nimError(message: string, status?: number) {
 
 function isUnavailableStatus(status?: number) {
   return status === 400 || status === 404 || status === 410 || status === 422
+}
+
+function requestIdOf(response: Response, body?: string) {
+  const header = response.headers.get('nvcf-reqid') || response.headers.get('NVCF-REQID')
+  if (header) return header
+  if (!body) return null
+  try {
+    const json = JSON.parse(body) as { requestId?: string }
+    return json.requestId || null
+  } catch {
+    return null
+  }
+}
+
+function parseSsePayload(raw: string): {
+  content: string
+  usage: { prompt: number; completion: number }
+} {
+  let content = ''
+  let usage = { prompt: 0, completion: 0 }
+  for (const line of raw.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('data:')) continue
+    const data = trimmed.slice(5).trim()
+    if (!data || data === '[DONE]') continue
+    let json: {
+      choices?: { delta?: { content?: unknown }; message?: { content?: unknown } }[]
+      usage?: { prompt_tokens?: number; completion_tokens?: number }
+    }
+    try {
+      json = JSON.parse(data) as typeof json
+    } catch {
+      continue
+    }
+    content += messageText(json.choices?.[0]?.delta) || messageText(json.choices?.[0]?.message)
+    if (json.usage) {
+      usage = {
+        prompt: json.usage.prompt_tokens ?? usage.prompt,
+        completion: json.usage.completion_tokens ?? usage.completion,
+      }
+    }
+  }
+  if (!content.trim()) throw nimError('Réponse IA vide', 502)
+  return { content, usage }
+}
+
+async function readSseContent(response: Response): Promise<{
+  content: string
+  usage: { prompt: number; completion: number }
+}> {
+  const reader = response.body?.getReader()
+  if (!reader) throw nimError('Flux NVIDIA vide', 502)
+  const decoder = new TextDecoder()
+  let raw = ''
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    raw += decoder.decode(value, { stream: true })
+  }
+  return parseSsePayload(raw)
+}
+
+async function readJsonContent(body: string): Promise<{
+  content: string
+  usage: { prompt: number; completion: number }
+}> {
+  let json: {
+    choices?: { message?: { content?: unknown } }[]
+    usage?: { prompt_tokens?: number; completion_tokens?: number }
+  }
+  try {
+    json = JSON.parse(body) as typeof json
+  } catch {
+    throw nimError(`NVIDIA NIM réponse non JSON: ${body.slice(0, 160)}`, 502)
+  }
+  const content = messageText(json.choices?.[0]?.message)
+  if (!content.trim()) throw nimError('Réponse IA vide', 502)
+  return {
+    content,
+    usage: {
+      prompt: json.usage?.prompt_tokens ?? 0,
+      completion: json.usage?.completion_tokens ?? 0,
+    },
+  }
+}
+
+async function waitForNvcf(response: Response, apiKey: string, deadline: number): Promise<Response> {
+  let current = response
+  while (current.status === 202) {
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) throw nimError('File d’attente NVIDIA trop longue', 504)
+    const requestId = requestIdOf(current)
+    if (!requestId) throw nimError('NVIDIA 202 sans identifiant de suivi', 502)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    current = await fetch(`${NVCF_STATUS}/${requestId}`, {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+      signal: AbortSignal.timeout(Math.min(8_000, Math.max(1_000, remaining))),
+    })
+  }
+  return current
 }
 
 export async function generateSeoDocument(
@@ -146,46 +250,46 @@ export async function generateSeoDocument(
   })
 
   const complete = async (model: string) => {
+    const deadline = Date.now() + 48_000
+    const thinkingModel = /nemotron|lightning/i.test(model)
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        Accept: 'application/json',
+        Accept: 'text/event-stream, application/json',
+        'NVCF-POLL-SECONDS': '20',
       },
       body: JSON.stringify({
         model,
         temperature: 0.2,
-        max_tokens: 1200,
+        top_p: 0.9,
+        max_tokens: 1000,
+        stream: true,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
         ],
+        ...(thinkingModel
+          ? { chat_template_kwargs: { enable_thinking: false }, reasoning_budget: 0 }
+          : {}),
       }),
-      signal: AbortSignal.timeout(28_000),
+      signal: AbortSignal.timeout(Math.max(5_000, deadline - Date.now())),
     })
-    const body = await response.text()
-    if (!response.ok) {
-      throw nimError(`NVIDIA NIM ${response.status}: ${body.slice(0, 220)}`, response.status)
+
+    const ready = await waitForNvcf(response, apiKey, deadline)
+    if (!ready.ok) {
+      const body = await ready.text()
+      throw nimError(`NVIDIA NIM ${ready.status}: ${body.slice(0, 220)}`, ready.status)
     }
-    let json: {
-      choices?: { message?: { content?: unknown } }[]
-      usage?: { prompt_tokens?: number; completion_tokens?: number }
+
+    const contentType = ready.headers.get('content-type') || ''
+    if (contentType.includes('event-stream')) {
+      return readSseContent(ready)
     }
-    try {
-      json = JSON.parse(body) as typeof json
-    } catch {
-      throw nimError(`NVIDIA NIM réponse non JSON: ${body.slice(0, 160)}`, 502)
-    }
-    const content = messageText(json.choices?.[0]?.message)
-    if (!content.trim()) throw nimError('Réponse IA vide', 502)
-    return {
-      content,
-      usage: {
-        prompt: json.usage?.prompt_tokens ?? 0,
-        completion: json.usage?.completion_tokens ?? 0,
-      },
-    }
+    const text = await ready.text()
+    if (text.includes('data:')) return parseSsePayload(text)
+    return readJsonContent(text)
   }
 
   const attempted: string[] = []
