@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminUser } from '@/lib/admin'
 import { generationBriefSchema } from '@/lib/seo/schema'
-import { generateSeoDocument, PROMPT_VERSION } from '@/lib/ai/nvidia-nim'
+import { generateSeoDocument, PROMPT_VERSION, resolveNimModel } from '@/lib/ai/nvidia-nim'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     .from('seo_generation_runs')
     .insert({
       document_id: parsed.data.documentId || null,
-      model: process.env.NVIDIA_NIM_MODEL || 'mistralai/mistral-medium-3.5-128b',
+      model: resolveNimModel(),
       prompt_version: PROMPT_VERSION,
       input: parsed.data,
       created_by: user.id,

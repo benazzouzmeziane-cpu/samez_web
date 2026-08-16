@@ -2,6 +2,13 @@ import { generatedDocumentSchema, type GeneratedDocument, type GenerationBrief }
 import { newBlockId } from '@/lib/seo/paths'
 
 export const PROMPT_VERSION = 'samez-seo-v1'
+export const DEFAULT_NIM_MODEL = 'mistralai/mistral-small-4-119b-2603'
+const RETIRED_NIM_MODELS = new Set(['mistralai/mistral-medium-3.5-128b'])
+
+export function resolveNimModel() {
+  const requested = process.env.NVIDIA_NIM_MODEL || DEFAULT_NIM_MODEL
+  return RETIRED_NIM_MODELS.has(requested) ? DEFAULT_NIM_MODEL : requested
+}
 
 const SYSTEM_PROMPT = `Tu rédiges des pages SEO/GEO en français pour same'z, développeur indépendant.
 Tu produis UNIQUEMENT un JSON valide, sans markdown autour.
@@ -40,7 +47,7 @@ export async function generateSeoDocument(
 ): Promise<{ document: GeneratedDocument; usage: { prompt: number; completion: number }; model: string }> {
   const apiKey = process.env.NVIDIA_API_KEY
   const baseUrl = (process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '')
-  const model = process.env.NVIDIA_NIM_MODEL || 'mistralai/mistral-medium-3.5-128b'
+  const model = resolveNimModel()
   if (!apiKey) throw new Error('NVIDIA_API_KEY manquante')
 
   const userPrompt = JSON.stringify(
@@ -104,6 +111,7 @@ export async function generateSeoDocument(
         model,
         temperature: 0.2,
         max_tokens: 8192,
+        reasoning_effort: 'none',
         messages,
       }),
     })
