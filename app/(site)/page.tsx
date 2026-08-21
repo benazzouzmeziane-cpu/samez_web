@@ -4,7 +4,7 @@ import StackStrip from '@/components/home/StackStrip'
 import Constat from '@/components/home/Constat'
 import Expertises from '@/components/home/Expertises'
 import Prestations from '@/components/home/Prestations'
-import CaseStudies from '@/components/home/CaseStudies'
+import RealisationsPreview from '@/components/home/RealisationsPreview'
 import Process from '@/components/home/Process'
 import AboutTeaser from '@/components/home/AboutTeaser'
 import Faq from '@/components/home/Faq'
@@ -25,7 +25,7 @@ export default function Home() {
       <Constat />
       <Expertises />
       <Prestations />
-      <CaseStudies />
+      <RealisationsPreview />
       <Process />
       <AboutTeaser />
       <Faq />
