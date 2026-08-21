@@ -49,7 +49,7 @@ export const RESERVED_SLUGS = new Set([
   'robots.txt',
 ])
 
-const slugSchema = z
+export const slugSchema = z
   .string()
   .trim()
   .min(2)

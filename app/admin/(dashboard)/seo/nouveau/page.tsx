@@ -1,16 +1,57 @@
 export const dynamic = 'force-dynamic'
 
 import CreateSeoForm from '@/components/admin/seo/CreateSeoForm'
+import type { CreateSeoInitialValues } from '@/components/admin/seo/CreateSeoForm'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import { createClient } from '@/lib/supabase/server'
+import { seoResearchResultSchema } from '@/lib/seo/research-schema'
 
-export default function NouveauSeoPage() {
+export default async function NouveauSeoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ runId?: string; opportunity?: string }>
+}) {
+  const { runId, opportunity: opportunityId } = await searchParams
+  let initialValues: CreateSeoInitialValues = {}
+  if (runId && opportunityId) {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('seo_research_runs')
+      .select('output')
+      .eq('id', runId)
+      .eq('status', 'done')
+      .maybeSingle()
+    const parsed = seoResearchResultSchema.safeParse(data?.output)
+    const opportunity = parsed.success
+      ? parsed.data.opportunities.find(item => item.id === opportunityId)
+      : null
+    if (opportunity) {
+      initialValues = {
+        type: opportunity.type,
+        title: opportunity.title,
+        slug: opportunity.slug,
+        keyword: opportunity.keywordPrimary,
+        intent: opportunity.searchIntent,
+        audience: opportunity.audience,
+        brief: opportunity.brief,
+        proofs: opportunity.proofs,
+        angle: opportunity.angle,
+        sources: opportunity.sources,
+      }
+    }
+  }
+
   return (
     <div>
       <AdminPageHeader
         title="Demander une page"
-        description="Donnez la consigne à l’agent. Il crée un brouillon à relire, jamais une page publiée."
+        description={
+          initialValues.brief
+            ? 'Proposition concurrentielle préremplie. Modifiez-la avant de demander le brouillon.'
+            : 'Donnez la consigne à l’agent. Il crée un brouillon à relire, jamais une page publiée.'
+        }
       />
-      <CreateSeoForm />
+      <CreateSeoForm initialValues={initialValues} />
     </div>
   )
 }

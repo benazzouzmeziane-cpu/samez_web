@@ -47,6 +47,12 @@ export default async function AdminSeoListPage({
         description="Pages, piliers et guides versionnés. L’IA ne publie jamais seule."
         actions={
           <>
+            <Link
+              href="/admin/seo/opportunites"
+              className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10"
+            >
+              Opportunités
+            </Link>
             <form action={seedDefaultSeoDrafts}>
               <button type="submit" className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10">
                 6 brouillons

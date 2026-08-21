@@ -12,6 +12,7 @@ import {
   type DocumentType,
   type GeneratedDocument,
   type SearchIntent,
+  type SourceItem,
 } from '@/lib/seo/schema'
 
 const INTENT_LABELS: Record<SearchIntent, string> = {
@@ -27,18 +28,36 @@ const DEFAULT_PROOFS =
 const inputClass =
   'w-full px-3 py-2.5 border border-black/[0.08] bg-white text-sm rounded-lg text-[var(--navy)]'
 
-export default function CreateSeoForm() {
+export type CreateSeoInitialValues = {
+  type?: DocumentType
+  title?: string
+  slug?: string
+  keyword?: string
+  intent?: SearchIntent
+  audience?: string
+  brief?: string
+  proofs?: string
+  angle?: string
+  sources?: SourceItem[]
+}
+
+export default function CreateSeoForm({ initialValues = {} }: { initialValues?: CreateSeoInitialValues }) {
   const router = useRouter()
-  const [type, setType] = useState<DocumentType>('service')
-  const [title, setTitle] = useState('')
-  const [slug, setSlug] = useState('')
-  const [slugTouched, setSlugTouched] = useState(false)
-  const [keyword, setKeyword] = useState('')
-  const [intent, setIntent] = useState<SearchIntent>('commercial')
-  const [audience, setAudience] = useState('Dirigeants de TPE/PME et porteurs de projet')
-  const [brief, setBrief] = useState('')
-  const [proofs, setProofs] = useState(DEFAULT_PROOFS)
-  const [angle, setAngle] = useState('')
+  const [type, setType] = useState<DocumentType>(initialValues.type || 'service')
+  const [title, setTitle] = useState(initialValues.title || '')
+  const [slug, setSlug] = useState(initialValues.slug || '')
+  const [slugTouched, setSlugTouched] = useState(Boolean(initialValues.slug))
+  const [keyword, setKeyword] = useState(initialValues.keyword || '')
+  const [intent, setIntent] = useState<SearchIntent>(initialValues.intent || 'commercial')
+  const [audience, setAudience] = useState(
+    initialValues.audience || 'Dirigeants de TPE/PME et porteurs de projet'
+  )
+  const [brief, setBrief] = useState(initialValues.brief || '')
+  const [proofs, setProofs] = useState(initialValues.proofs || DEFAULT_PROOFS)
+  const [angle, setAngle] = useState(initialValues.angle || '')
+  const [sourceText, setSourceText] = useState(
+    (initialValues.sources || []).map(source => `${source.label} | ${source.url || ''}`).join('\n')
+  )
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -72,6 +91,13 @@ export default function CreateSeoForm() {
           searchIntent: intent,
           audience,
           proofs,
+          sources: sourceText
+            .split('\n')
+            .map(line => {
+              const [label, ...urlParts] = line.split('|')
+              return { label: label.trim(), url: urlParts.join('|').trim() }
+            })
+            .filter(source => source.label.length >= 2),
           angle: angle || undefined,
           ctaHref: '/reserver',
           ctaLabel: 'Réserver 45 min',
@@ -212,6 +238,17 @@ export default function CreateSeoForm() {
             onChange={e => setAngle(e.target.value)}
             placeholder="Pas un tutoriel n8n : un système qui tient en production"
             className={inputClass}
+          />
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-xs font-medium text-slate-500 mb-1.5 block">
+            Sources de recherche (libellé | URL)
+          </span>
+          <textarea
+            value={sourceText}
+            onChange={event => setSourceText(event.target.value)}
+            className={`${inputClass} min-h-24`}
+            placeholder="Concurrent consulté | https://exemple.fr/page"
           />
         </label>
       </div>

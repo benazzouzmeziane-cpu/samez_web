@@ -86,6 +86,21 @@ export type SeoGenerationRunRow = {
   created_at: string
 }
 
+export type SeoResearchRunRow = {
+  id: string
+  status: 'pending' | 'done' | 'error'
+  model: string
+  prompt_version: string
+  input: Json
+  output: Json | null
+  error: string | null
+  prompt_tokens: number | null
+  completion_tokens: number | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type SeoMediaRow = {
   id: string
   path: string
@@ -141,6 +156,14 @@ export type Database = {
       seo_generation_runs: Table<
         SeoGenerationRunRow,
         Partial<SeoGenerationRunRow> & { model: string; prompt_version: string }
+      >
+      seo_research_runs: Table<
+        SeoResearchRunRow,
+        Partial<SeoResearchRunRow> & {
+          model: string
+          prompt_version: string
+          input: Json
+        }
       >
       seo_media: Table<
         SeoMediaRow,

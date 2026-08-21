@@ -7,8 +7,18 @@
   "ai": {
     "binding": "AI"
   },
-  "durable_objects": {
-    "bindings": [{ "name": "SeoWriter", "class_name": "SeoWriter" }]
+  "browser": {
+    "binding": "BROWSER",
+    "remote": true
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SeoWriter"] }]
+  "durable_objects": {
+    "bindings": [
+      { "name": "SeoWriter", "class_name": "SeoWriter" },
+      { "name": "SeoStrategist", "class_name": "SeoStrategist" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["SeoWriter"] },
+    { "tag": "v2", "new_sqlite_classes": ["SeoStrategist"] }
+  ]
 }

@@ -1,0 +1,172 @@
+import { NextResponse } from 'next/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { isAdminUser } from '@/lib/admin'
+import { getSeoResearchStatus, startSeoResearch } from '@/lib/ai/cloudflare-seo-strategist'
+import {
+  SAMEZ_CAPABILITIES,
+  SAMEZ_VERIFIED_PROOFS,
+  existingSeoPageSchema,
+  seoResearchRequestSchema,
+  seoResearchResultSchema,
+  type ExistingSeoPage,
+} from '@/lib/seo/research-schema'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const maxDuration = 30
+
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status })
+}
+
+async function requireAdmin() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return { supabase, user: user && isAdminUser(user) ? user : null }
+}
+
+async function existingPages(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data, error } = await supabase
+    .from('seo_documents')
+    .select('type, slug, silo, seo_document_versions(title, keyword_primary, status, version_number)')
+  if (error) throw new Error(error.message)
+  const pages: ExistingSeoPage[] = []
+  for (const row of data || []) {
+    const versions = Array.isArray(row.seo_document_versions)
+      ? [...row.seo_document_versions].sort(
+          (a, b) => Number(b.version_number || 0) - Number(a.version_number || 0)
+        )
+      : []
+    const latest = versions[0]
+    const parsed = existingSeoPageSchema.safeParse({
+      type: row.type,
+      slug: row.slug,
+      silo: row.silo,
+      title: latest?.title || row.slug,
+      keywordPrimary: latest?.keyword_primary || null,
+      status: latest?.status || 'draft',
+    })
+    if (parsed.success) pages.push(parsed.data)
+  }
+  return pages
+}
+
+export async function POST(request: Request) {
+  try {
+    const { supabase, user } = await requireAdmin()
+    if (!user) return jsonError('Accès refusé', 401)
+    const parsed = seoResearchRequestSchema.safeParse(await request.json().catch(() => null))
+    if (!parsed.success) {
+      return jsonError(parsed.error.issues[0]?.message || 'Recherche invalide', 400)
+    }
+    const pages = await existingPages(supabase)
+    const input = {
+      ...parsed.data,
+      market: 'FR' as const,
+      existingPages: pages,
+      capabilities: SAMEZ_CAPABILITIES,
+      proofs: SAMEZ_VERIFIED_PROOFS,
+    }
+    const { data: run, error } = await supabase
+      .from('seo_research_runs')
+      .insert({
+        status: 'pending',
+        model: 'cloudflare-seo-strategist',
+        prompt_version: 'samez-research-v1',
+        input,
+        created_by: user.id,
+      })
+      .select('id')
+      .single()
+    if (error || !run?.id) {
+      return jsonError(error?.message || 'Impossible de démarrer la recherche', 500)
+    }
+
+    try {
+      await startSeoResearch(run.id, input)
+      return NextResponse.json({ runId: run.id, status: 'pending' }, { status: 202 })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Agent de recherche indisponible'
+      const writer = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : supabase
+      await writer
+        .from('seo_research_runs')
+        .update({ status: 'error', error: message })
+        .eq('id', run.id)
+      return NextResponse.json({ runId: run.id, status: 'error', error: message }, { status: 502 })
+    }
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : 'Recherche impossible', 500)
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { supabase, user } = await requireAdmin()
+    if (!user) return jsonError('Accès refusé', 401)
+    const runId = new URL(request.url).searchParams.get('runId')
+    if (!runId) return jsonError('runId manquant', 400)
+    const { data: run, error } = await supabase
+      .from('seo_research_runs')
+      .select('*')
+      .eq('id', runId)
+      .maybeSingle()
+    if (error) return jsonError(error.message, 500)
+    if (!run) return jsonError('Recherche introuvable', 404)
+
+    if (run.status === 'done') {
+      const parsed = seoResearchResultSchema.safeParse(run.output)
+      if (!parsed.success) return jsonError('Résultat de recherche invalide', 500)
+      return NextResponse.json({ runId, status: 'done', result: parsed.data })
+    }
+    if (run.status === 'error') {
+      return NextResponse.json({ runId, status: 'error', error: run.error || 'Recherche impossible' })
+    }
+
+    const remote = await getSeoResearchStatus(runId)
+    if (remote.status === 'pending' || remote.status === 'idle') {
+      return NextResponse.json({ runId, status: 'pending' })
+    }
+    const writer = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : supabase
+    if (remote.status === 'error') {
+      const message = remote.error || 'Recherche impossible'
+      await writer.from('seo_research_runs').update({ status: 'error', error: message }).eq('id', runId)
+      return NextResponse.json({ runId, status: 'error', error: message })
+    }
+
+    const parsed = seoResearchResultSchema.safeParse(remote.result)
+    if (!parsed.success) {
+      const message = `Résultat incomplet : ${parsed.error.issues[0]?.message || 'format invalide'}`
+      await writer.from('seo_research_runs').update({ status: 'error', error: message }).eq('id', runId)
+      return NextResponse.json({ runId, status: 'error', error: message })
+    }
+    const current = await existingPages(supabase)
+    const existingSlugs = new Set(current.map(page => page.slug))
+    const result = {
+      ...parsed.data,
+      opportunities: parsed.data.opportunities
+        .filter(item => !existingSlugs.has(item.slug))
+        .sort((a, b) => b.score - a.score),
+    }
+    if (result.opportunities.length === 0) {
+      const message = 'Toutes les propositions doublonnent des pages existantes. Relancez avec d’autres thèmes.'
+      await writer.from('seo_research_runs').update({ status: 'error', error: message }).eq('id', runId)
+      return NextResponse.json({ runId, status: 'error', error: message })
+    }
+    await writer
+      .from('seo_research_runs')
+      .update({
+        status: 'done',
+        output: result,
+        model: result.model,
+        prompt_tokens: result.usage.prompt,
+        completion_tokens: result.usage.completion,
+        error: null,
+      })
+      .eq('id', runId)
+    return NextResponse.json({ runId, status: 'done', result })
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : 'Lecture impossible', 500)
+  }
+}
