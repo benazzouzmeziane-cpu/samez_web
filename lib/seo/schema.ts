@@ -319,6 +319,11 @@ export const generatedDocumentSchema = z.object({
   ctaLabel: z.string().trim().max(40).optional(),
   ctaHref: internalOrHttpPath.optional(),
   reviewFlags: z.array(z.string().trim().max(200)).max(20).default([]),
+  silo: z.string().trim().max(60).optional(),
+  geoLocality: z.string().trim().max(80).optional().nullable(),
+  geoRegion: z.string().trim().max(8).optional(),
+  ogTitle: z.string().trim().max(70).optional(),
+  ogDescription: z.string().trim().max(170).optional(),
 })
 
 export type DocumentType = z.infer<typeof documentTypeSchema>

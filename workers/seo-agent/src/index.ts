@@ -25,10 +25,13 @@ type State = {
 const MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct'
 const FALLBACK_MODEL = '@cf/meta/llama-3.1-8b-instruct-fast'
 
-const SYSTEM_PROMPT = `Tu rédiges la page publique same'z en français.
-Le champ consigne est une instruction de travail : ne le recopie JAMAIS dans title, h1, excerpt, answer, markdown ou faq.
-Rédige un vrai contenu utile. Vouvoiement. N'invente aucun chiffre, client, tarif ou résultat.
-Réponds uniquement par un JSON valide, sans markdown autour.`
+const SYSTEM_PROMPT = `Tu rédiges une page publique same'z, enrichie, en français.
+same'z construit des sites, des automatisations et des agents pour TPE/PME.
+Le champ consigne est une instruction : ne le recopie JAMAIS dans le contenu.
+Remplis title, h1, excerpt, metaTitle (<=70), metaDescription (50-160), ogTitle, ogDescription, silo, factualSummary, entities, faq (4 items), extraJsonLd HowTo avec 4 steps, geoRegion=FR, geoLocality vide sauf preuve locale réelle.
+Blocs : hero, answer, markdown (plusieurs ##), steps (4), faq, cta vers /reserver.
+Vouvoiement. N'invente aucun chiffre, client, tarif ou résultat.
+JSON valide uniquement.`
 
 const DOCUMENT_SCHEMA = {
   type: 'object',
@@ -39,18 +42,36 @@ const DOCUMENT_SCHEMA = {
     excerpt: { type: 'string' },
     metaTitle: { type: 'string' },
     metaDescription: { type: 'string' },
+    ogTitle: { type: 'string' },
+    ogDescription: { type: 'string' },
     keywordPrimary: { type: 'string' },
     searchIntent: { type: 'string' },
     audience: { type: 'string' },
+    silo: { type: 'string' },
     factualSummary: { type: 'string' },
+    geoRegion: { type: 'string' },
+    geoLocality: { type: ['string', 'null'] },
+    entities: { type: 'array' },
     blocks: { type: 'array' },
     faq: { type: 'array' },
     suggestedLinks: { type: 'array' },
+    extraJsonLd: { type: 'object' },
     ctaLabel: { type: 'string' },
     ctaHref: { type: 'string' },
     reviewFlags: { type: 'array' },
   },
-  required: ['title', 'h1', 'excerpt', 'metaTitle', 'metaDescription', 'blocks', 'faq'],
+  required: [
+    'title',
+    'h1',
+    'excerpt',
+    'metaTitle',
+    'metaDescription',
+    'blocks',
+    'faq',
+    'extraJsonLd',
+    'factualSummary',
+    'entities',
+  ],
 }
 
 export class SeoWriter extends Agent<Env, State> {
@@ -106,7 +127,7 @@ export class SeoWriter extends Agent<Env, State> {
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: user },
           ],
-          max_tokens: 2200,
+          max_tokens: 2800,
           temperature: 0.4,
           guided_json: DOCUMENT_SCHEMA,
         })

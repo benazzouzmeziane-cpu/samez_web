@@ -208,18 +208,20 @@ export default function SeoDocumentEditor({
           : started
       const generated = json.document
       if (!generated) throw new Error('Réponse IA incomplète')
+      const mapped = generatedToVersionInput(generated, {
+        slug: form.slug,
+        canonicalPath: documentPath(document.type, form.slug),
+      })
       const next = {
-        ...generatedToVersionInput(generated, {
-          slug: form.slug,
-          canonicalPath: documentPath(document.type, form.slug),
-        }),
-        silo: form.silo,
+        ...mapped,
+        silo: form.silo || mapped.silo,
         isIndexable: form.isIndexable,
       }
       const result = await applyGeneratedDraft(document.id, versionId, next, true)
       setVersionId(result.versionId)
       setStatus('draft')
       setForm(next)
+      setJsonLdText(next.extraJsonLd ? JSON.stringify(next.extraJsonLd, null, 2) : '')
       setReviewFlags(generated.reviewFlags || [])
       setMessage(`Brouillon généré par ${json.model || 'l’agent'} — relecture obligatoire avant publication`)
       router.refresh()
