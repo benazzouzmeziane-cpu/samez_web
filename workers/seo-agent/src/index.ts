@@ -20,6 +20,7 @@ type State = {
   document: unknown
   content: string
   model: string
+  usage: { prompt: number; completion: number }
   error: string | null
 }
 
@@ -212,7 +213,28 @@ export class SeoWriter extends Agent<Env, State> {
     document: null,
     content: '',
     model: MODEL,
+    usage: { prompt: 0, completion: 0 },
     error: null,
+  }
+
+  @callable()
+  async startGeneration(brief: Brief) {
+    if (this.state.status === 'pending') return { status: 'pending' as const }
+    this.setState({
+      status: 'pending',
+      document: null,
+      content: '',
+      model: MODEL,
+      usage: { prompt: 0, completion: 0 },
+      error: null,
+    })
+    this.ctx.waitUntil(this.runGeneration(brief))
+    return { status: 'pending' as const }
+  }
+
+  @callable()
+  getGenerationStatus() {
+    return this.state
   }
 
   @callable()
@@ -225,6 +247,7 @@ export class SeoWriter extends Agent<Env, State> {
         document: result.document,
         content: result.content,
         model: result.model,
+        usage: result.usage,
         error: null,
       })
       return result
@@ -232,6 +255,26 @@ export class SeoWriter extends Agent<Env, State> {
       const message = error instanceof Error ? error.message : 'Génération impossible'
       this.setState({ ...this.state, status: 'error', error: message })
       throw error
+    }
+  }
+
+  private async runGeneration(brief: Brief) {
+    try {
+      const result = await this.write(brief)
+      this.setState({
+        status: 'done',
+        document: result.document,
+        content: result.content,
+        model: result.model,
+        usage: result.usage,
+        error: null,
+      })
+    } catch (error) {
+      this.setState({
+        ...this.state,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Génération impossible',
+      })
     }
   }
 
@@ -694,12 +737,16 @@ const worker = {
       const brief = (await request.json()) as Brief
       const agent = await getAgentByName(env.SeoWriter, decodeURIComponent(match[1]))
       try {
-        const result = await agent.generate(brief)
-        return Response.json({ status: 'done', ...result })
+        const result = await agent.startGeneration(brief)
+        return Response.json(result, { status: 202 })
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Génération impossible'
         return Response.json({ status: 'error', error: message }, { status: 500 })
       }
+    }
+    if (match && request.method === 'GET') {
+      const agent = await getAgentByName(env.SeoWriter, decodeURIComponent(match[1]))
+      return Response.json(await agent.getGenerationStatus())
     }
 
     const researchMatch = url.pathname.match(/^\/agents\/seo-strategist\/([^/]+)$/)

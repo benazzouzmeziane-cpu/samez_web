@@ -1,52 +1,58 @@
-import { assignBlockIds, extractJson, finalizeDocument } from '@/lib/seo/ai-document'
-import type { GeneratedDocument, GenerationBrief } from '@/lib/seo/schema'
+import type { GenerationBrief } from '@/lib/seo/schema'
 
 export function isSeoAgentConfigured() {
   return Boolean(process.env.SEO_AGENT_URL?.trim() && process.env.SEO_AGENT_SECRET?.trim())
 }
 
-export async function generateViaCloudflareAgent(
-  brief: GenerationBrief,
-  runId: string
-): Promise<{
-  document: GeneratedDocument
-  usage: { prompt: number; completion: number }
-  model: string
-  attempted: string[]
-}> {
+function configuration() {
   const base = process.env.SEO_AGENT_URL?.replace(/\/$/, '')
   const secret = process.env.SEO_AGENT_SECRET?.trim()
   if (!base || !secret) throw new Error('Agent Cloudflare non configuré')
+  return { base, secret }
+}
 
-  const response = await fetch(`${base}/agents/seo-writer/${encodeURIComponent(runId)}`, {
+function endpoint(runId: string) {
+  const { base } = configuration()
+  return `${base}/agents/seo-writer/${encodeURIComponent(runId)}`
+}
+
+function headers() {
+  const { secret } = configuration()
+  return {
+    Authorization: `Bearer ${secret}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  }
+}
+
+export async function startCloudflareSeoGeneration(brief: GenerationBrief, runId: string) {
+  const response = await fetch(endpoint(runId), {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers: headers(),
     body: JSON.stringify(brief),
-    signal: AbortSignal.timeout(45_000),
+    signal: AbortSignal.timeout(15_000),
+  })
+  const json = (await response.json().catch(() => ({}))) as { error?: string; status?: string }
+  if (!response.ok) {
+    throw new Error(json.error || `Agent Cloudflare ${response.status}`)
+  }
+  return json
+}
+
+export async function getCloudflareSeoGenerationStatus(runId: string) {
+  const response = await fetch(endpoint(runId), {
+    headers: headers(),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(15_000),
   })
   const json = (await response.json().catch(() => ({}))) as {
-    error?: string
+    status?: 'idle' | 'pending' | 'done' | 'error'
+    error?: string | null
     document?: unknown
     content?: string
     model?: string
     usage?: { prompt?: number; completion?: number }
   }
-  if (!response.ok) {
-    throw new Error(json.error || `Agent Cloudflare ${response.status}`)
-  }
-
-  const raw = json.document ?? (json.content ? extractJson(json.content) : {})
-  return {
-    document: assignBlockIds(finalizeDocument(raw, brief)),
-    usage: {
-      prompt: json.usage?.prompt ?? 0,
-      completion: json.usage?.completion ?? 0,
-    },
-    model: json.model || '@cf/meta/llama-3.1-8b-instruct-fast',
-    attempted: [json.model || 'cloudflare-workers-ai'],
-  }
+  if (!response.ok) throw new Error(json.error || `Agent Cloudflare ${response.status}`)
+  return json
 }

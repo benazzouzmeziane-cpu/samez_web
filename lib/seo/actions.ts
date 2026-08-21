@@ -79,7 +79,32 @@ export async function createSeoDocument(raw: unknown) {
     })
     .select('id')
     .single()
-  if (error || !document) throw new Error(error?.message || 'Création impossible')
+  if (error || !document) {
+    if (error?.code === '23505') {
+      const { data: existing } = await supabase
+        .from('seo_documents')
+        .select('id')
+        .eq('type', input.type)
+        .eq('slug', input.slug)
+        .maybeSingle()
+      if (existing?.id) {
+        const { data: existingVersion } = await supabase
+          .from('seo_document_versions')
+          .select('id')
+          .eq('document_id', existing.id)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (existingVersion?.id) {
+          return {
+            documentId: existing.id as string,
+            versionId: existingVersion.id as string,
+          }
+        }
+      }
+    }
+    throw new Error(error?.message || 'Création impossible')
+  }
 
   const { data: version, error: versionError } = await supabase
     .from('seo_document_versions')
