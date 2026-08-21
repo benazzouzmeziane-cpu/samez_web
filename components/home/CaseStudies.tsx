@@ -37,13 +37,13 @@ const cases = [
     problem:
       'Un site à moderniser et des process encore trop manuels entre les outils.',
     system:
-      'Refonte du site public et automatisations mixtes (code + no-code) pour fluidifier le quotidien opérationnel — univercarte.com.',
+      'Refonte du site public et automatisations mixtes (code + no-code) pour fluidifier le quotidien opérationnel — universcarte.com.',
     metrics: [
       { value: 'Site', label: 'Refonte livrée' },
       { value: 'Automations', label: 'Code + no-code' },
-      { value: 'Live', label: 'univercarte.com' },
+      { value: 'Live', label: 'universcarte.com' },
     ],
-    href: 'https://univercarte.com',
+    href: 'https://universcarte.com',
   },
 ]
 

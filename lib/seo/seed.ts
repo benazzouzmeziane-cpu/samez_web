@@ -133,7 +133,7 @@ export async function seedDefaultSeoDrafts() {
       sources: [
         { label: 'Linqio — app live sur les stores' },
         { label: 'Macarte Imprimée — agents fiches produit et SEO', url: 'https://macarteimprimee.com' },
-        { label: 'Univercarte — refonte et automatisations', url: 'https://univercarte.com' },
+        { label: 'Univercarte — refonte et automatisations', url: 'https://universcarte.com' },
       ],
       blocks: [
         {

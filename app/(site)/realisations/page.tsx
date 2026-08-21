@@ -24,7 +24,7 @@ const featured = [
   {
     title: 'Univercarte',
     description: 'Refonte site + automatisations code / no-code.',
-    href: 'https://univercarte.com',
+    href: 'https://universcarte.com',
   },
 ]
 
