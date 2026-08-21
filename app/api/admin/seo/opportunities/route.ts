@@ -6,6 +6,7 @@ import {
   SAMEZ_CAPABILITIES,
   SAMEZ_VERIFIED_PROOFS,
   existingSeoPageSchema,
+  normalizeResearchResult,
   seoResearchRequestSchema,
   seoResearchResultSchema,
   type ExistingSeoPage,
@@ -119,9 +120,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ runId, status: 'error', error: message })
     }
 
-    const parsed = seoResearchResultSchema.safeParse(remote.result)
+    const parsed = seoResearchResultSchema.safeParse(normalizeResearchResult(remote.result))
     if (!parsed.success) {
-      const message = `Résultat incomplet : ${parsed.error.issues[0]?.message || 'format invalide'}`
+      const issue = parsed.error.issues[0]
+      const location = issue?.path.length ? `${issue.path.join('.')} : ` : ''
+      const message = `Résultat incomplet : ${location}${issue?.message || 'format invalide'}`
       await updateResearchRun(writer, runId, run.storage, { status: 'error', error: message })
       return NextResponse.json({ runId, status: 'error', error: message })
     }
