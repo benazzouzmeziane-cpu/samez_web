@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createSeoReadClient } from '@/lib/supabase/server'
 import { listLiveDocuments } from '@/lib/seo/queries'
 
 export const revalidate = 3600
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function GuidesIndexPage() {
   let docs: Awaited<ReturnType<typeof listLiveDocuments>> = []
   try {
-    const supabase = await createClient()
+    const supabase = createSeoReadClient()
     docs = (await listLiveDocuments(supabase)).filter(doc => doc.type === 'guide')
   } catch {
     docs = []

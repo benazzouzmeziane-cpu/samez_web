@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createSeoReadClient } from '@/lib/supabase/server'
 import { listLiveDocuments } from '@/lib/seo/queries'
 
 export const revalidate = 3600
@@ -50,7 +50,7 @@ export default async function ServicesPage() {
   let publishedHrefs = new Set<string>()
   let liveServices: Awaited<ReturnType<typeof listLiveDocuments>> = []
   try {
-    const supabase = await createClient()
+    const supabase = createSeoReadClient()
     const live = await listLiveDocuments(supabase)
     publishedHrefs = new Set(live.map(doc => doc.path))
     liveServices = live.filter(doc => doc.type === 'service')

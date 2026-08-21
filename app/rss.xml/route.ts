@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { createSeoReadClient } from '@/lib/supabase/server'
 import { listLiveDocuments } from '@/lib/seo/queries'
 import { SITE_ORIGIN } from '@/lib/seo/paths'
 
 export const revalidate = 3600
 
 export async function GET() {
-  const supabase = await createClient()
+  const supabase = createSeoReadClient()
   let items = ''
   try {
     const docs = await listLiveDocuments(supabase)

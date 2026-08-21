@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import { createSeoReadClient } from '@/lib/supabase/server'
 import { listLiveDocuments } from '@/lib/seo/queries'
 import { SITE_ORIGIN } from '@/lib/seo/paths'
 
@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   try {
-    const supabase = await createClient()
+    const supabase = createSeoReadClient()
     const docs = await listLiveDocuments(supabase)
     const dynamicRoutes = docs.map(doc => ({
       url: `${SITE_ORIGIN}${doc.path}`,

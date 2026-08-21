@@ -6,7 +6,7 @@ import { buildJsonLd } from '@/lib/seo/json-ld'
 import { metadataFromDocument, relatedDocuments, resolveLiveDocument } from '@/lib/seo/page'
 import type { DocumentType } from '@/lib/seo/schema'
 
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
 export async function seoGenerateMetadata(type: DocumentType, slug: string): Promise<Metadata> {
   const doc = await resolveLiveDocument(type, slug)

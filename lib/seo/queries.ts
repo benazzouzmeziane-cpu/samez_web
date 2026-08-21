@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { contentBlockSchema, faqItemSchema, sourceItemSchema } from './schema'
+import { contentBlockSchema, entitySchema, faqItemSchema, sourceItemSchema } from './schema'
 import { documentPath } from './paths'
 import type { SeoDocument, SeoDocumentVersion, SeoDocumentWithVersion } from './types'
 import type { ContentBlock, DocumentType, FaqItem, SourceItem } from './schema'
@@ -46,7 +46,10 @@ function mapVersion(row: Record<string, unknown>): SeoDocumentVersion {
     keyword_primary: (row.keyword_primary as string | null) ?? null,
     search_intent: (row.search_intent as string | null) ?? null,
     audience: (row.audience as string | null) ?? null,
-    entities: Array.isArray(row.entities) ? (row.entities as SeoDocumentVersion['entities']) : [],
+    entities: asArray(row.entities, value => {
+      const parsed = entitySchema.safeParse(value)
+      return parsed.success ? parsed.data : null
+    }),
     factual_summary: (row.factual_summary as string | null) ?? null,
     geo_locality: (row.geo_locality as string | null) ?? null,
     geo_region: (row.geo_region as string | null) ?? 'FR',

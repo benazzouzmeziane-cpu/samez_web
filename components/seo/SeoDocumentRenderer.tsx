@@ -6,7 +6,9 @@ import type { ContentBlock } from '@/lib/seo/schema'
 
 function formatDate(value: string | null) {
   if (!value) return null
-  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(value))
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(date)
 }
 
 function BlockView({ block }: { block: ContentBlock }) {
@@ -287,8 +289,8 @@ export default function SeoDocumentRenderer({
         <p>Auteur : {doc.version.author_name}</p>
         {published ? <p>Publié le {published}</p> : null}
         {updated ? <p>Mis à jour le {updated}</p> : null}
-        {doc.version.entities.length > 0 ? (
-          <p>Sujets : {doc.version.entities.map(entity => entity.name).join(', ')}</p>
+        {doc.version.entities.filter(entity => entity?.name).length > 0 ? (
+          <p>Sujets : {doc.version.entities.filter(entity => entity?.name).map(entity => entity.name).join(', ')}</p>
         ) : null}
       </footer>
     </article>

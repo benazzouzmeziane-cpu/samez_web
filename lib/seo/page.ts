@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
 import { permanentRedirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createSeoReadClient } from '@/lib/supabase/server'
 import { getLiveBySlug, getRedirect, listLiveDocuments } from './queries'
 import { absoluteUrl, documentPath } from './paths'
 import type { DocumentType } from './schema'
 import type { SeoDocumentWithVersion } from './types'
 
 export async function resolveLiveDocument(type: DocumentType, slug: string) {
-  const supabase = await createClient()
+  const supabase = createSeoReadClient()
   let live: SeoDocumentWithVersion | null = null
   try {
     live = await getLiveBySlug(supabase, type, slug)
@@ -27,7 +27,7 @@ export async function resolveLiveDocument(type: DocumentType, slug: string) {
 
 export async function staticParamsForType(type: DocumentType) {
   try {
-    const supabase = await createClient()
+    const supabase = createSeoReadClient()
     const docs = await listLiveDocuments(supabase)
     return docs.filter(doc => doc.type === type).map(doc => ({ slug: doc.slug }))
   } catch {
@@ -37,7 +37,7 @@ export async function staticParamsForType(type: DocumentType) {
 
 export async function relatedDocuments(current: SeoDocumentWithVersion, limit = 3) {
   try {
-    const supabase = await createClient()
+    const supabase = createSeoReadClient()
     const all = await listLiveDocuments(supabase)
     return all
       .filter(item => item.id !== current.id)

@@ -1,17 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { SeoPublicPage, seoGenerateMetadata } from '@/components/seo/SeoPublicPage'
-import { staticParamsForType } from '@/lib/seo/page'
 import { RESERVED_SLUGS } from '@/lib/seo/schema'
 
-export const revalidate = 3600
-export const dynamicParams = true
-
 type Props = { params: Promise<{ slug: string }> }
-
-export async function generateStaticParams() {
-  return staticParamsForType('pillar')
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
