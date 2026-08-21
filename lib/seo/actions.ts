@@ -24,6 +24,10 @@ async function requireAdmin() {
   return { supabase, user }
 }
 
+function readParseError(error: { issues?: { message?: string }[] }) {
+  return error.issues?.[0]?.message || 'Données invalides'
+}
+
 function versionRow(input: VersionInput, extras: Record<string, unknown>) {
   return {
     title: input.title,
@@ -59,7 +63,9 @@ function versionRow(input: VersionInput, extras: Record<string, unknown>) {
 }
 
 export async function createSeoDocument(raw: unknown) {
-  const input = createDocumentSchema.parse(raw)
+  const parsed = createDocumentSchema.safeParse(raw)
+  if (!parsed.success) throw new Error(readParseError(parsed.error))
+  const input = parsed.data
   const { supabase, user } = await requireAdmin()
   const path = documentPath(input.type, input.slug)
 
@@ -111,7 +117,9 @@ export async function createSeoDocument(raw: unknown) {
 }
 
 export async function saveSeoVersion(documentId: string, versionId: string, raw: unknown) {
-  const input = versionInputSchema.parse(raw)
+  const parsed = versionInputSchema.safeParse(raw)
+  if (!parsed.success) throw new Error(readParseError(parsed.error))
+  const input = parsed.data
   const { supabase, user } = await requireAdmin()
   const document = await getDocument(supabase, documentId)
   const current = await getVersion(supabase, versionId)

@@ -56,7 +56,7 @@ export default function CreateSeoForm() {
         type,
         slug: nextSlug,
         title: nextTitle,
-        silo: keyword.trim() || undefined,
+        silo: (keyword.trim() || nextTitle).slice(0, 60),
       })
 
       const response = await fetch('/api/admin/seo/generate', {
