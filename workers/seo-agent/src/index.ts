@@ -375,8 +375,13 @@ export class SeoStrategist extends Agent<Env, ResearchState> {
           const content = String(ai.response || '').trim()
           const parsed = extractLooseJson(content)
           if (!parsed || typeof parsed !== 'object') throw new Error('Synthèse JSON inutilisable')
+          const generated = parsed as Record<string, unknown>
+          const completed =
+            Array.isArray(generated.opportunities) && generated.opportunities.length > 0
+              ? generated
+              : buildFallbackResearch(input, searchResults)
           const result = {
-            ...(parsed as Record<string, unknown>),
+            ...completed,
             researchedAt: new Date().toISOString(),
             queries,
             model,
@@ -417,6 +422,101 @@ function normalizeSeeds(values: string[]) {
     .filter((value, index, all) => all.indexOf(value) === index)
     .slice(0, 5)
   return seeds.length ? seeds : ['automatisation ia pme', 'agent ia sur mesure', 'site seo']
+}
+
+function buildFallbackResearch(input: ResearchInput, results: BraveResult[]) {
+  const seeds = normalizeSeeds(input.seedKeywords)
+  const domains = new Map<string, BraveResult[]>()
+  for (const result of results) {
+    const domain = safeHostname(result.url)
+    if (!domain || domain === 'samez.fr') continue
+    const current = domains.get(domain) || []
+    current.push(result)
+    domains.set(domain, current)
+  }
+  const competitors = [...domains.entries()].slice(0, 8).map(([domain, pages]) => ({
+    domain,
+    positioning: `Pages visibles sur les requêtes françaises liées à ${seeds.join(', ')}.`,
+    strengths: ['Présence dans les résultats Brave sur le thème analysé.'],
+    gaps: ['Vérifier manuellement les preuves, la profondeur et la différenciation du contenu.'],
+    urls: pages.map(page => page.url).slice(0, 5),
+  }))
+
+  const topics = seeds
+    .flatMap(seed => [
+      { keyword: seed, baseSeed: seed, commercialVariant: false },
+      { keyword: `expert ${seed}`, baseSeed: seed, commercialVariant: true },
+    ])
+    .slice(0, Math.min(input.maxOpportunities || 8, 12))
+  const opportunities = topics.map((topic, index) => {
+    const seed = topic.keyword
+    const matching = results
+      .filter(result => result.query.toLowerCase().includes(topic.baseSeed.toLowerCase()))
+      .slice(0, 3)
+    const evidence = matching.length ? matching : results.slice(index, index + 3)
+    const question = /^(comment|combien|quel|quelle|quels|quelles|pourquoi)/i.test(seed)
+    const commercial =
+      topic.commercialVariant || /co[uû]t|prix|agence|freelance|sur mesure|prestataire/i.test(seed)
+    const title = sentenceCase(seed).slice(0, 120)
+    const slug = slugifyResearch(seed)
+    const sourceItems = evidence.map(result => ({
+      label: result.title.slice(0, 180) || safeHostname(result.url),
+      url: result.url,
+    }))
+    return {
+      id: `${slug}-${index + 1}`,
+      score: Math.max(55, 84 - index * 5),
+      priority: index < 2 ? 'high' : index < 4 ? 'medium' : 'low',
+      type: commercial ? 'service' : question ? 'guide' : 'pillar',
+      title,
+      slug,
+      keywordPrimary: seed.slice(0, 80),
+      searchIntent: commercial ? 'commercial' : 'informational',
+      audience: input.audience,
+      silo: seed.slice(0, 60),
+      angle: `Répondre à « ${seed} » avec une approche production : besoin, choix d’architecture, risques et intervention same’z.`,
+      rationale:
+        'La requête apparaît dans l’analyse concurrentielle et correspond aux prestations vérifiées de same’z. Le potentiel reste relatif : aucun volume de recherche n’est inventé.',
+      brief: `Rédiger une page ${commercial ? 'offre' : 'éditoriale'} sur « ${seed} » pour ${input.audience}. Analyser l’intention, répondre directement, expliquer les options no-code, agent ou développement sur mesure lorsque pertinent, montrer ce que same’z peut réellement construire et terminer par /reserver. Utiliser uniquement les preuves fournies. Ne copier aucun concurrent, ne reprendre aucun chiffre concurrent et signaler tout fait à vérifier.`,
+      proofs: input.proofs.join('. ').slice(0, 2000),
+      contentGap: [
+        'Donner une réponse concrète reliée à un service réellement livrable par same’z.',
+        'Séparer les faits vérifiés des affirmations concurrentes.',
+      ],
+      suggestedLinks: ['/services', '/realisations', '/reserver'],
+      sources: sourceItems,
+      reviewFlags: [
+        'Proposition de secours construite depuis les résultats Brave : valider le mot-clé avant rédaction.',
+      ],
+    }
+  })
+
+  return {
+    summary:
+      'Workers AI n’a pas structuré ses opportunités ; same’z a construit une liste de secours à partir des requêtes et URLs réellement renvoyées par Brave Search.',
+    competitors,
+    opportunities,
+    reviewFlags: [
+      'Classement relatif sans volume de recherche : vérifier les priorités avant de créer les brouillons.',
+    ],
+  }
+}
+
+function sentenceCase(value: string) {
+  const normalized = value.trim()
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Opportunité SEO'
+}
+
+function slugifyResearch(value: string) {
+  return (
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'opportunite-seo'
+  )
 }
 
 function buildQueries(seeds: string[], competitors: string[]) {
