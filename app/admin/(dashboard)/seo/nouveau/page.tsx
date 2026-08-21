@@ -5,6 +5,7 @@ import type { CreateSeoInitialValues } from '@/components/admin/seo/CreateSeoFor
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { createClient } from '@/lib/supabase/server'
 import { seoResearchResultSchema } from '@/lib/seo/research-schema'
+import { getResearchRun } from '@/lib/seo/research-runs'
 
 export default async function NouveauSeoPage({
   searchParams,
@@ -15,13 +16,8 @@ export default async function NouveauSeoPage({
   let initialValues: CreateSeoInitialValues = {}
   if (runId && opportunityId) {
     const supabase = await createClient()
-    const { data } = await supabase
-      .from('seo_research_runs')
-      .select('output')
-      .eq('id', runId)
-      .eq('status', 'done')
-      .maybeSingle()
-    const parsed = seoResearchResultSchema.safeParse(data?.output)
+    const run = await getResearchRun(supabase, runId).catch(() => null)
+    const parsed = seoResearchResultSchema.safeParse(run?.status === 'done' ? run.output : null)
     const opportunity = parsed.success
       ? parsed.data.opportunities.find(item => item.id === opportunityId)
       : null

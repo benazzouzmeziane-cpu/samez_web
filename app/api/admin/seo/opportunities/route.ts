@@ -10,6 +10,11 @@ import {
   seoResearchResultSchema,
   type ExistingSeoPage,
 } from '@/lib/seo/research-schema'
+import {
+  getResearchRun,
+  insertResearchRun,
+  updateResearchRun,
+} from '@/lib/seo/research-runs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -69,20 +74,7 @@ export async function POST(request: Request) {
       capabilities: SAMEZ_CAPABILITIES,
       proofs: SAMEZ_VERIFIED_PROOFS,
     }
-    const { data: run, error } = await supabase
-      .from('seo_research_runs')
-      .insert({
-        status: 'pending',
-        model: 'cloudflare-seo-strategist',
-        prompt_version: 'samez-research-v1',
-        input,
-        created_by: user.id,
-      })
-      .select('id')
-      .single()
-    if (error || !run?.id) {
-      return jsonError(error?.message || 'Impossible de démarrer la recherche', 500)
-    }
+    const run = await insertResearchRun(supabase, input, user.id)
 
     try {
       await startSeoResearch(run.id, input)
@@ -90,10 +82,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Agent de recherche indisponible'
       const writer = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : supabase
-      await writer
-        .from('seo_research_runs')
-        .update({ status: 'error', error: message })
-        .eq('id', run.id)
+      await updateResearchRun(writer, run.id, run.storage, { status: 'error', error: message })
       return NextResponse.json({ runId: run.id, status: 'error', error: message }, { status: 502 })
     }
   } catch (error) {
@@ -107,12 +96,7 @@ export async function GET(request: Request) {
     if (!user) return jsonError('Accès refusé', 401)
     const runId = new URL(request.url).searchParams.get('runId')
     if (!runId) return jsonError('runId manquant', 400)
-    const { data: run, error } = await supabase
-      .from('seo_research_runs')
-      .select('*')
-      .eq('id', runId)
-      .maybeSingle()
-    if (error) return jsonError(error.message, 500)
+    const run = await getResearchRun(supabase, runId)
     if (!run) return jsonError('Recherche introuvable', 404)
 
     if (run.status === 'done') {
@@ -131,14 +115,14 @@ export async function GET(request: Request) {
     const writer = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : supabase
     if (remote.status === 'error') {
       const message = remote.error || 'Recherche impossible'
-      await writer.from('seo_research_runs').update({ status: 'error', error: message }).eq('id', runId)
+      await updateResearchRun(writer, runId, run.storage, { status: 'error', error: message })
       return NextResponse.json({ runId, status: 'error', error: message })
     }
 
     const parsed = seoResearchResultSchema.safeParse(remote.result)
     if (!parsed.success) {
       const message = `Résultat incomplet : ${parsed.error.issues[0]?.message || 'format invalide'}`
-      await writer.from('seo_research_runs').update({ status: 'error', error: message }).eq('id', runId)
+      await updateResearchRun(writer, runId, run.storage, { status: 'error', error: message })
       return NextResponse.json({ runId, status: 'error', error: message })
     }
     const current = await existingPages(supabase)
@@ -151,20 +135,17 @@ export async function GET(request: Request) {
     }
     if (result.opportunities.length === 0) {
       const message = 'Toutes les propositions doublonnent des pages existantes. Relancez avec d’autres thèmes.'
-      await writer.from('seo_research_runs').update({ status: 'error', error: message }).eq('id', runId)
+      await updateResearchRun(writer, runId, run.storage, { status: 'error', error: message })
       return NextResponse.json({ runId, status: 'error', error: message })
     }
-    await writer
-      .from('seo_research_runs')
-      .update({
-        status: 'done',
-        output: result,
-        model: result.model,
-        prompt_tokens: result.usage.prompt,
-        completion_tokens: result.usage.completion,
-        error: null,
-      })
-      .eq('id', runId)
+    await updateResearchRun(writer, runId, run.storage, {
+      status: 'done',
+      output: result,
+      model: result.model,
+      prompt_tokens: result.usage.prompt,
+      completion_tokens: result.usage.completion,
+      error: null,
+    })
     return NextResponse.json({ runId, status: 'done', result })
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : 'Lecture impossible', 500)
