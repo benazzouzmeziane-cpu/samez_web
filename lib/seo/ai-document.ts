@@ -73,25 +73,73 @@ function clip(value: string, max: number) {
   return value.trim().slice(0, max)
 }
 
+function normalize(text: string) {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+export function looksLikeInstruction(text: string, brief = '') {
+  const value = normalize(text)
+  if (!value) return true
+  if (
+    /^(rédiger|rédigez|écris|écrire|write a|la page doit|ajoute[rz]? une faq|ne pas inventer)/i.test(
+      value
+    )
+  ) {
+    return true
+  }
+  const consigne = normalize(brief)
+  if (consigne.length >= 40 && value.includes(consigne.slice(0, 72))) return true
+  return false
+}
+
+function blockText(block: unknown) {
+  if (!block || typeof block !== 'object') return ''
+  const item = block as Record<string, unknown>
+  return [item.text, item.markdown, item.heading, item.subheading].filter(Boolean).join(' ')
+}
+
 export function fallbackBlocks(brief: GenerationBrief) {
   const title = clip(brief.title || brief.keywordPrimary, 140)
-  const answer = clip(brief.brief, 600)
+  const topic = brief.keywordPrimary
+  const proofs = clip(brief.proofs || 'Linqio, Macarte Imprimée, Univercarte — à relire avant publication.', 280)
+  const angle = brief.angle ? ` ${clip(brief.angle, 180)}` : ''
+  const answer = clip(
+    `${title} s’adresse aux ${brief.audience}. same’z pose un périmètre tenable, puis automatise ou développe ce qui crée vraiment de la valeur.${angle} Aucun chiffre, client ou résultat n’est inventé ici.`,
+    600
+  )
+  const markdown = `## Pourquoi ${topic}
+
+Les TPE et PME perdent du temps sur des tâches répétables. L’enjeu n’est pas d’empiler des outils, mais de fiabiliser un parcours : demande, traitement, suivi, relance.
+
+## Ce que same’z met en place
+
+- Un diagnostic du process actuel, sans jargon inutile.
+- Un système qui tient en production, pas un prototype jetable.
+- Un périmètre clair avant d’écrire la moindre automatisation.
+
+## Preuves à vérifier
+
+${proofs}
+
+## Suite
+
+Une session de 45 minutes suffit pour voir si le sujet mérite un build.`
   return [
     {
       id: 'h1',
       type: 'hero' as const,
-      heading: title.length >= 4 ? title : clip(`${brief.keywordPrimary} same'z`, 140),
-      subheading: clip(brief.audience, 320),
+      heading: title.length >= 4 ? title : clip(`${topic} | same’z`, 140),
+      subheading: clip(`Pour ${brief.audience}`, 320),
     },
     {
       id: 'a1',
       type: 'answer' as const,
-      text: answer.length >= 20 ? answer : clip(`${title}. ${brief.brief} ${brief.audience}`, 600),
+      text: answer.length >= 20 ? answer : clip(`${title}. Accompagnement same’z pour TPE/PME.`, 600),
     },
     {
       id: 'm1',
       type: 'markdown' as const,
-      markdown: `## ${brief.keywordPrimary}\n\n${clip(brief.brief, 800)}\n\n### Preuves à vérifier\n\n${clip(brief.proofs || 'Aucune preuve fournie dans le brief.', 400)}`,
+      markdown,
     },
     {
       id: 'c1',
@@ -106,10 +154,16 @@ export function fallbackBlocks(brief: GenerationBrief) {
 export function finalizeDocument(value: unknown, brief: GenerationBrief): GeneratedDocument {
   const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
   const blocks: unknown[] = []
+  let discardedInstruction = false
   for (const block of Array.isArray(raw.blocks) ? raw.blocks : []) {
     if (!block || typeof block !== 'object') continue
     const next = { ...(block as Record<string, unknown>), id: String((block as { id?: string }).id || newBlockId()) }
-    if (contentBlockSchema.safeParse(next).success) blocks.push(next)
+    if (!contentBlockSchema.safeParse(next).success) continue
+    if (looksLikeInstruction(blockText(next), brief.brief)) {
+      discardedInstruction = true
+      continue
+    }
+    blocks.push(next)
   }
 
   const hasType = (type: string) =>
@@ -121,28 +175,42 @@ export function finalizeDocument(value: unknown, brief: GenerationBrief): Genera
 
   const title = clip(String(raw.title || brief.title || brief.keywordPrimary), 120)
   const metaTitle = clip(String(raw.metaTitle || title), 70)
-  let metaDescription = String(raw.metaDescription || raw.excerpt || '')
+  const excerptSource = looksLikeInstruction(String(raw.excerpt || ''), brief.brief)
+    ? ''
+    : String(raw.excerpt || '')
+  const summarySource = looksLikeInstruction(String(raw.factualSummary || ''), brief.brief)
+    ? ''
+    : String(raw.factualSummary || '')
+  let metaDescription = looksLikeInstruction(String(raw.metaDescription || ''), brief.brief)
+    ? ''
+    : String(raw.metaDescription || excerptSource)
   if (metaDescription.length < 50) {
     metaDescription = clip(
-      `${metaDescription} ${brief.keywordPrimary} : accompagnement same'z pour TPE/PME, site et automatisations.`.trim(),
+      `${brief.keywordPrimary} : same’z accompagne les TPE/PME sur le site, les automatisations et un périmètre clair.`.trim(),
       170
     )
   }
   const flags = Array.isArray(raw.reviewFlags) ? raw.reviewFlags.map(String) : []
-  flags.push('Brouillon à relire : structure ou textes peuvent avoir été complétés automatiquement.')
+  flags.push('Brouillon à relire avant publication.')
+  if (discardedInstruction) {
+    flags.push('La consigne a été écartée : elle ne doit pas apparaître comme contenu de page.')
+  }
 
   return generatedDocumentSchema.parse({
     ...raw,
-    title: title.length >= 4 ? title : clip(`${brief.keywordPrimary} | same'z`, 120),
-    h1: clip(String(raw.h1 || title), 140),
-    excerpt: raw.excerpt ? clip(String(raw.excerpt), 400) : clip(brief.brief, 400),
+    title: title.length >= 4 && !looksLikeInstruction(title, brief.brief) ? title : clip(brief.title || `${brief.keywordPrimary}`, 120),
+    h1: clip(
+      looksLikeInstruction(String(raw.h1 || ''), brief.brief) ? title : String(raw.h1 || title),
+      140
+    ),
+    excerpt: clip(excerptSource || metaDescription, 400),
     metaTitle: metaTitle.length >= 10 ? metaTitle : clip(`${title} | same'z`, 70),
     metaDescription,
     keywordPrimary: clip(String(raw.keywordPrimary || brief.keywordPrimary), 80),
     searchIntent: raw.searchIntent || brief.searchIntent,
     audience: raw.audience || brief.audience,
     entities: Array.isArray(raw.entities) ? raw.entities : [{ name: "same'z", type: 'Organization' }],
-    factualSummary: raw.factualSummary ? clip(String(raw.factualSummary), 600) : clip(brief.brief, 600),
+    factualSummary: clip(summarySource || metaDescription, 600),
     blocks,
     faq: Array.isArray(raw.faq) ? raw.faq : [],
     sources: Array.isArray(raw.sources) ? raw.sources : [],

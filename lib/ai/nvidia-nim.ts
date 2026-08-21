@@ -1,7 +1,7 @@
 import { assignBlockIds, extractJson, finalizeDocument } from '@/lib/seo/ai-document'
 import type { GeneratedDocument, GenerationBrief } from '@/lib/seo/schema'
 
-export const PROMPT_VERSION = 'samez-seo-v7'
+export const PROMPT_VERSION = 'samez-seo-v8'
 
 /**
  * Identifiants officiels NVIDIA NIM hosted (docs LLM APIs, 11 août 2026).
@@ -50,6 +50,7 @@ export function resolveNimModel() {
 }
 
 const SYSTEM_PROMPT = `Rédacteur SEO same'z (FR). Réponds UNIQUEMENT par un JSON compact et valide. Pas de markdown autour, pas de raisonnement, pas de virgule finale.
+Le champ "consigne" est une instruction de travail : ne le recopie JAMAIS dans title, h1, excerpt, answer, markdown ou faq. Rédige la page.
 Règles : utile, pas de chiffres/clients/tarifs inventés, vouvoiement, pas de pages ville sans preuve.
 Exactement 4 blocs (h1,a1,m1,c1) : hero, answer, markdown court (<=400 car, ## / ###), cta vers /reserver.
 2 FAQ courtes. reviewFlags si une info manque. Ferme tous les crochets.`
@@ -199,7 +200,8 @@ export async function generateSeoDocument(
     keywordPrimary: brief.keywordPrimary,
     searchIntent: brief.searchIntent,
     audience: brief.audience,
-    brief: brief.brief,
+    consigne: brief.brief,
+    consigneNote: 'Instruction de travail. Ne pas recopier dans le contenu de la page.',
     proofs: brief.proofs || '',
     sources: brief.sources || [],
     angle: brief.angle || '',

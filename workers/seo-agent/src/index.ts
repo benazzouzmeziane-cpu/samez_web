@@ -22,14 +22,36 @@ type State = {
   error: string | null
 }
 
-const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast'
-const FALLBACK_MODEL = '@cf/meta/llama-3.1-8b-instruct'
+const MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct'
+const FALLBACK_MODEL = '@cf/meta/llama-3.1-8b-instruct-fast'
 
-const SYSTEM_PROMPT = `Rédacteur SEO same'z (FR). Réponds UNIQUEMENT par un JSON compact et valide.
-Pas de markdown autour, pas de raisonnement, pas de virgule finale.
-Règles : utile, pas de chiffres/clients/tarifs inventés, vouvoiement.
-Exactement 4 blocs (h1,a1,m1,c1) : hero, answer, markdown court, cta vers /reserver.
-2 FAQ courtes. Ferme tous les crochets.`
+const SYSTEM_PROMPT = `Tu rédiges la page publique same'z en français.
+Le champ consigne est une instruction de travail : ne le recopie JAMAIS dans title, h1, excerpt, answer, markdown ou faq.
+Rédige un vrai contenu utile. Vouvoiement. N'invente aucun chiffre, client, tarif ou résultat.
+Réponds uniquement par un JSON valide, sans markdown autour.`
+
+const DOCUMENT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    title: { type: 'string' },
+    h1: { type: 'string' },
+    excerpt: { type: 'string' },
+    metaTitle: { type: 'string' },
+    metaDescription: { type: 'string' },
+    keywordPrimary: { type: 'string' },
+    searchIntent: { type: 'string' },
+    audience: { type: 'string' },
+    factualSummary: { type: 'string' },
+    blocks: { type: 'array' },
+    faq: { type: 'array' },
+    suggestedLinks: { type: 'array' },
+    ctaLabel: { type: 'string' },
+    ctaHref: { type: 'string' },
+    reviewFlags: { type: 'array' },
+  },
+  required: ['title', 'h1', 'excerpt', 'metaTitle', 'metaDescription', 'blocks', 'faq'],
+}
 
 export class SeoWriter extends Agent<Env, State> {
   initialState: State = {
@@ -62,13 +84,14 @@ export class SeoWriter extends Agent<Env, State> {
 
   private async write(brief: Brief) {
     const user = JSON.stringify({
+      consigne: brief.brief,
+      consigneNote: 'Ne pas recopier cette consigne. Rédiger la page.',
       type: brief.type,
       slug: brief.slug,
       title: brief.title,
       keywordPrimary: brief.keywordPrimary,
       searchIntent: brief.searchIntent,
       audience: brief.audience,
-      brief: brief.brief,
       proofs: brief.proofs || '',
       angle: brief.angle || '',
       ctaHref: brief.ctaHref || '/reserver',
@@ -83,14 +106,17 @@ export class SeoWriter extends Agent<Env, State> {
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: user },
           ],
-          max_tokens: 1800,
-          temperature: 0.2,
+          max_tokens: 2200,
+          temperature: 0.4,
+          guided_json: DOCUMENT_SCHEMA,
         })
         const content = String(ai.response || '').trim()
         if (!content) throw new Error('Réponse vide')
+        const document = extractLooseJson(content)
+        if (!document || typeof document !== 'object') throw new Error('JSON IA inutilisable')
         return {
           content,
-          document: extractLooseJson(content),
+          document,
           model,
           usage: {
             prompt: ai.usage?.prompt_tokens ?? 0,

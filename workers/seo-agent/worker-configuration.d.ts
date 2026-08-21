@@ -5,6 +5,7 @@ interface Ai {
       messages: { role: string; content: string }[]
       max_tokens?: number
       temperature?: number
+      guided_json?: Record<string, unknown>
     }
   ): Promise<{ response?: string; usage?: { prompt_tokens?: number; completion_tokens?: number } }>
 }
