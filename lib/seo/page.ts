@@ -1,7 +1,14 @@
 import type { Metadata } from 'next'
 import { permanentRedirect } from 'next/navigation'
+import { unstable_cache } from 'next/cache'
 import { createSeoReadClient } from '@/lib/supabase/server'
-import { getLiveBySlug, getRedirect, listLiveDocuments } from './queries'
+import {
+  getLiveBySlug,
+  getRedirect,
+  listApprovedLinksForVersion,
+  listLiveDocuments,
+} from './queries'
+import { SEO_CACHE_TAG, seoDocumentTag } from './cache'
 import { absoluteUrl, documentPath } from './paths'
 import type { DocumentType } from './schema'
 import type { SeoDocumentWithVersion } from './types'
@@ -25,6 +32,17 @@ export async function resolveLiveDocument(type: DocumentType, slug: string) {
   return null
 }
 
+export function resolveLiveDocumentCached(type: DocumentType, slug: string) {
+  return unstable_cache(
+    () => resolveLiveDocument(type, slug),
+    [`seo-live-${type}-${slug}`],
+    {
+      tags: [SEO_CACHE_TAG, seoDocumentTag(type, slug)],
+      revalidate: 3600,
+    }
+  )()
+}
+
 export async function staticParamsForType(type: DocumentType) {
   try {
     const supabase = createSeoReadClient()
@@ -38,6 +56,9 @@ export async function staticParamsForType(type: DocumentType) {
 export async function relatedDocuments(current: SeoDocumentWithVersion, limit = 3) {
   try {
     const supabase = createSeoReadClient()
+    const approved = await resolveApprovedLinks(supabase, current.version.id)
+    if (approved.length > 0) return approved.slice(0, limit)
+
     const all = await listLiveDocuments(supabase)
     return all
       .filter(item => item.id !== current.id)
@@ -50,6 +71,42 @@ export async function relatedDocuments(current: SeoDocumentWithVersion, limit = 
   } catch {
     return []
   }
+}
+
+export async function resolveApprovedLinks(
+  supabase: Parameters<typeof listApprovedLinksForVersion>[0],
+  versionId: string
+) {
+  const rows = await listApprovedLinksForVersion(supabase, versionId)
+  const result: { path: string; title: string; anchor?: string }[] = []
+
+  for (const row of rows) {
+    const joined = row as Record<string, unknown>
+    const nested = joined.seo_documents as Record<string, unknown> | undefined
+    const targetId = String(row.target_document_id)
+    const anchor = String(row.anchor_text || '')
+
+    if (nested?.type && nested.slug) {
+      const path = documentPath(nested.type as DocumentType, String(nested.slug))
+      result.push({
+        path,
+        title: anchor || String(nested.slug),
+        anchor: anchor || undefined,
+      })
+      continue
+    }
+
+    const { data: documentRow } = await supabase
+      .from('seo_documents')
+      .select('type, slug')
+      .eq('id', targetId)
+      .maybeSingle()
+    if (!documentRow) continue
+    const path = documentPath(documentRow.type as DocumentType, String(documentRow.slug))
+    result.push({ path, title: anchor || String(documentRow.slug), anchor: anchor || undefined })
+  }
+
+  return result
 }
 
 export function metadataFromDocument(doc: SeoDocumentWithVersion): Metadata {

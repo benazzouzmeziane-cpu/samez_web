@@ -53,6 +53,12 @@ export default async function AdminSeoListPage({
             >
               Opportunités
             </Link>
+            <Link
+              href="/admin/seo/performance"
+              className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10"
+            >
+              Performance
+            </Link>
             <form action={seedDefaultSeoDrafts}>
               <button type="submit" className="btn btn-secondary !py-2.5 !px-4 !text-[var(--navy)] !border-black/10">
                 6 brouillons

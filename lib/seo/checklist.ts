@@ -1,7 +1,7 @@
 import type { VersionInput } from './schema'
 import type { ChecklistItem } from './types'
 
-export function buildChecklist(input: {
+export type ChecklistInput = {
   title: string
   metaTitle: string
   metaDescription: string
@@ -11,7 +11,9 @@ export function buildChecklist(input: {
   sources: VersionInput['sources']
   humanReviewed: boolean
   keywordPrimary?: string | null
-}): ChecklistItem[] {
+}
+
+export function buildChecklist(input: ChecklistInput): ChecklistItem[] {
   const hero = input.blocks.find(b => b.type === 'hero')
   const heading = hero && hero.type === 'hero' ? hero.heading : input.title
   const hasAnswer = input.blocks.some(block => block.type === 'answer')

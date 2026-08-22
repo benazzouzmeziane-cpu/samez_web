@@ -11,7 +11,66 @@ import {
 } from './schema'
 import { documentPath } from './paths'
 import { revalidateSeo } from './cache'
-import { getDocument, getVersion, listDocumentVersions, nextVersionNumber } from './queries'
+import type { ChecklistInput } from './checklist'
+import {
+  cannibalizationMessage,
+  findCannibalizationConflicts,
+} from './cannibalization'
+import { computeQualityReport, publishGateMessage } from './quality-score'
+import {
+  getDocument,
+  getVersion,
+  listDocumentVersions,
+  listLiveDocuments,
+  nextVersionNumber,
+} from './queries'
+import type { SeoDocument, SeoDocumentVersion } from './types'
+
+function checklistInputFromVersion(
+  document: SeoDocument,
+  version: SeoDocumentVersion
+): ChecklistInput {
+  return {
+    title: version.title,
+    metaTitle: version.meta_title || version.title,
+    metaDescription: version.meta_description || '',
+    canonicalPath: version.canonical_path || documentPath(document.type, document.slug),
+    blocks: version.blocks,
+    faq: version.faq,
+    sources: version.sources,
+    humanReviewed: version.human_reviewed,
+    keywordPrimary: version.keyword_primary,
+  }
+}
+
+async function assertPublishReady(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
+  document: SeoDocument,
+  version: SeoDocumentVersion
+) {
+  if (!version.human_reviewed) {
+    throw new Error('La relecture humaine est obligatoire avant publication')
+  }
+
+  const quality = computeQualityReport(checklistInputFromVersion(document, version))
+  const qualityMessage = publishGateMessage(quality)
+  if (qualityMessage) throw new Error(qualityMessage)
+
+  const livePages = await listLiveDocuments(supabase)
+  const conflicts = findCannibalizationConflicts(
+    version.keyword_primary || version.title,
+    document.id,
+    livePages.map(page => ({
+      id: page.id,
+      slug: page.slug,
+      path: page.path,
+      title: page.version.title,
+      keywordPrimary: page.version.keyword_primary,
+    }))
+  )
+  const cannibalMessage = cannibalizationMessage(conflicts)
+  if (cannibalMessage) throw new Error(cannibalMessage)
+}
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -223,22 +282,21 @@ export async function publishSeoVersion(versionId: string) {
   const { supabase } = await requireAdmin()
   const version = await getVersion(supabase, versionId)
   if (!version) throw new Error('Version introuvable')
-  if (!version.human_reviewed) {
-    throw new Error('La relecture humaine est obligatoire avant publication')
-  }
+  const document = await getDocument(supabase, version.document_id)
+  if (!document) throw new Error('Document introuvable')
+  await assertPublishReady(supabase, document, version)
   const { error } = await supabase.rpc('publish_seo_version', { p_version_id: versionId })
   if (error) throw new Error(error.message)
-  const document = await getDocument(supabase, version.document_id)
-  if (document) revalidateSeo(document.type, document.slug)
+  revalidateSeo(document.type, document.slug)
 }
 
 export async function scheduleSeoVersion(versionId: string, publishAtIso: string) {
   const { supabase } = await requireAdmin()
   const version = await getVersion(supabase, versionId)
   if (!version) throw new Error('Version introuvable')
-  if (!version.human_reviewed) {
-    throw new Error('La relecture humaine est obligatoire avant programmation')
-  }
+  const document = await getDocument(supabase, version.document_id)
+  if (!document) throw new Error('Document introuvable')
+  await assertPublishReady(supabase, document, version)
   const when = new Date(publishAtIso)
   if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
     throw new Error('Date de publication future requise')
@@ -254,8 +312,7 @@ export async function scheduleSeoVersion(versionId: string, publishAtIso: string
     .update({ status: 'scheduled', publish_at: when.toISOString() })
     .eq('id', versionId)
   if (error) throw new Error(error.message)
-  const document = await getDocument(supabase, version.document_id)
-  if (document) revalidateSeo(document.type, document.slug)
+  revalidateSeo(document.type, document.slug)
 }
 
 export async function restoreSeoVersion(documentId: string, versionId: string) {

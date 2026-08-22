@@ -41,7 +41,13 @@ export type CreateSeoInitialValues = {
   sources?: SourceItem[]
 }
 
-export default function CreateSeoForm({ initialValues = {} }: { initialValues?: CreateSeoInitialValues }) {
+export default function CreateSeoForm({
+  initialValues = {},
+  defaultProofs = DEFAULT_PROOFS,
+}: {
+  initialValues?: CreateSeoInitialValues
+  defaultProofs?: string
+}) {
   const router = useRouter()
   const [type, setType] = useState<DocumentType>(initialValues.type || 'service')
   const [title, setTitle] = useState(initialValues.title || '')
@@ -53,7 +59,7 @@ export default function CreateSeoForm({ initialValues = {} }: { initialValues?: 
     initialValues.audience || 'Dirigeants de TPE/PME et porteurs de projet'
   )
   const [brief, setBrief] = useState(initialValues.brief || '')
-  const [proofs, setProofs] = useState(initialValues.proofs || DEFAULT_PROOFS)
+  const [proofs, setProofs] = useState(initialValues.proofs || defaultProofs)
   const [angle, setAngle] = useState(initialValues.angle || '')
   const [sourceText, setSourceText] = useState(
     (initialValues.sources || []).map(source => `${source.label} | ${source.url || ''}`).join('\n')

@@ -112,6 +112,46 @@ export type SeoMediaRow = {
   created_at: string
 }
 
+export type SeoProofRow = {
+  id: string
+  slug: string
+  client_name: string
+  title: string
+  summary: string
+  deliverables: string[]
+  tags: string[]
+  url: string | null
+  is_verified: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type SeoGscPageMetricRow = {
+  id: string
+  page_path: string
+  period_start: string
+  period_end: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  synced_at: string
+}
+
+export type SeoGscQueryMetricRow = {
+  id: string
+  query: string
+  page_path: string | null
+  period_start: string
+  period_end: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  synced_at: string
+}
+
 type Table<Row, Insert = Partial<Row> & Record<string, never>, Update = Partial<Row>> = {
   Row: Row
   Insert: Insert
@@ -173,6 +213,32 @@ export type Database = {
           height?: number | null
           created_by?: string | null
           created_at?: string
+        }
+      >
+      seo_proofs: Table<
+        SeoProofRow,
+        Omit<SeoProofRow, 'id' | 'created_at' | 'updated_at' | 'is_verified' | 'sort_order' | 'deliverables' | 'tags'> & {
+          id?: string
+          is_verified?: boolean
+          sort_order?: number
+          deliverables?: string[]
+          tags?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+      >
+      seo_gsc_page_metrics: Table<
+        SeoGscPageMetricRow,
+        Omit<SeoGscPageMetricRow, 'id' | 'synced_at'> & {
+          id?: string
+          synced_at?: string
+        }
+      >
+      seo_gsc_query_metrics: Table<
+        SeoGscQueryMetricRow,
+        Omit<SeoGscQueryMetricRow, 'id' | 'synced_at'> & {
+          id?: string
+          synced_at?: string
         }
       >
     }

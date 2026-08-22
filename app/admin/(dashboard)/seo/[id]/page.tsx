@@ -4,14 +4,20 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SeoDocumentEditor from '@/components/admin/seo/SeoDocumentEditor'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
-import { getWorkingBundle, listDocuments, listIncomingLinks, listInternalLinks } from '@/lib/seo/queries'
+import { documentPath } from '@/lib/seo/paths'
+import { formatProofsForPrompt, listSeoProofs } from '@/lib/seo/proofs'
+import { getWorkingBundle, listDocuments, listIncomingLinks, listInternalLinks, listLiveDocuments } from '@/lib/seo/queries'
 
 export default async function SeoEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
   const bundle = await getWorkingBundle(supabase, id)
   if (!bundle) notFound()
-  const documents = await listDocuments(supabase)
+  const [documents, livePages, proofs] = await Promise.all([
+    listDocuments(supabase),
+    listLiveDocuments(supabase).catch(() => []),
+    listSeoProofs(),
+  ])
   const rawLinks = await listInternalLinks(supabase, bundle.version.id)
   let incoming: Awaited<ReturnType<typeof listIncomingLinks>> = []
   try {
@@ -35,6 +41,13 @@ export default async function SeoEditPage({ params }: { params: Promise<{ id: st
     anchorText: String(link.anchor_text),
     approved: Boolean(link.approved),
   }))
+  const keywordTargets = livePages.map(page => ({
+    id: page.id,
+    slug: page.slug,
+    path: page.path || documentPath(page.type, page.slug),
+    title: page.version.title,
+    keywordPrimary: page.version.keyword_primary,
+  }))
 
   return (
     <div>
@@ -47,6 +60,8 @@ export default async function SeoEditPage({ params }: { params: Promise<{ id: st
         links={links}
         incoming={incoming}
         suggestions={suggestions}
+        keywordTargets={keywordTargets}
+        defaultProofs={formatProofsForPrompt(proofs)}
       />
     </div>
   )

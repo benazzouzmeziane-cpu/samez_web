@@ -14,7 +14,12 @@ import {
   scheduleSeoVersion,
   setSeoStatus,
 } from '@/lib/seo/actions'
-import { buildChecklist, canPublish } from '@/lib/seo/checklist'
+import {
+  cannibalizationMessage,
+  findCannibalizationConflicts,
+  type KeywordTarget,
+} from '@/lib/seo/cannibalization'
+import { canPublishWithScore, computeQualityReport, MIN_PUBLISH_SCORE } from '@/lib/seo/quality-score'
 import { generatedToVersionInput } from '@/lib/seo/from-generated'
 import { documentPath, typeLabel } from '@/lib/seo/paths'
 import { readApiJson, waitForSeoGeneration } from '@/lib/seo/http'
@@ -47,6 +52,8 @@ type Props = {
   links: LinkRow[]
   incoming: IncomingLink[]
   suggestions: Suggestion[]
+  keywordTargets: KeywordTarget[]
+  defaultProofs: string
 }
 
 const TABS = ['Agent', 'Contenu', 'SEO', 'GEO', 'Maillage', 'Données', 'Publication', 'Historique'] as const
@@ -99,6 +106,8 @@ export default function SeoDocumentEditor({
   links: initialLinks,
   incoming,
   suggestions,
+  keywordTargets,
+  defaultProofs,
 }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<(typeof TABS)[number]>('Agent')
@@ -111,9 +120,7 @@ export default function SeoDocumentEditor({
   const [saving, setSaving] = useState(false)
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
   const [brief, setBrief] = useState('')
-  const [proofs, setProofs] = useState(
-    'Linqio (app live), Macarte Imprimée (agents fiches/SEO), Univercarte (refonte + automatisations).'
-  )
+  const [proofs, setProofs] = useState(defaultProofs)
   const [angle, setAngle] = useState('')
   const [generating, setGenerating] = useState(false)
   const [reviewFlags, setReviewFlags] = useState<string[]>([])
@@ -122,8 +129,13 @@ export default function SeoDocumentEditor({
     version.extra_json_ld ? JSON.stringify(version.extra_json_ld, null, 2) : ''
   )
 
-  const checklist = useMemo(() => buildChecklist(form), [form])
-  const publishReady = canPublish(checklist)
+  const quality = useMemo(() => computeQualityReport(form), [form])
+  const cannibalConflicts = useMemo(
+    () => findCannibalizationConflicts(form.keywordPrimary || form.title, document.id, keywordTargets),
+    [form.keywordPrimary, form.title, document.id, keywordTargets]
+  )
+  const cannibalWarning = cannibalizationMessage(cannibalConflicts)
+  const publishReady = canPublishWithScore(quality) && !cannibalWarning
 
   function update<K extends keyof VersionInput>(key: K, value: VersionInput[K]) {
     setForm(current => ({ ...current, [key]: value }))
@@ -636,8 +648,24 @@ export default function SeoDocumentEditor({
           <p className="text-sm text-slate-500">
             Pour (re)générer le texte, utilisez l’onglet Agent. Ici : relecture humaine, programmation et publication.
           </p>
+          <div className="rounded-xl border border-black/[0.06] bg-slate-50 px-4 py-3 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold">Score qualité</span>
+            <span
+              className={`text-sm font-semibold ${
+                quality.score >= MIN_PUBLISH_SCORE ? 'text-emerald-700' : 'text-amber-700'
+              }`}
+            >
+              {quality.score}/100
+            </span>
+            <span className="text-xs text-slate-500">Seuil minimum : {MIN_PUBLISH_SCORE}</span>
+          </div>
+          {cannibalWarning ? (
+            <p className="text-sm text-amber-700 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              {cannibalWarning}
+            </p>
+          ) : null}
           <ul className="space-y-2">
-            {checklist.map(item => (
+            {quality.items.map(item => (
               <li key={item.id} className="text-sm flex gap-2">
                 <span>{item.ok ? '✓' : item.blocking ? '✕' : '·'}</span>
                 <span className={item.ok ? 'text-gray-700' : 'text-gray-500'}>
