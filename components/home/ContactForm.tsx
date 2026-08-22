@@ -1,10 +1,11 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { readAttributionForSubmit } from '@/lib/attribution/client'
 
 const schema = z.object({
   name: z.string().min(2, 'Nom requis'),
@@ -25,6 +26,7 @@ const inputClass =
 
 function ContactFormInner() {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const wantAccount = searchParams.get('compte') === '1'
 
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
@@ -63,6 +65,7 @@ function ContactFormInner() {
       const payload = {
         ...data,
         startedAt,
+        attribution: readAttributionForSubmit(pathname || '/'),
       }
 
       const res = await fetch('/api/contact', {

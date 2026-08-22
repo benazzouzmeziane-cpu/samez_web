@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { sendContactEmail, sendClientInviteEmail } from '@/lib/email'
 import { timingSafeEqualString } from '@/lib/crypto-safe'
+import { mergeAttributionFromRequest } from '@/lib/attribution/server'
+import { attributionInputSchema } from '@/lib/attribution/schema'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 
@@ -12,6 +14,7 @@ const schema = z.object({
   createAccount: z.boolean().optional(),
   website: z.string().optional(),
   startedAt: z.number().optional(),
+  attribution: attributionInputSchema.optional(),
 })
 
 const ipRateLimitMap = new Map<string, number>()
@@ -112,13 +115,19 @@ export async function POST(request: Request) {
     }
 
     const supabase = createAdminClient()
+    const attribution = mergeAttributionFromRequest(data.attribution, request, '/')
 
-    const { error } = await supabase.from('contacts').insert([{
+    const baseRow = {
       name: data.name,
       email: data.email,
       phone: data.phone,
       message: data.message,
-    }])
+    }
+
+    let { error } = await supabase.from('contacts').insert([{ ...baseRow, ...attribution }])
+    if (error && /landing_page|entry_page|submit_page|utm_/.test(error.message)) {
+      ;({ error } = await supabase.from('contacts').insert([baseRow]))
+    }
 
     if (error) {
       console.error('[contact] DB insert error:', error)

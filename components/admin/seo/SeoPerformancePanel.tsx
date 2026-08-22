@@ -24,16 +24,27 @@ type QueryMetric = {
   period_end: string
 }
 
+type LeadMetric = {
+  pagePath: string
+  contacts: number
+  bookings: number
+  total: number
+}
+
 export default function SeoPerformancePanel({
   configured,
   statusMessage,
   initialPages,
   initialQueries,
+  initialLeads,
+  leadTotals,
 }: {
   configured: boolean
   statusMessage: string | null
   initialPages: PageMetric[]
   initialQueries: QueryMetric[]
+  initialLeads: LeadMetric[]
+  leadTotals: { contacts: number; bookings: number; total: number }
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -85,6 +96,38 @@ export default function SeoPerformancePanel({
         {statusMessage ? <p className="text-sm text-amber-700">{statusMessage}</p> : null}
         {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </section>
+
+      <section className="rounded-2xl border border-black/[0.06] bg-white overflow-hidden">
+        <div className="px-5 py-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-semibold">Leads par page d’entrée</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              Messages et RDV attribués à la première page visitée (cookie first-party, 30 jours).
+            </p>
+          </div>
+          <p className="text-sm text-slate-600">
+            {leadTotals.total} lead{leadTotals.total > 1 ? 's' : ''} · {leadTotals.contacts} message
+            {leadTotals.contacts > 1 ? 's' : ''} · {leadTotals.bookings} RDV
+          </p>
+        </div>
+        {initialLeads.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-slate-500">
+            Aucun lead attribué pour l’instant. Les prochains contacts et RDV afficheront leur page d’entrée ici.
+          </p>
+        ) : (
+          <ul className="divide-y divide-black/[0.06]">
+            {initialLeads.map(lead => (
+              <li key={lead.pagePath} className="px-5 py-3 text-sm">
+                <p className="font-medium truncate">{lead.pagePath}</p>
+                <p className="text-slate-500 mt-1">
+                  {lead.total} lead{lead.total > 1 ? 's' : ''} · {lead.contacts} message
+                  {lead.contacts > 1 ? 's' : ''} · {lead.bookings} RDV
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="grid lg:grid-cols-2 gap-6">

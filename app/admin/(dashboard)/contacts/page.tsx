@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import MarkReadButton from '@/components/admin/MarkReadButton'
 import CreateDevisButton from '@/components/admin/CreateDevisButton'
+import AttributionSummary from '@/components/admin/AttributionSummary'
 import Pagination from '@/components/admin/Pagination'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import AdminEmptyState from '@/components/admin/AdminEmptyState'
@@ -108,6 +109,7 @@ export default async function AdminContactsPage({
               <p className="text-sm text-slate-600 leading-relaxed pl-12 whitespace-pre-wrap">
                 {contact.message}
               </p>
+              <AttributionSummary row={contact} />
             </div>
           ))}
         </div>

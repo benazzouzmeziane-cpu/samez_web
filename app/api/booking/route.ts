@@ -19,6 +19,8 @@ import {
   createCalendarEventWithMeet,
   isGoogleCalendarConfigured,
 } from '@/lib/google-calendar'
+import { mergeAttributionFromRequest } from '@/lib/attribution/server'
+import { attributionInputSchema } from '@/lib/attribution/schema'
 
 const postSchema = z.object({
   name: z.string().min(2).max(120),
@@ -29,6 +31,7 @@ const postSchema = z.object({
   notes: z.string().max(1000).optional(),
   website: z.string().optional(), // honeypot
   startedAt: z.number().optional(),
+  attribution: attributionInputSchema.optional(),
 })
 
 const ipRateLimitMap = new Map<string, number>()
@@ -218,6 +221,7 @@ export async function POST(request: Request) {
     }
 
     const supabase = createAdminClient()
+    const attribution = mergeAttributionFromRequest(data.attribution, request, '/reserver')
     const baseRow = {
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
@@ -232,6 +236,7 @@ export async function POST(request: Request) {
       .from('bookings')
       .insert({
         ...baseRow,
+        ...attribution,
         google_event_id: googleEventId,
         meet_link: meetLink || null,
       })
@@ -242,9 +247,24 @@ export async function POST(request: Request) {
     if (error && /google_event_id|meet_link/.test(error.message)) {
       ;({ data: inserted, error } = await supabase
         .from('bookings')
-        .insert(baseRow)
+        .insert({ ...baseRow, ...attribution })
         .select('id')
         .single())
+    }
+
+    if (error && /landing_page|entry_page|submit_page|utm_/.test(error.message)) {
+      ;({ data: inserted, error } = await supabase
+        .from('bookings')
+        .insert({
+          ...baseRow,
+          google_event_id: googleEventId,
+          meet_link: meetLink || null,
+        })
+        .select('id')
+        .single())
+      if (error && /google_event_id|meet_link/.test(error.message)) {
+        ;({ data: inserted, error } = await supabase.from('bookings').insert(baseRow).select('id').single())
+      }
     }
 
     if (error || !inserted) {

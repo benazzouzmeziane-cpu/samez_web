@@ -7,6 +7,7 @@ import { BOOKING_TZ } from '@/lib/booking'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import AdminEmptyState from '@/components/admin/AdminEmptyState'
 import AdminChip from '@/components/admin/AdminChip'
+import AttributionSummary from '@/components/admin/AttributionSummary'
 
 const PAGE_SIZE = 20
 
@@ -21,6 +22,13 @@ type BookingRow = {
   notes: string | null
   meet_link: string | null
   google_event_id: string | null
+  landing_page?: string | null
+  entry_page?: string | null
+  submit_page?: string | null
+  referrer?: string | null
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
 }
 
 function formatWhen(iso: string) {
@@ -147,6 +155,7 @@ export default async function AdminBookingsPage({
                         Lien Meet
                       </a>
                     )}
+                    <AttributionSummary row={b} />
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span

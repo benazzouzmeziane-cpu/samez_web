@@ -1,7 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { BOOKING_MIN_LEAD_MS, BOOKING_SLOTS } from '@/lib/booking'
+import { readAttributionForSubmit } from '@/lib/attribution/client'
 import { isFrenchHoliday } from '@/lib/holidays-fr'
 
 const WEEKDAYS = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM']
@@ -23,6 +25,7 @@ function toDateStr(year: number, month: number, day: number) {
 type Step = 'pick' | 'details' | 'success'
 
 export default function BookingWidget() {
+  const pathname = usePathname()
   const now = useMemo(() => new Date(), [])
   const [monthOffset, setMonthOffset] = useState(0)
   const view = useMemo(
@@ -139,6 +142,7 @@ export default function BookingWidget() {
           notes: notes || undefined,
           website,
           startedAt,
+          attribution: readAttributionForSubmit(pathname || '/reserver'),
         }),
       })
       const data = await res.json().catch(() => ({}))
