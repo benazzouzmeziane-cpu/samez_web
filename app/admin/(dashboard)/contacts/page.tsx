@@ -2,7 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import MarkReadButton from '@/components/admin/MarkReadButton'
+import Link from 'next/link'
 import CreateDevisButton from '@/components/admin/CreateDevisButton'
+import ConvertProspectButton from '@/components/admin/crm/ConvertProspectButton'
 import AttributionSummary from '@/components/admin/AttributionSummary'
 import Pagination from '@/components/admin/Pagination'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
@@ -34,6 +36,14 @@ export default async function AdminContactsPage({
     .order('created_at', { ascending: false })
     .range(from, to)
 
+  const emails = [...new Set((contacts ?? []).map((c) => String(c.email).toLowerCase()).filter(Boolean))]
+  const { data: existingClients } = emails.length
+    ? await supabase.from('clients').select('id, email').in('email', emails)
+    : { data: [] as { id: string; email: string }[] }
+  const clientByEmail = new Map(
+    (existingClients ?? []).map((c) => [String(c.email).toLowerCase(), c.id as string]),
+  )
+
   const total = totalCount ?? 0
   const unread = unreadCount ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -56,7 +66,9 @@ export default async function AdminContactsPage({
         <AdminEmptyState title="Aucun message" body="Les demandes du formulaire d’accueil arriveront ici." />
       ) : (
         <div className="space-y-3">
-          {contacts.map((contact) => (
+          {contacts.map((contact) => {
+            const clientId = clientByEmail.get(String(contact.email).toLowerCase())
+            return (
             <div
               key={contact.id}
               className={`rounded-2xl border p-5 ${
@@ -91,6 +103,23 @@ export default async function AdminContactsPage({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {clientId ? (
+                    <Link
+                      href={`/admin/clients/${clientId}`}
+                      className="client-press text-xs px-3 py-1.5 rounded-full border border-black/10 text-slate-600 font-medium"
+                    >
+                      Dossier
+                    </Link>
+                  ) : (
+                    <ConvertProspectButton
+                      name={contact.name}
+                      email={contact.email}
+                      phone={contact.phone}
+                      source="message"
+                      contactId={contact.id}
+                      message={contact.message}
+                    />
+                  )}
                   <CreateDevisButton
                     name={contact.name}
                     email={contact.email}
@@ -111,7 +140,8 @@ export default async function AdminContactsPage({
               </p>
               <AttributionSummary row={contact} />
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
       <Pagination currentPage={page} totalPages={totalPages} basePath="/admin/contacts" />

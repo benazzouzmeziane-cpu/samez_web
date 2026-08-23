@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { IconArrow } from '@/components/client/icons'
+import { todayParis } from '@/lib/admin/crm'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -17,6 +18,7 @@ export default async function AdminDashboard() {
     unpaidCount,
     upcomingBookings,
     seoCount,
+    overdueFollowUps,
   ] = await Promise.all([
     supabase.from('contacts').select('*', { count: 'exact', head: true }),
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('read', false),
@@ -35,17 +37,32 @@ export default async function AdminDashboard() {
       .eq('status', 'confirmed')
       .gte('starts_at', new Date().toISOString()),
     supabase.from('seo_documents').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('client_activities')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'ouverte')
+      .not('due_at', 'is', null)
+      .lt('due_at', todayParis()),
   ])
 
   const unreadContacts = unreadCount.count ?? 0
   const unpaidPieces = unpaidCount.count ?? 0
   const bookingsUpcoming = upcomingBookings.count ?? 0
+  const lateFollowUps = overdueFollowUps.error ? 0 : (overdueFollowUps.count ?? 0)
 
   const nextAction =
-    unreadContacts > 0
+    lateFollowUps > 0
+      ? {
+          title: `${lateFollowUps} relance${lateFollowUps > 1 ? 's' : ''} en retard`,
+          body: 'Appeler, écrire ou reporter la prochaine action.',
+          href: '/admin/clients?view=relances',
+          cta: 'Ouvrir les relances',
+          tone: 'warn',
+        }
+      : unreadContacts > 0
       ? {
           title: `${unreadContacts} message${unreadContacts > 1 ? 's' : ''} non lu${unreadContacts > 1 ? 's' : ''}`,
-          body: 'Répondre ou transformer en devis.',
+          body: 'Répondre ou ouvrir une fiche prospect.',
           href: '/admin/contacts',
           cta: 'Ouvrir les messages',
           tone: 'warn',
@@ -89,7 +106,13 @@ export default async function AdminDashboard() {
       accent: unreadContacts > 0,
       href: '/admin/contacts',
     },
-    { label: 'Clients', value: clientsCount.count ?? 0, sub: 'enregistrés', accent: false, href: '/admin/contacts' },
+    {
+      label: 'Comptes',
+      value: clientsCount.count ?? 0,
+      sub: lateFollowUps > 0 ? `${lateFollowUps} relance${lateFollowUps > 1 ? 's' : ''}` : 'fiches',
+      accent: lateFollowUps > 0,
+      href: '/admin/clients',
+    },
     {
       label: 'Factures',
       value: facturesCount.count ?? 0,
@@ -138,7 +161,10 @@ export default async function AdminDashboard() {
       <section className="rounded-2xl border border-black/[0.06] bg-white p-5 md:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500 mb-4">Créer</p>
         <div className="flex gap-2 flex-wrap">
-          <Link href="/admin/pieces/nouvelle?type=devis" className="btn btn-primary !py-2.5 !px-4">
+          <Link href="/admin/clients/nouveau" className="btn btn-primary !py-2.5 !px-4">
+            Compte
+          </Link>
+          <Link href="/admin/pieces/nouvelle?type=devis" className="btn btn-on-light !py-2.5 !px-4">
             Devis
           </Link>
           <Link href="/admin/pieces/nouvelle" className="btn btn-on-light !py-2.5 !px-4">

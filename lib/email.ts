@@ -234,6 +234,40 @@ export async function sendBookingConfirmationEmail(data: {
   })
 }
 
+export async function sendClientFollowUpEmail(data: {
+  name: string
+  email: string
+  subject: string
+  body: string
+}) {
+  const name = escapeHtml(data.name)
+  const subject = data.subject.replace(/[\r\n]/g, ' ').slice(0, 120)
+  const body = escapeHtml(data.body)
+
+  await transporter.sendMail({
+    from: `same'z <${process.env.SMTP_USER}>`,
+    to: data.email,
+    replyTo: process.env.SMTP_USER || 'contact@samez.fr',
+    subject,
+    text: [`Bonjour ${data.name},`, '', data.body, '', "same'z — contact@samez.fr — 07 52 08 74 16"].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+        <div style="background: #059669; padding: 32px; text-align: center;">
+          <h1 style="color: #fff; font-size: 24px; margin: 0; font-weight: 700;">same'z</h1>
+        </div>
+        <div style="padding: 32px;">
+          <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0 0 16px;">Bonjour ${name},</p>
+          <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0; white-space: pre-wrap;">${body}</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+          <p style="color: #9ca3af; font-size: 11px; line-height: 1.5; margin: 0;">
+            same'z — contact@samez.fr — 07 52 08 74 16
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export async function sendPasswordResetEmail(data: {
   name: string
   email: string

@@ -41,6 +41,14 @@ export function IconInvoice({ className = 'w-4 h-4' }: { className?: string }) {
   )
 }
 
+export function IconPeople({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 20a8 8 0 1116 0M19 8a3 3 0 11-1.2 5.8" />
+    </svg>
+  )
+}
+
 export function IconBriefcase({ className = 'w-4 h-4' }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>

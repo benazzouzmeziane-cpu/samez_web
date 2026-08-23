@@ -28,8 +28,14 @@ CREATE TABLE IF NOT EXISTS clients (
   email TEXT UNIQUE,
   phone TEXT,
   address TEXT,
+  company TEXT,
+  stage TEXT NOT NULL DEFAULT 'prospect'
+    CHECK (stage IN ('prospect', 'qualifié', 'proposition', 'client', 'inactif')),
+  source TEXT,
+  last_contacted_at TIMESTAMPTZ,
   access_token UUID DEFAULT gen_random_uuid() UNIQUE, -- legacy, non exposé
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- -----------------------------------------------
@@ -132,6 +138,39 @@ CREATE POLICY "Read own piece_lines client" ON piece_lines
         )
     )
   );
+
+-- -----------------------------------------------
+-- Journal CRM (notes / relances) — admin only
+-- Pas sur clients : le portail client lit sa propre fiche.
+-- -----------------------------------------------
+CREATE TABLE IF NOT EXISTS client_activities (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL DEFAULT 'note'
+    CHECK (kind IN ('note', 'relance', 'appel', 'email', 'statut')),
+  title TEXT NOT NULL,
+  body TEXT,
+  due_at DATE,
+  status TEXT NOT NULL DEFAULT 'ouverte'
+    CHECK (status IN ('ouverte', 'faite', 'annulée')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  done_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS client_activities_client_idx ON client_activities (client_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS client_activities_due_idx
+  ON client_activities (due_at)
+  WHERE status = 'ouverte' AND due_at IS NOT NULL;
+
+ALTER TABLE client_activities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "CRUD client_activities admin" ON client_activities
+  FOR ALL TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON client_activities TO authenticated;
+GRANT ALL ON client_activities TO service_role;
 
 -- -----------------------------------------------
 -- Table réalisations (portfolio)

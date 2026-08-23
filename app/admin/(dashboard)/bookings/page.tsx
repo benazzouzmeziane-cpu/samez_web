@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CancelBookingButton from '@/components/admin/CancelBookingButton'
+import ConvertProspectButton from '@/components/admin/crm/ConvertProspectButton'
 import Pagination from '@/components/admin/Pagination'
 import { BOOKING_TZ } from '@/lib/booking'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
@@ -71,6 +73,14 @@ export default async function AdminBookingsPage({
   }
 
   const { data: bookings } = await listQuery
+  const rows = (bookings ?? []) as BookingRow[]
+  const emails = [...new Set(rows.map((b) => b.email.toLowerCase()).filter(Boolean))]
+  const { data: existingClients } = emails.length
+    ? await supabase.from('clients').select('id, email').in('email', emails)
+    : { data: [] as { id: string; email: string }[] }
+  const clientByEmail = new Map(
+    (existingClients ?? []).map((c) => [String(c.email).toLowerCase(), c.id as string]),
+  )
 
   const { count: upcomingCount } = await supabase
     .from('bookings')
@@ -80,7 +90,6 @@ export default async function AdminBookingsPage({
 
   const total = totalCount ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const rows = (bookings ?? []) as BookingRow[]
 
   return (
     <div>
@@ -117,6 +126,7 @@ export default async function AdminBookingsPage({
           {rows.map((b) => {
             const isPast = new Date(b.starts_at).getTime() < Date.now()
             const cancelled = b.status === 'cancelled'
+            const clientId = clientByEmail.get(b.email.toLowerCase())
             return (
               <div
                 key={b.id}
@@ -158,6 +168,22 @@ export default async function AdminBookingsPage({
                     <AttributionSummary row={b} />
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {clientId ? (
+                      <Link
+                        href={`/admin/clients/${clientId}`}
+                        className="client-press text-xs px-3 py-1.5 rounded-full border border-black/10 text-slate-600 font-medium"
+                      >
+                        Dossier
+                      </Link>
+                    ) : (
+                      <ConvertProspectButton
+                        name={b.name}
+                        email={b.email}
+                        phone={b.phone}
+                        source="rdv"
+                        message={b.notes || 'Rendez-vous confirmé'}
+                      />
+                    )}
                     <span
                       className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
                         cancelled
