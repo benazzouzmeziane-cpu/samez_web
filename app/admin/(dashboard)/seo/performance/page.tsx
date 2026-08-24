@@ -10,23 +10,27 @@ import {
   latestGscQueryMetrics,
 } from '@/lib/seo/gsc/store'
 import { leadStatsByPage, leadTotals } from '@/lib/seo/lead-attribution'
+import { pageRoiStats } from '@/lib/seo/page-roi'
 
 export default async function SeoPerformancePage() {
   let pages: Awaited<ReturnType<typeof latestGscPageMetrics>> = []
   let queries: Awaited<ReturnType<typeof latestGscQueryMetrics>> = []
   let leads: Awaited<ReturnType<typeof leadStatsByPage>> = []
+  let roi: Awaited<ReturnType<typeof pageRoiStats>> = []
   let totals = { contacts: 0, bookings: 0, total: 0, pages: 0 }
   try {
-    ;[pages, queries, leads, totals] = await Promise.all([
+    ;[pages, queries, leads, roi, totals] = await Promise.all([
       latestGscPageMetrics(40),
       latestGscQueryMetrics(40),
       leadStatsByPage(20),
+      pageRoiStats(25),
       leadTotals(),
     ])
   } catch {
     pages = []
     queries = []
     leads = []
+    roi = []
   }
 
   return (
@@ -65,6 +69,7 @@ export default async function SeoPerformancePage() {
           period_end: String(row.period_end),
         }))}
         initialLeads={leads}
+        initialRoi={roi}
         leadTotals={{ contacts: totals.contacts, bookings: totals.bookings, total: totals.total }}
       />
     </div>

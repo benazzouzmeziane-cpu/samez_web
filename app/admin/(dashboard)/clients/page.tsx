@@ -17,6 +17,7 @@ import {
   type CrmActivity,
   type CrmClient,
 } from '@/lib/admin/crm'
+import { crmSourceFromAttribution } from '@/lib/attribution/crm-source'
 import { formatDateShort } from '@/lib/client/format'
 
 type Prospect = {
@@ -27,6 +28,13 @@ type Prospect = {
   message: string
   created_at: string
   kind: 'message' | 'rdv'
+  landing_page?: string | null
+  entry_page?: string | null
+  submit_page?: string | null
+  referrer?: string | null
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
 }
 
 export default async function AdminClientsPage({
@@ -70,13 +78,13 @@ export default async function AdminClientsPage({
 
   const { data: contacts } = await supabase
     .from('contacts')
-    .select('id, name, email, phone, message, created_at')
+    .select('id, name, email, phone, message, created_at, landing_page, entry_page, submit_page, referrer, utm_source, utm_medium, utm_campaign')
     .order('created_at', { ascending: false })
     .limit(80)
 
   const { data: bookings } = await supabase
     .from('bookings')
-    .select('id, name, email, phone, notes, created_at, status')
+    .select('id, name, email, phone, notes, created_at, status, landing_page, entry_page, submit_page, referrer, utm_source, utm_medium, utm_campaign')
     .eq('status', 'confirmed')
     .order('created_at', { ascending: false })
     .limit(40)
@@ -95,6 +103,13 @@ export default async function AdminClientsPage({
       message: row.message,
       created_at: row.created_at,
       kind: 'message',
+      landing_page: row.landing_page,
+      entry_page: row.entry_page,
+      submit_page: row.submit_page,
+      referrer: row.referrer,
+      utm_source: row.utm_source,
+      utm_medium: row.utm_medium,
+      utm_campaign: row.utm_campaign,
     })
   }
   for (const row of bookings ?? []) {
@@ -109,6 +124,13 @@ export default async function AdminClientsPage({
       message: row.notes || 'Rendez-vous confirmé',
       created_at: row.created_at,
       kind: 'rdv',
+      landing_page: row.landing_page,
+      entry_page: row.entry_page,
+      submit_page: row.submit_page,
+      referrer: row.referrer,
+      utm_source: row.utm_source,
+      utm_medium: row.utm_medium,
+      utm_campaign: row.utm_campaign,
     })
   }
 
@@ -216,9 +238,11 @@ export default async function AdminClientsPage({
                   name={item.name}
                   email={item.email}
                   phone={item.phone}
-                  source={item.kind === 'rdv' ? 'rdv' : 'message'}
+                  source={crmSourceFromAttribution(item, item.kind === 'rdv' ? 'rdv' : 'message')}
+                  channel={item.kind === 'rdv' ? 'rdv' : 'message'}
                   contactId={item.kind === 'message' ? item.id : undefined}
                   message={item.message}
+                  attribution={item}
                 />
               </div>
             ))}

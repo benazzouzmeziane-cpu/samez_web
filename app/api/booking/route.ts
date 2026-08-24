@@ -21,6 +21,7 @@ import {
 } from '@/lib/google-calendar'
 import { mergeAttributionFromRequest } from '@/lib/attribution/server'
 import { attributionInputSchema } from '@/lib/attribution/schema'
+import { syncProspectFromLead } from '@/lib/admin/crm-leads'
 
 const postSchema = z.object({
   name: z.string().min(2).max(120),
@@ -286,6 +287,19 @@ export async function POST(request: Request) {
       email: data.email,
       meetLink,
     })
+
+    try {
+      await syncProspectFromLead(supabase, {
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        phone: data.phone?.trim() || null,
+        channel: 'rdv',
+        message: data.notes?.trim() || 'Rendez-vous confirmé',
+        attribution,
+      })
+    } catch (crmError) {
+      console.error('[booking] CRM sync error:', crmError)
+    }
 
     try {
       await Promise.all([

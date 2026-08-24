@@ -31,12 +31,24 @@ type LeadMetric = {
   total: number
 }
 
+type RoiMetric = {
+  pagePath: string
+  impressions: number
+  clicks: number
+  position: number
+  leads: number
+  contacts: number
+  bookings: number
+  crmProspects: number
+}
+
 export default function SeoPerformancePanel({
   configured,
   statusMessage,
   initialPages,
   initialQueries,
   initialLeads,
+  initialRoi,
   leadTotals,
 }: {
   configured: boolean
@@ -44,6 +56,7 @@ export default function SeoPerformancePanel({
   initialPages: PageMetric[]
   initialQueries: QueryMetric[]
   initialLeads: LeadMetric[]
+  initialRoi: RoiMetric[]
   leadTotals: { contacts: number; bookings: number; total: number }
 }) {
   const router = useRouter()
@@ -127,6 +140,61 @@ export default function SeoPerformancePanel({
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-black/[0.06] bg-white overflow-hidden">
+        <div className="px-5 py-4 border-b border-black/[0.06]">
+          <h3 className="font-semibold">ROI par page</h3>
+          <p className="text-sm text-slate-500 mt-1">
+            Fusion Search Console, leads attribués et prospects CRM créés automatiquement (source SEO).
+          </p>
+        </div>
+        {initialRoi.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-slate-500">
+            Synchronisez GSC et attendez les premiers leads pour voir le tableau ROI.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-black/[0.06] text-left text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                  <th className="px-5 py-3 font-medium">Page</th>
+                  <th className="px-3 py-3 font-medium">Impr.</th>
+                  <th className="px-3 py-3 font-medium">Clics</th>
+                  <th className="px-3 py-3 font-medium">Pos.</th>
+                  <th className="px-3 py-3 font-medium">Leads</th>
+                  <th className="px-5 py-3 font-medium">CRM</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/[0.06]">
+                {initialRoi.map(row => (
+                  <tr key={row.pagePath}>
+                    <td className="px-5 py-3 font-medium max-w-[14rem] truncate">{row.pagePath}</td>
+                    <td className="px-3 py-3 text-slate-600">{row.impressions || '—'}</td>
+                    <td className="px-3 py-3 text-slate-600">{row.clicks || '—'}</td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {row.position > 0 ? row.position.toFixed(1) : '—'}
+                    </td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {row.leads > 0 ? (
+                        <>
+                          {row.leads}
+                          <span className="text-slate-400 text-xs">
+                            {' '}
+                            ({row.contacts}m · {row.bookings}rdv)
+                          </span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">{row.crmProspects > 0 ? row.crmProspects : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

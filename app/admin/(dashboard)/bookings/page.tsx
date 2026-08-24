@@ -10,6 +10,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import AdminEmptyState from '@/components/admin/AdminEmptyState'
 import AdminChip from '@/components/admin/AdminChip'
 import AttributionSummary from '@/components/admin/AttributionSummary'
+import { crmSourceFromAttribution } from '@/lib/attribution/crm-source'
 
 const PAGE_SIZE = 20
 
@@ -180,8 +181,10 @@ export default async function AdminBookingsPage({
                         name={b.name}
                         email={b.email}
                         phone={b.phone}
-                        source="rdv"
+                        source={crmSourceFromAttribution(b, 'rdv')}
+                        channel="rdv"
                         message={b.notes || 'Rendez-vous confirmé'}
+                        attribution={b}
                       />
                     )}
                     <span

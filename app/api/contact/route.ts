@@ -3,6 +3,7 @@ import { sendContactEmail, sendClientInviteEmail } from '@/lib/email'
 import { timingSafeEqualString } from '@/lib/crypto-safe'
 import { mergeAttributionFromRequest } from '@/lib/attribution/server'
 import { attributionInputSchema } from '@/lib/attribution/schema'
+import { syncProspectFromLead } from '@/lib/admin/crm-leads'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 
@@ -124,14 +125,32 @@ export async function POST(request: Request) {
       message: data.message,
     }
 
-    let { error } = await supabase.from('contacts').insert([{ ...baseRow, ...attribution }])
+    let { data: inserted, error } = await supabase
+      .from('contacts')
+      .insert([{ ...baseRow, ...attribution }])
+      .select('id')
+      .single()
     if (error && /landing_page|entry_page|submit_page|utm_/.test(error.message)) {
-      ;({ error } = await supabase.from('contacts').insert([baseRow]))
+      ;({ data: inserted, error } = await supabase.from('contacts').insert([baseRow]).select('id').single())
     }
 
     if (error) {
       console.error('[contact] DB insert error:', error)
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
+
+    try {
+      await syncProspectFromLead(supabase, {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        channel: 'message',
+        message: data.message,
+        attribution,
+        contactId: inserted?.id,
+      })
+    } catch (crmError) {
+      console.error('[contact] CRM sync error:', crmError)
     }
 
     const accountCreationSecret = process.env.CONTACT_ACCOUNT_CREATION_SECRET

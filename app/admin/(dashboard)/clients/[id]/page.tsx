@@ -12,7 +12,7 @@ import {
   ClientStageForm,
   SendEmailForm,
 } from '@/components/admin/crm/ClientForms'
-import { SOURCE_LABELS, mapActivity, mapClient, todayParis } from '@/lib/admin/crm'
+import { SOURCE_LABELS, formatSourceLabel, mapActivity, mapClient, todayParis } from '@/lib/admin/crm'
 import { formatDateFr, formatDateShort, formatEuro } from '@/lib/client/format'
 
 export default async function ClientDossierPage({ params }: { params: Promise<{ id: string }> }) {
@@ -73,7 +73,7 @@ export default async function ClientDossierPage({ params }: { params: Promise<{ 
         title={client.name}
         description={[
           client.company,
-          SOURCE_LABELS[client.source ?? ''] || client.source,
+          SOURCE_LABELS[client.source ?? ''] || formatSourceLabel(client.source),
           client.last_contacted_at ? `Dernier contact ${formatDateFr(client.last_contacted_at)}` : null,
         ]
           .filter(Boolean)

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import CreateDevisButton from '@/components/admin/CreateDevisButton'
 import ConvertProspectButton from '@/components/admin/crm/ConvertProspectButton'
 import AttributionSummary from '@/components/admin/AttributionSummary'
+import { crmSourceFromAttribution } from '@/lib/attribution/crm-source'
 import Pagination from '@/components/admin/Pagination'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import AdminEmptyState from '@/components/admin/AdminEmptyState'
@@ -115,9 +116,11 @@ export default async function AdminContactsPage({
                       name={contact.name}
                       email={contact.email}
                       phone={contact.phone}
-                      source="message"
+                      source={crmSourceFromAttribution(contact, 'message')}
+                      channel="message"
                       contactId={contact.id}
                       message={contact.message}
+                      attribution={contact}
                     />
                   )}
                   <CreateDevisButton

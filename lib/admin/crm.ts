@@ -31,12 +31,18 @@ export const KIND_LABELS: Record<ActivityKind, string> = {
   statut: 'Statut',
 }
 
+import { formatCrmSourceLabel } from '@/lib/attribution/crm-source'
+
 export const SOURCE_LABELS: Record<string, string> = {
   message: 'Message',
   rdv: 'Rendez-vous',
   devis: 'Devis',
   manuel: 'Manuel',
   compte: 'Création de compte',
+}
+
+export function formatSourceLabel(source: string | null | undefined): string {
+  return formatCrmSourceLabel(source)
 }
 
 export type CrmClient = {

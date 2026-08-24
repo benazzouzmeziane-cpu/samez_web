@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdminUser } from '@/lib/admin'
 import { sendClientFollowUpEmail } from '@/lib/email'
 import { STAGE_LABELS, asStage, type ActivityKind, type ClientStage } from '@/lib/admin/crm'
+import { leadActivityBody, type LeadChannel } from '@/lib/attribution/crm-source'
+import { scheduleFollowUpForClient } from '@/lib/admin/crm-leads'
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -224,13 +226,30 @@ export async function convertProspect(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const phone = String(formData.get('phone') ?? '').trim() || null
   const source = String(formData.get('source') ?? 'message')
+  const channel = (String(formData.get('channel') ?? '') || (source === 'rdv' ? 'rdv' : 'message')) as LeadChannel
   const contactId = String(formData.get('contact_id') ?? '').trim() || null
   const message = String(formData.get('message') ?? '').trim() || null
+  const attribution = {
+    landing_page: String(formData.get('landing_page') ?? '').trim() || null,
+    entry_page: String(formData.get('entry_page') ?? '').trim() || null,
+    submit_page: String(formData.get('submit_page') ?? '').trim() || null,
+    referrer: String(formData.get('referrer') ?? '').trim() || null,
+    utm_source: String(formData.get('utm_source') ?? '').trim() || null,
+    utm_medium: String(formData.get('utm_medium') ?? '').trim() || null,
+    utm_campaign: String(formData.get('utm_campaign') ?? '').trim() || null,
+    utm_content: null,
+    utm_term: null,
+  }
 
   if (!name || !email) throw new Error('Nom et email requis.')
 
-  const { data: existing } = await supabase.from('clients').select('id').eq('email', email).maybeSingle()
+  const { data: existing } = await supabase
+    .from('clients')
+    .select('id, stage, source')
+    .eq('email', email)
+    .maybeSingle()
   let clientId = existing?.id as string | undefined
+  let created = false
 
   if (!clientId) {
     const { data, error } = await supabase
@@ -247,24 +266,31 @@ export async function convertProspect(formData: FormData) {
       .single()
     if (error || !data) {
       if (error?.code === '23505') {
-        const { data: again } = await supabase.from('clients').select('id').eq('email', email).single()
+        const { data: again } = await supabase.from('clients').select('id, stage').eq('email', email).single()
         clientId = again?.id
       }
       if (!clientId) throw new Error(error?.message || 'Conversion impossible.')
     } else {
       clientId = data.id
+      created = true
     }
+  } else if (!existing?.source && source.startsWith('seo:')) {
+    await supabase.from('clients').update({ source, updated_at: new Date().toISOString() }).eq('id', clientId)
   }
 
-  if (message) {
-    await supabase.from('client_activities').insert({
-      client_id: clientId,
-      kind: 'note',
-      title: source === 'rdv' ? 'Issu d’un rendez-vous' : 'Issu d’un message',
-      body: message,
-      status: 'faite',
-      done_at: new Date().toISOString(),
-    })
+  const noteBody = leadActivityBody(channel, message, attribution)
+  await supabase.from('client_activities').insert({
+    client_id: clientId,
+    kind: 'note',
+    title: channel === 'rdv' ? 'Issu d’un rendez-vous' : 'Issu d’un message',
+    body: noteBody,
+    status: 'faite',
+    done_at: new Date().toISOString(),
+  })
+
+  const stage = asStage(existing?.stage ?? 'prospect')
+  if (created || stage === 'prospect' || stage === 'qualifié' || stage === 'proposition') {
+    await scheduleFollowUpForClient(supabase, clientId!, channel)
   }
 
   if (contactId) {
