@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isSamezCompetitor } from '@/lib/radar/filters'
 import type { RadarFit, RadarItem, RadarKind, RadarOffer, RadarRun, RadarStatus } from '@/lib/radar/types'
 
 export function mapRadarItem(row: Record<string, unknown>): RadarItem {
@@ -160,16 +161,80 @@ export async function radarGoCount(supabase: SupabaseClient) {
 
 export type RadarMessage = {
   id: string
+  conversation_id: string
   role: 'user' | 'assistant'
   content: string
   brief: Record<string, unknown> | null
   created_at: string
 }
 
-export async function listRadarMessages(supabase: SupabaseClient, limit = 40) {
+export type RadarConversation = {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+}
+
+export function titleFromRadarMessage(text: string) {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (!clean) return 'Nouveau chat'
+  return clean.length <= 48 ? clean : `${clean.slice(0, 48).trim()}…`
+}
+
+export async function listRadarConversations(supabase: SupabaseClient, limit = 80) {
+  const { data, error } = await supabase
+    .from('radar_conversations')
+    .select('id, title, created_at, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(limit)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as RadarConversation[]
+}
+
+export async function getRadarConversation(supabase: SupabaseClient, id: string) {
+  const { data } = await supabase
+    .from('radar_conversations')
+    .select('id, title, created_at, updated_at')
+    .eq('id', id)
+    .maybeSingle()
+  return (data as RadarConversation | null) ?? null
+}
+
+export async function createRadarConversation(supabase: SupabaseClient, title: string) {
+  const { data, error } = await supabase
+    .from('radar_conversations')
+    .insert({ title: titleFromRadarMessage(title) })
+    .select('id, title, created_at, updated_at')
+    .single()
+  if (error || !data) throw new Error(error?.message || 'Conversation impossible')
+  return data as RadarConversation
+}
+
+export async function touchRadarConversation(supabase: SupabaseClient, id: string, title?: string) {
+  const { error } = await supabase
+    .from('radar_conversations')
+    .update({
+      updated_at: new Date().toISOString(),
+      ...(title ? { title: titleFromRadarMessage(title) } : {}),
+    })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteRadarConversation(supabase: SupabaseClient, id: string) {
+  const { error } = await supabase.from('radar_conversations').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function listRadarMessages(
+  supabase: SupabaseClient,
+  conversationId: string,
+  limit = 80
+) {
   const { data, error } = await supabase
     .from('radar_messages')
     .select('*')
+    .eq('conversation_id', conversationId)
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error) throw new Error(error.message)
@@ -178,16 +243,59 @@ export async function listRadarMessages(supabase: SupabaseClient, limit = 40) {
 
 export async function insertRadarMessage(
   supabase: SupabaseClient,
+  conversationId: string,
   role: 'user' | 'assistant',
   content: string,
   brief?: Record<string, unknown> | null
 ) {
   const { error } = await supabase.from('radar_messages').insert({
+    conversation_id: conversationId,
     role,
     content,
     brief: brief ?? null,
   })
   if (error) throw new Error(error.message)
+}
+
+export async function discardRadarItems(
+  supabase: SupabaseClient,
+  ids: string[],
+  reason: string
+) {
+  if (!ids.length) return 0
+  const { error } = await supabase
+    .from('radar_items')
+    .update({
+      status: 'ecarte',
+      fit: 'nogo',
+      offer: 'skip',
+      next_action: reason,
+      updated_at: new Date().toISOString(),
+    })
+    .in('id', ids)
+  if (error) throw new Error(error.message)
+  return ids.length
+}
+
+export async function discardCompetitorRadarItems(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from('radar_items')
+    .select('id, title, subtitle, payload, kind')
+    .neq('kind', 'marche')
+    .neq('status', 'ecarte')
+    .limit(200)
+  if (error) throw new Error(error.message)
+  const ids = (data ?? [])
+    .filter(row => {
+      const payload = (row.payload as { naf?: string } | null) ?? {}
+      return isSamezCompetitor({
+        title: String(row.title ?? ''),
+        activity: String(row.subtitle ?? ''),
+        naf: payload.naf ?? null,
+      })
+    })
+    .map(row => String(row.id))
+  return discardRadarItems(supabase, ids, 'Écarté : concurrent / même métier que same’z')
 }
 
 export async function listRadarContext(supabase: SupabaseClient, limit = 15) {

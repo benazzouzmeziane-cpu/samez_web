@@ -13,7 +13,9 @@ import {
   shouldKeepTender,
 } from '@/lib/radar/score'
 import { enrichCompanies, searchSirene } from '@/lib/radar/sirene'
+import { isSamezCompetitor } from '@/lib/radar/filters'
 import {
+  discardCompetitorRadarItems,
   finishRadarRun,
   listUnscored,
   startRadarRun,
@@ -43,6 +45,9 @@ export async function runRadarSync(
   const goTitles: string[] = []
 
   try {
+    await discardCompetitorRadarItems(supabase).catch(error =>
+      console.error('[radar] discard competitors', error)
+    )
     const brief = options?.brief
     const instruction = brief?.notes || brief?.query || ''
 
@@ -64,7 +69,7 @@ export async function runRadarSync(
 
       const drafts = await fetchRecentCompanies(brief?.days ?? 3)
       const cheap = drafts.filter(item =>
-        brief ? matchesDraft(item, brief) : cheapCompanyKeep(item.activity, item.legalFormLabel)
+        brief ? matchesDraft(item, brief) : cheapCompanyKeep(item.activity, item.legalFormLabel, item.title)
       )
       fetched += drafts.length
       const enriched = await enrichCompanies(cheap, brief ? 24 : 36)
@@ -102,7 +107,8 @@ export async function runRadarSync(
     for (const item of pending) {
       try {
         const refined = await refineItem(item, instruction)
-        const status = refined.fit === 'go' ? 'a_contacter' : item.status
+        const status =
+          refined.fit === 'go' ? 'a_contacter' : refined.fit === 'nogo' ? 'ecarte' : item.status
         await supabase
           .from('radar_items')
           .update({
@@ -188,9 +194,9 @@ async function refineItem(item: RadarItem, instruction?: string): Promise<RadarS
     return refineTenderScore(tender, baseline, instruction)
   }
 
-  const company = {
+  const company: EnrichedCompany = {
     kind: item.kind as EnrichedCompany['kind'],
-    source: 'bodacc' as const,
+    source: 'bodacc',
     externalId: item.external_id,
     siren: item.external_id,
     title: item.title,
@@ -211,6 +217,16 @@ async function refineItem(item: RadarItem, instruction?: string): Promise<RadarS
     directors: item.contact_name ? [item.contact_name] : [],
     sireneName: item.title,
     address: (item.payload.address as string | null) ?? null,
+  }
+  if (isSamezCompetitor(company) || /concurrent/i.test(baseline.reasons.join(' '))) {
+    return {
+      ...baseline,
+      fit: 'nogo',
+      offer: 'skip',
+      nextAction: 'Écarter — concurrent, pas un acheteur',
+      approachSubject: '',
+      approachBody: '',
+    }
   }
   return refineCompanyScore(company, baseline, instruction)
 }

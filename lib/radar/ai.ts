@@ -12,16 +12,18 @@ const aiScoreSchema = z.object({
   approach_body: z.string().optional().transform(value => (value ?? '').slice(0, 900)),
 })
 
-const COMPANY_SYSTEM = `Tu qualifies des prospects pour same'z, développeur indépendant français.
-same'z vend : sites, apps métiers, automatisations et agents IA pour TPE/PME. Ticket typique : quelques milliers à quelques dizaines de milliers d'euros. Pas d'équipe, pas d'infogérance SAP/Oracle.
+const COMPANY_SYSTEM = `Tu qualifies des prospects CLIENTS pour same'z, développeur indépendant français.
+same'z VEND des sites, apps et automatisations à des TPE/PME qui ne sont PAS des agences web / ESN / indépendants du logiciel.
+Clients typiques : immobilier, e-commerce, cabinets, artisans, resto, formation, recrutement.
+CONCURRENTS (nogo, offer=skip) : NAF 62.xx / 63.1x, programmation, création de sites, agence web, ESN. Ils font le même métier : ils n'achètent pas same'z.
 Réponds UNIQUEMENT par un JSON compact.
 Règles :
 - N'invente jamais email, téléphone, CA, effectif, site web.
-- nogo si SCI, micro, holding vide, coiffeur/tabac, ou besoin grand compte.
-- go seulement si un freelance peut vendre un kit lancement, une app, une automatisation ou un partenariat cabinet.
-- approach_body : vouvoiement, 6-8 lignes, ancré dans L'ACTIVITÉ fournie, CTA https://samez.fr/reserver. Interdit : "j'ai visité votre site" si aucun site n'est fourni.
-- Si consigneUtilisateur est fournie, elle prime sur les filtres par défaut (sans inventer de faits).
-- next_action : une action humaine concrète (LinkedIn, BODACC, appeler le greffe, etc.).`
+- nogo si concurrent, SCI, micro, holding vide, ou besoin grand compte.
+- go seulement si le métier ACHÈTE du logiciel (pas s'il en vend).
+- approach_body vide si nogo.
+- Si consigneUtilisateur est fournie, elle prime (sans inventer de faits).
+- next_action : une action humaine concrète.`
 
 const TENDER_SYSTEM = `Tu es le filtre go/no-go marchés publics de same'z (freelance solo).
 Réponds UNIQUEMENT par un JSON compact.
@@ -86,6 +88,9 @@ export async function refineTenderScore(
 }
 
 function mergeAi(baseline: RadarScore, parsed: z.infer<typeof aiScoreSchema>): RadarScore {
+  if (baseline.fit === 'nogo' && /concurrent/i.test(baseline.reasons.join(' '))) {
+    return { ...baseline, approachBody: '', approachSubject: '' }
+  }
   const score = Math.round(baseline.preScore * 0.35 + parsed.score * 0.65)
   return {
     preScore: baseline.preScore,

@@ -31,7 +31,7 @@ export function isNimConfigured() {
 export async function completeJson(
   system: string,
   user: string,
-  options?: { maxTokens?: number }
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<unknown> {
   const apiKey = process.env.NVIDIA_API_KEY?.trim()
   if (!apiKey) throw new Error('NVIDIA_API_KEY manquante')
@@ -52,7 +52,7 @@ export async function completeJson(
         },
         body: JSON.stringify({
           model,
-          temperature: 0.2,
+          temperature: options?.temperature ?? 0.2,
           max_tokens: options?.maxTokens ?? 700,
           stream: false,
           messages: [

@@ -41,12 +41,12 @@ export function isAllowedCompanyForm(code: string | null | undefined): boolean {
 
 /** NAF pondérés : douleur process / digital / professions libérales / partenaires. */
 export const NAF_WEIGHTS: Record<string, number> = {
-  '62.01Z': 28,
-  '62.02A': 30,
-  '62.02B': 26,
-  '62.09Z': 22,
-  '63.11Z': 18,
-  '63.12Z': 18,
+  '62.01Z': -30,
+  '62.02A': -28,
+  '62.02B': -24,
+  '62.09Z': -22,
+  '63.11Z': -16,
+  '63.12Z': -16,
   '70.22Z': 32,
   '73.11Z': 28,
   '73.12Z': 22,
@@ -88,13 +88,28 @@ export function nafWeight(code: string | null | undefined): number {
   if (!code) return 0
   if (NAF_WEIGHTS[code] != null) return NAF_WEIGHTS[code]
   const prefix = code.slice(0, 2)
-  if (['62', '63', '70', '73', '69', '82'].includes(prefix)) return 14
+  if (prefix === '62' || prefix === '63') return -22
+  if (['70', '73', '69', '82'].includes(prefix)) return 14
   if (['47', '46', '68', '78'].includes(prefix)) return 10
   return 0
 }
 
+const COMPETITOR_NAF = new Set(['62.01Z', '62.02A', '62.02B', '62.09Z', '63.11Z', '63.12Z'])
+
+export const ACTIVITY_COMPETITOR =
+  /programmation de logiciels|conception.{0,40}sites?\s*web|cr[ée]ation de sites|d[ée]veloppement (web|informatique|d['’ ]?applications)|agence web|esn\b|ssii\b|prestataire informatique|int[ée]grateur (web|digital)|webmaster|studio digital|factory digitale/i
+
+export function isSamezCompetitor(input: { naf?: string | null; activity?: string | null; title?: string | null }): boolean {
+  if (input.naf && (COMPETITOR_NAF.has(input.naf) || input.naf.startsWith('62.') || input.naf.startsWith('63.1'))) {
+    return true
+  }
+  const text = `${input.title ?? ''} ${input.activity ?? ''}`
+  return ACTIVITY_COMPETITOR.test(text)
+}
+
+/** Clients : métiers qui ACHÈTENT du logiciel, pas ceux qui en vendent. */
 export const ACTIVITY_KEEP =
-  /logiciel|digital|informatique|e-?commerce|en ligne|site internet|application|automatis|agence|conseil|immobilier|comptab|avocat|juridique|notaire|architect|formation|marketing|communication|recrut|rh\b|paie|factur|devis|erp|crm|saas|marketplace|logistique|artisan|bâtiment|batiment|plomber|électric|electric|couverture|menuiser|garage|optique|dentaire|cabinet|clinique|hôtel|hotel|restaurant|traiteur|négoce|negoce|import|export|wholesale/i
+  /e-?commerce|en ligne|immobilier|comptab|avocat|juridique|notaire|architect|formation|marketing|communication|recrut|rh\b|paie|factur|devis|erp|crm|marketplace|logistique|artisan|bâtiment|batiment|plomber|électric|electric|couverture|menuiser|garage|optique|dentaire|cabinet|clinique|hôtel|hotel|restaurant|traiteur|négoce|negoce|import|export|wholesale|agence immobili/i
 
 export const ACTIVITY_DROP =
   /sci\b|location immobilière|marchand de biens|holding sans|assurance-vie|tabac\b|presse\b|coiffure|esthétique|manucure|prostitution|cultes?\b/i

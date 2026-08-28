@@ -102,7 +102,15 @@ export function inferBriefFromText(text: string): RadarBrief {
 }
 
 export function looksLikeSearch(text: string): boolean {
-  return /cherche|trouv|lance|radar|cibl|surveill|veille|marché|creation|création|agence|cabinet|naf|département|departement/.test(
-    text.toLowerCase()
+  const lower = text.toLowerCase()
+  if (
+    /pourquoi|pas besoin|concurrent|m[eê]me chose|c['’ ]est lui|n['’]a pas besoin|ne vas pas|ne va pas|debile|débile|tu comprends pas|il fait la m[eê]me/.test(
+      lower
+    )
+  ) {
+    return false
+  }
+  return /cherche|trouv|lance|radar|cibl|surveill|veille|marché|creation|création|agence immo|cabinet|naf|département|departement/.test(
+    lower
   )
 }

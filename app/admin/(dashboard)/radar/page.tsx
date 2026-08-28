@@ -7,13 +7,21 @@ import RadarSyncButton from '@/components/admin/radar/RadarSyncButton'
 import RadarChat from '@/components/admin/radar/RadarChat'
 import RadarCard from '@/components/admin/radar/RadarCard'
 import { createClient } from '@/lib/supabase/server'
-import { latestRadarRun, listRadarItems, listRadarMessages } from '@/lib/radar/store'
+import {
+  getRadarConversation,
+  latestRadarRun,
+  listRadarConversations,
+  listRadarItems,
+  listRadarMessages,
+} from '@/lib/radar/store'
 import type { RadarFit, RadarStatus } from '@/lib/radar/types'
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export default async function AdminRadarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; fit?: string; status?: string }>
+  searchParams: Promise<{ tab?: string; fit?: string; status?: string; c?: string }>
 }) {
   const params = await searchParams
   const tab = params.tab === 'marches' ? 'marches' : 'entreprises'
@@ -23,18 +31,24 @@ export default async function AdminRadarPage({
       ? params.status
       : 'all'
   ) as RadarStatus | 'all'
+  const conversationId = UUID.test(params.c ?? '') ? params.c! : null
 
   const supabase = await createClient()
   let items: Awaited<ReturnType<typeof listRadarItems>> = []
   let run: Awaited<ReturnType<typeof latestRadarRun>> = null
+  let conversations: Awaited<ReturnType<typeof listRadarConversations>> = []
   let messages: Awaited<ReturnType<typeof listRadarMessages>> = []
   let loadError: string | null = null
   try {
-    ;[items, run, messages] = await Promise.all([
+    ;[items, run, conversations] = await Promise.all([
       listRadarItems(supabase, { tab, fit, status }),
       latestRadarRun(supabase),
-      listRadarMessages(supabase).catch(() => []),
+      listRadarConversations(supabase).catch(() => []),
     ])
+    if (conversationId) {
+      const exists = await getRadarConversation(supabase, conversationId)
+      if (exists) messages = await listRadarMessages(supabase, conversationId)
+    }
   } catch (error) {
     loadError = error instanceof Error ? error.message : 'Radar indisponible'
   }
@@ -47,15 +61,24 @@ export default async function AdminRadarPage({
     if (nextTab !== 'entreprises') search.set('tab', nextTab)
     if (nextFit !== 'all') search.set('fit', nextFit)
     if (nextStatus !== 'all') search.set('status', nextStatus)
+    if (conversationId) search.set('c', conversationId)
     const value = search.toString()
     return value ? `/admin/radar?${value}` : '/admin/radar'
   }
+
+  const listQuery = (() => {
+    const search = new URLSearchParams()
+    if (tab !== 'entreprises') search.set('tab', tab)
+    if (fit !== 'all') search.set('fit', fit)
+    if (status !== 'all') search.set('status', status)
+    return search.toString()
+  })()
 
   return (
     <div>
       <AdminPageHeader
         title="Radar"
-        description="Parlez à l’agent : ciblez une recherche, discutez des pistes, puis ouvrez une fiche. Rien n’est envoyé au prospect."
+        description="Chaque recherche a son fil. Reprenez un chat dans le menu, puis ouvrez une fiche. Rien n’est envoyé au prospect."
         actions={<RadarSyncButton />}
       />
 
@@ -71,11 +94,16 @@ export default async function AdminRadarPage({
       {loadError ? (
         <AdminEmptyState
           title="Migration radar requise"
-          body="Applique supabase/migrations/20260828_radar.sql dans Supabase, puis relance le radar."
+          body="Applique supabase/migrations/20260828_radar.sql et 20260828_radar_conversations.sql dans Supabase."
         />
       ) : (
         <>
-          <RadarChat key={messages.at(-1)?.id ?? 'empty'} initialMessages={messages} />
+          <RadarChat
+            conversations={conversations}
+            conversationId={conversationId}
+            initialMessages={messages}
+            listQuery={listQuery}
+          />
 
           <div className="flex flex-wrap gap-2 mb-3">
             <AdminChip href={qs({ tab: 'entreprises' })} active={tab === 'entreprises'}>

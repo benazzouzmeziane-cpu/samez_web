@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { isAdminUser } from '@/lib/admin'
-import { chatRadar } from '@/lib/radar/chat'
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+import { deleteRadarConversation } from '@/lib/radar/store'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
 async function requireAdmin() {
@@ -18,19 +15,21 @@ async function requireAdmin() {
   return user
 }
 
-export async function POST(request: Request) {
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     if (!(await requireAdmin())) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 401 })
     }
-    const body = (await request.json().catch(() => ({}))) as { message?: string; conversationId?: string }
+    const { id } = await context.params
+    if (!id) return NextResponse.json({ error: 'Conversation manquante' }, { status: 400 })
     const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : await createClient()
-    const rawId = body.conversationId?.trim() || null
-    const conversationId = rawId && UUID.test(rawId) ? rawId : null
-    const result = await chatRadar(supabase, String(body.message ?? ''), conversationId)
-    return NextResponse.json({ ok: true, ...result })
+    await deleteRadarConversation(supabase, id)
+    return NextResponse.json({ ok: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Discussion impossible'
+    const message = error instanceof Error ? error.message : 'Suppression impossible'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
