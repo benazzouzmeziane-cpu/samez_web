@@ -19,6 +19,7 @@ export default async function AdminDashboard() {
     upcomingBookings,
     seoCount,
     overdueFollowUps,
+    radarGo,
   ] = await Promise.all([
     supabase.from('contacts').select('*', { count: 'exact', head: true }),
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('read', false),
@@ -43,12 +44,18 @@ export default async function AdminDashboard() {
       .eq('status', 'ouverte')
       .not('due_at', 'is', null)
       .lt('due_at', todayParis()),
+    supabase
+      .from('radar_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('fit', 'go')
+      .in('status', ['nouveau', 'a_contacter']),
   ])
 
   const unreadContacts = unreadCount.count ?? 0
   const unpaidPieces = unpaidCount.count ?? 0
   const bookingsUpcoming = upcomingBookings.count ?? 0
   const lateFollowUps = overdueFollowUps.error ? 0 : (overdueFollowUps.count ?? 0)
+  const radarReady = radarGo.error ? 0 : (radarGo.count ?? 0)
 
   const nextAction =
     lateFollowUps > 0
@@ -59,6 +66,14 @@ export default async function AdminDashboard() {
           cta: 'Ouvrir les relances',
           tone: 'warn',
         }
+      : radarReady > 0
+        ? {
+            title: `${radarReady} piste${radarReady > 1 ? 's' : ''} radar Go`,
+            body: 'Créations, cessions ou marchés déjà filtrés par l’IA.',
+            href: '/admin/radar?fit=go',
+            cta: 'Ouvrir le radar',
+            tone: 'warn',
+          }
       : unreadContacts > 0
       ? {
           title: `${unreadContacts} message${unreadContacts > 1 ? 's' : ''} non lu${unreadContacts > 1 ? 's' : ''}`,
@@ -120,6 +135,7 @@ export default async function AdminDashboard() {
       accent: unpaidPieces > 0,
       href: '/admin/pieces',
     },
+    { label: 'Radar', value: radarReady, sub: 'pistes Go', accent: radarReady > 0, href: '/admin/radar?fit=go' },
     { label: 'SEO', value: seoCount.error ? 0 : (seoCount.count ?? 0), sub: `${devisCount.count ?? 0} devis`, accent: false, href: '/admin/seo' },
   ]
 
@@ -142,7 +158,7 @@ export default async function AdminDashboard() {
         </Link>
       </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
         {stats.map((s) => (
           <Link
             key={s.label}

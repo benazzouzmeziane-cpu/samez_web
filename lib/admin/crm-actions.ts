@@ -24,6 +24,7 @@ function revalidateClient(id?: string) {
   revalidatePath('/admin')
   revalidatePath('/admin/clients')
   revalidatePath('/admin/contacts')
+  revalidatePath('/admin/radar')
   if (id) revalidatePath(`/admin/clients/${id}`)
 }
 
@@ -299,4 +300,84 @@ export async function convertProspect(formData: FormData) {
 
   revalidateClient(clientId)
   redirect(`/admin/clients/${clientId}`)
+}
+
+export async function updateRadarStatus(formData: FormData) {
+  const supabase = await requireAdmin()
+  const id = String(formData.get('id') ?? '')
+  const status = String(formData.get('status') ?? '') as
+    | 'nouveau'
+    | 'a_contacter'
+    | 'contacte'
+    | 'converti'
+    | 'ecarte'
+  if (!id || !['nouveau', 'a_contacter', 'contacte', 'converti', 'ecarte'].includes(status)) {
+    throw new Error('Statut radar invalide.')
+  }
+  const { error } = await supabase
+    .from('radar_items')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/radar')
+}
+
+export async function convertRadarItem(formData: FormData) {
+  const supabase = await requireAdmin()
+  const id = String(formData.get('id') ?? '')
+  if (!id) throw new Error('Piste introuvable.')
+
+  const { data: row, error } = await supabase.from('radar_items').select('*').eq('id', id).single()
+  if (error || !row) throw new Error(error?.message || 'Piste introuvable.')
+
+  const company = String(row.title ?? '').trim()
+  const contactName = String(row.contact_name ?? '').trim() || company
+  const source = `radar:${row.kind}:${row.external_id}`
+  const note = [
+    row.subtitle,
+    (row.reasons as string[] | null)?.join('\n'),
+    row.next_action,
+    row.approach_subject,
+    row.approach_body,
+    row.url,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+
+  const { data: created, error: insertError } = await supabase
+    .from('clients')
+    .insert({
+      name: contactName,
+      email: null,
+      company,
+      address: (row.payload as { address?: string } | null)?.address || [row.city, row.department].filter(Boolean).join(' ') || null,
+      stage: row.kind === 'marche' ? 'qualifié' : 'prospect',
+      source,
+      updated_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single()
+
+  if (insertError || !created) throw new Error(insertError?.message || 'Création fiche impossible.')
+
+  await supabase.from('client_activities').insert({
+    client_id: created.id,
+    kind: 'note',
+    title: row.kind === 'marche' ? 'Piste marché public' : 'Piste radar entreprises',
+    body: note,
+    status: 'faite',
+    done_at: new Date().toISOString(),
+  })
+  await scheduleFollowUpForClient(supabase, created.id, 'message')
+  await supabase
+    .from('radar_items')
+    .update({
+      status: 'converti',
+      client_id: created.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  revalidateClient(created.id)
+  redirect(`/admin/clients/${created.id}`)
 }

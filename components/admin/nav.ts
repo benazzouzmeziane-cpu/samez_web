@@ -6,6 +6,7 @@ import {
   IconInvoice,
   IconMail,
   IconPeople,
+  IconRadar,
   IconSeo,
 } from '@/components/admin/icons'
 
@@ -18,6 +19,7 @@ export type AdminNavItem = {
 
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Accueil', icon: IconGauge, exact: true },
+  { href: '/admin/radar', label: 'Radar', icon: IconRadar },
   { href: '/admin/clients', label: 'Comptes', icon: IconPeople },
   { href: '/admin/seo', label: 'SEO', icon: IconSeo },
   { href: '/admin/contacts', label: 'Messages', icon: IconMail },

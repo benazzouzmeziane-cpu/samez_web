@@ -40,6 +40,12 @@ export function crmSourceFromAttribution(
 export function formatCrmSourceLabel(source: string | null | undefined): string {
   if (!source) return '—'
   if (source.startsWith('seo:')) return `SEO ${source.slice(4)}`
+  if (source.startsWith('radar:')) {
+    const rest = source.slice(6)
+    if (rest.startsWith('marche:')) return `Marché ${rest.slice(7)}`
+    if (rest.startsWith('cession:')) return `Cession ${rest.slice(8)}`
+    return `Radar ${rest}`
+  }
   const labels: Record<string, string> = {
     message: 'Message',
     rdv: 'Rendez-vous',

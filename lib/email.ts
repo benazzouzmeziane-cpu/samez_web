@@ -317,3 +317,19 @@ export async function sendPasswordResetEmail(data: {
     `,
   })
 }
+
+export async function sendRadarDigestEmail(data: { count: number; lines: string[] }) {
+  const lines = data.lines.map(line => `- ${line}`).join('\n')
+  await transporter.sendMail({
+    from: `same'z <${process.env.SMTP_USER}>`,
+    to: process.env.SMTP_USER || 'contact@samez.fr',
+    subject: `Radar same'z — ${data.count} piste${data.count > 1 ? 's' : ''} Go`,
+    text: [
+      `${data.count} piste(s) qualifiée(s) Go par l’IA.`,
+      '',
+      lines,
+      '',
+      'Ouvrir : https://samez.fr/admin/radar',
+    ].join('\n'),
+  })
+}
