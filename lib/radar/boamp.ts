@@ -7,7 +7,7 @@ const TENDER_WHERE = [
   `dateparution >= date'{{since}}'`,
   `datelimitereponse >= now()`,
   `titulaire is null`,
-  `(search(objet, 'logiciel') OR search(objet, 'application') OR search(objet, 'site internet') OR search(objet, 'développement informatique') OR search(objet, 'prestations informatiques') OR search(objet, 'système d''information') OR search(objet, 'intelligence artificielle') OR search(objet, 'automatisation') OR search(objet, 'solution numérique'))`,
+  `(search(objet, 'logiciel') OR search(objet, 'application') OR search(objet, 'site internet') OR search(objet, 'developpement informatique') OR search(objet, 'prestations informatiques') OR search(objet, 'systeme information') OR search(objet, 'intelligence artificielle') OR search(objet, 'automatisation') OR search(objet, 'solution numerique'))`,
 ].join(' AND ')
 
 type BoampRow = {
@@ -37,7 +37,10 @@ export async function fetchItTenders(days = 10, limit = 40): Promise<TenderDraft
     signal: AbortSignal.timeout(20_000),
     cache: 'no-store',
   })
-  if (!response.ok) throw new Error(`BOAMP ${response.status}`)
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`BOAMP ${response.status}${body ? `: ${body.slice(0, 180)}` : ''}`)
+  }
   const json = (await response.json()) as { results?: BoampRow[] }
 
   return (json.results ?? [])

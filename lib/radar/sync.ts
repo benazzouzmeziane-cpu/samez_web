@@ -52,7 +52,10 @@ export async function runRadarSync(supabase: SupabaseClient, options?: { digest?
       }
     }
 
-    const tenders = await fetchItTenders(10, 40)
+    const tenders = await fetchItTenders(10, 40).catch(error => {
+      console.error('[radar] BOAMP skipped', error)
+      return [] as Awaited<ReturnType<typeof fetchItTenders>>
+    })
     fetched += tenders.length
     for (const tender of tenders) {
       const baseline = scoreTenderDeterministic(tender)
