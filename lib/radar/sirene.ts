@@ -127,6 +127,11 @@ export async function searchSirene(brief: RadarBrief, limit = 30): Promise<Enric
       if (!brief.allowEi) url.searchParams.set('est_entrepreneur_individuel', 'false')
       if (department) url.searchParams.set('departement', department)
       if (brief.naf.length) url.searchParams.set('activite_principale', brief.naf.slice(0, 4).join(','))
+      if (brief.days && brief.days <= 90) {
+        const min = new Date()
+        min.setDate(min.getDate() - brief.days)
+        url.searchParams.set('date_creation_min', min.toISOString().slice(0, 10))
+      }
       const response = await fetch(url, {
         headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(12_000),

@@ -109,7 +109,7 @@ export function isSamezCompetitor(input: { naf?: string | null; activity?: strin
 
 /** Clients : métiers qui ACHÈTENT du logiciel, pas ceux qui en vendent. */
 export const ACTIVITY_KEEP =
-  /e-?commerce|en ligne|immobilier|comptab|avocat|juridique|notaire|architect|formation|marketing|communication|recrut|rh\b|paie|factur|devis|erp|crm|marketplace|logistique|artisan|bâtiment|batiment|plomber|électric|electric|couverture|menuiser|garage|optique|dentaire|cabinet|clinique|hôtel|hotel|restaurant|traiteur|négoce|negoce|import|export|wholesale|agence immobili/i
+  /e-?commerce|en ligne|immobilier|comptab|avocat|juridique|notaire|architect|formation|marketing|communication|recrut|rh\b|paie|factur|devis|erp|crm|marketplace|logistique|artisan|bâtiment|batiment|plomber|électric|electric|couverture|menuiser|garage|optique|dentaire|cabinet|clinique|hôtel|hotel|restaurant|traiteur|négoce|negoce|import|export|wholesale|agence immobili|fleuriste|fleur|horticul|boulanger|pâtiss|patiss|primeur|caviste|traiteur/i
 
 export const ACTIVITY_DROP =
   /sci\b|location immobilière|marchand de biens|holding sans|assurance-vie|tabac\b|presse\b|coiffure|esthétique|manucure|prostitution|cultes?\b/i

@@ -87,10 +87,14 @@ export async function runRadarSync(
     }
 
     if (!brief || brief.includeTenders) {
-      const tenders = await fetchItTenders(brief?.days ?? 10, 40, brief?.keywords ?? []).catch(error => {
+      let tenders = await fetchItTenders(brief?.days ?? 10, 80, brief?.keywords ?? []).catch(error => {
         console.error('[radar] BOAMP skipped', error)
         return [] as Awaited<ReturnType<typeof fetchItTenders>>
       })
+      if (brief?.departments.length) {
+        const allowed = new Set(brief.departments)
+        tenders = tenders.filter(item => !item.department || allowed.has(String(item.department).padStart(2, '0')))
+      }
       fetched += tenders.length
       for (const tender of tenders) {
         const baseline = scoreTenderDeterministic(tender)

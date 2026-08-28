@@ -31,13 +31,22 @@ export function isNimConfigured() {
 export async function completeJson(
   system: string,
   user: string,
-  options?: { maxTokens?: number; temperature?: number }
+  options?: {
+    maxTokens?: number
+    temperature?: number
+    history?: { role: 'user' | 'assistant'; content: string }[]
+  }
 ): Promise<unknown> {
   const apiKey = process.env.NVIDIA_API_KEY?.trim()
   if (!apiKey) throw new Error('NVIDIA_API_KEY manquante')
   const baseUrl = (process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '')
   const preferred = process.env.NVIDIA_NIM_MODEL?.trim()
   const models = [...new Set([preferred, ...FAST_MODELS].filter(Boolean))] as string[]
+
+  const history = (options?.history ?? []).slice(-8).map(item => ({
+    role: item.role,
+    content: item.content.slice(0, 500),
+  }))
 
   let lastError = 'Aucune réponse IA'
   for (const model of models.slice(0, 2)) {
@@ -55,10 +64,7 @@ export async function completeJson(
           temperature: options?.temperature ?? 0.2,
           max_tokens: options?.maxTokens ?? 700,
           stream: false,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: user },
-          ],
+          messages: [{ role: 'system', content: system }, ...history, { role: 'user', content: user }],
           ...(/nemotron|lightning/i.test(model)
             ? { chat_template_kwargs: { enable_thinking: false }, reasoning_budget: 0 }
             : {}),

@@ -16,9 +16,29 @@ const DEFAULT_TERMS = [
   'solution numerique',
 ]
 
+const BOAMP_NOISE = new Set([
+  'marche',
+  'marches',
+  'public',
+  'publics',
+  'appel',
+  'offres',
+  'cherche',
+  'trouver',
+  'lance',
+  'radar',
+  'ile',
+  'france',
+  'idf',
+])
+
 function searchClause(terms: string[]) {
-  const safe = terms.map(sanitizeKeyword).filter(item => item.length >= 3).slice(0, 8)
-  const used = safe.length ? safe : DEFAULT_TERMS
+  const cleaned = terms
+    .map(sanitizeKeyword)
+    .filter(item => item.length >= 3 && !BOAMP_NOISE.has(item.replace(/\s+/g, '')))
+    .slice(0, 6)
+  const wantsSite = cleaned.some(item => /site|web|internet|appli|logiciel|numerique/.test(item))
+  const used = wantsSite ? ['site internet', 'site web', 'application'] : cleaned.length ? cleaned : DEFAULT_TERMS
   return `(${used.map(term => `search(objet, '${term}')`).join(' OR ')})`
 }
 
