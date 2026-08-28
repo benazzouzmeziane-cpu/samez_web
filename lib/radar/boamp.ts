@@ -1,14 +1,26 @@
 import { parisDateDaysAgo } from '@/lib/radar/parse'
+import { sanitizeKeyword } from '@/lib/radar/brief'
 import type { TenderDraft } from '@/lib/radar/types'
 
 const BOAMP_URL = 'https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/records'
 
-const TENDER_WHERE = [
-  `dateparution >= date'{{since}}'`,
-  `datelimitereponse >= now()`,
-  `titulaire is null`,
-  `(search(objet, 'logiciel') OR search(objet, 'application') OR search(objet, 'site internet') OR search(objet, 'developpement informatique') OR search(objet, 'prestations informatiques') OR search(objet, 'systeme information') OR search(objet, 'intelligence artificielle') OR search(objet, 'automatisation') OR search(objet, 'solution numerique'))`,
-].join(' AND ')
+const DEFAULT_TERMS = [
+  'logiciel',
+  'application',
+  'site internet',
+  'developpement informatique',
+  'prestations informatiques',
+  'systeme information',
+  'intelligence artificielle',
+  'automatisation',
+  'solution numerique',
+]
+
+function searchClause(terms: string[]) {
+  const safe = terms.map(sanitizeKeyword).filter(item => item.length >= 3).slice(0, 8)
+  const used = safe.length ? safe : DEFAULT_TERMS
+  return `(${used.map(term => `search(objet, '${term}')`).join(' OR ')})`
+}
 
 type BoampRow = {
   idweb?: string
@@ -25,12 +37,18 @@ type BoampRow = {
   nature_libelle?: string
 }
 
-export async function fetchItTenders(days = 10, limit = 40): Promise<TenderDraft[]> {
+export async function fetchItTenders(days = 10, limit = 40, keywords: string[] = []): Promise<TenderDraft[]> {
   const since = parisDateDaysAgo(days)
+  const where = [
+    `dateparution >= date'${since}'`,
+    `datelimitereponse >= now()`,
+    `titulaire is null`,
+    searchClause(keywords),
+  ].join(' AND ')
   const url = new URL(BOAMP_URL)
   url.searchParams.set('limit', String(limit))
   url.searchParams.set('order_by', 'dateparution DESC')
-  url.searchParams.set('where', TENDER_WHERE.replace('{{since}}', since))
+  url.searchParams.set('where', where)
 
   const response = await fetch(url, {
     headers: { Accept: 'application/json' },

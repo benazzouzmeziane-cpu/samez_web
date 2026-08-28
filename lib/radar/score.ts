@@ -1,4 +1,5 @@
 import { ACTIVITY_DROP, ACTIVITY_KEEP, isAllowedCompanyForm, nafWeight } from '@/lib/radar/filters'
+import type { RadarBrief } from '@/lib/radar/brief'
 import type { EnrichedCompany, RadarScore, TenderDraft } from '@/lib/radar/types'
 
 const ENTERPRISE_TENDER =
@@ -11,6 +12,28 @@ export function cheapCompanyKeep(activity: string | null, legalFormLabel: string
   if (ACTIVITY_DROP.test(text)) return false
   if (legalFormLabel && /sci|entrepreneur individuel|^ei\b/i.test(legalFormLabel)) return false
   return ACTIVITY_KEEP.test(text) || /sas|sarl|eurl/i.test(legalFormLabel ?? '')
+}
+
+export function matchesDraft(
+  draft: { title: string; activity: string | null; city: string | null; department: string | null; legalFormLabel: string | null },
+  brief: RadarBrief
+): boolean {
+  if (brief.departments.length && draft.department && !brief.departments.includes(draft.department)) return false
+  if (!brief.keywords.length) return cheapCompanyKeep(draft.activity, draft.legalFormLabel)
+  const hay = `${draft.title} ${draft.activity ?? ''} ${draft.city ?? ''}`.toLowerCase()
+  return brief.keywords.some(keyword => hay.includes(keyword))
+}
+
+export function matchesBrief(company: EnrichedCompany, brief: RadarBrief): boolean {
+  if (brief.departments.length && company.department && !brief.departments.includes(company.department)) {
+    return false
+  }
+  if (brief.naf.length && company.naf && !brief.naf.some(code => company.naf?.startsWith(code.replace(/\.$/, '')))) {
+    return false
+  }
+  if (!brief.keywords.length) return cheapCompanyKeep(company.activity, company.legalForm)
+  const hay = `${company.title} ${company.activity ?? ''} ${company.naf ?? ''} ${company.legalForm ?? ''}`.toLowerCase()
+  return brief.keywords.some(keyword => hay.includes(keyword))
 }
 
 export function scoreCompanyDeterministic(company: EnrichedCompany): RadarScore {
@@ -130,7 +153,14 @@ export function scoreTenderDeterministic(tender: TenderDraft): RadarScore {
   }
 }
 
-export function shouldKeepCompany(company: EnrichedCompany, score: RadarScore): boolean {
+export function shouldKeepCompany(company: EnrichedCompany, score: RadarScore, brief?: RadarBrief): boolean {
+  if (brief?.keywords.length) {
+    if (ACTIVITY_DROP.test(`${company.activity ?? ''} ${company.title}`)) return false
+    if (!brief.allowEi && company.natureJuridique && !isAllowedCompanyForm(company.natureJuridique) && score.preScore < 28) {
+      return false
+    }
+    return score.preScore >= 22
+  }
   if (score.fit === 'nogo' && score.preScore < 32) return false
   if (!isAllowedCompanyForm(company.natureJuridique) && score.preScore < 42) return false
   return score.preScore >= 36

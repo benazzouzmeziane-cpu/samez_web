@@ -4,9 +4,10 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import AdminChip from '@/components/admin/AdminChip'
 import AdminEmptyState from '@/components/admin/AdminEmptyState'
 import RadarSyncButton from '@/components/admin/radar/RadarSyncButton'
+import RadarChat from '@/components/admin/radar/RadarChat'
 import RadarCard from '@/components/admin/radar/RadarCard'
 import { createClient } from '@/lib/supabase/server'
-import { latestRadarRun, listRadarItems } from '@/lib/radar/store'
+import { latestRadarRun, listRadarItems, listRadarMessages } from '@/lib/radar/store'
 import type { RadarFit, RadarStatus } from '@/lib/radar/types'
 
 export default async function AdminRadarPage({
@@ -26,11 +27,13 @@ export default async function AdminRadarPage({
   const supabase = await createClient()
   let items: Awaited<ReturnType<typeof listRadarItems>> = []
   let run: Awaited<ReturnType<typeof latestRadarRun>> = null
+  let messages: Awaited<ReturnType<typeof listRadarMessages>> = []
   let loadError: string | null = null
   try {
-    ;[items, run] = await Promise.all([
+    ;[items, run, messages] = await Promise.all([
       listRadarItems(supabase, { tab, fit, status }),
       latestRadarRun(supabase),
+      listRadarMessages(supabase).catch(() => []),
     ])
   } catch (error) {
     loadError = error instanceof Error ? error.message : 'Radar indisponible'
@@ -52,7 +55,7 @@ export default async function AdminRadarPage({
     <div>
       <AdminPageHeader
         title="Radar"
-        description="Créations et cessions BODACC enrichies Sirene, marchés BOAMP, score déterministe puis qualification IA. Rien n’est envoyé au prospect."
+        description="Parlez à l’agent : ciblez une recherche, discutez des pistes, puis ouvrez une fiche. Rien n’est envoyé au prospect."
         actions={<RadarSyncButton />}
       />
 
@@ -72,6 +75,8 @@ export default async function AdminRadarPage({
         />
       ) : (
         <>
+          <RadarChat key={messages.at(-1)?.id ?? 'empty'} initialMessages={messages} />
+
           <div className="flex flex-wrap gap-2 mb-3">
             <AdminChip href={qs({ tab: 'entreprises' })} active={tab === 'entreprises'}>
               Entreprises

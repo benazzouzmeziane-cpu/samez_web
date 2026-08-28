@@ -28,7 +28,11 @@ export function isNimConfigured() {
   return Boolean(process.env.NVIDIA_API_KEY?.trim())
 }
 
-export async function completeJson(system: string, user: string): Promise<unknown> {
+export async function completeJson(
+  system: string,
+  user: string,
+  options?: { maxTokens?: number }
+): Promise<unknown> {
   const apiKey = process.env.NVIDIA_API_KEY?.trim()
   if (!apiKey) throw new Error('NVIDIA_API_KEY manquante')
   const baseUrl = (process.env.NVIDIA_NIM_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '')
@@ -49,7 +53,7 @@ export async function completeJson(system: string, user: string): Promise<unknow
         body: JSON.stringify({
           model,
           temperature: 0.2,
-          max_tokens: 700,
+          max_tokens: options?.maxTokens ?? 700,
           stream: false,
           messages: [
             { role: 'system', content: system },

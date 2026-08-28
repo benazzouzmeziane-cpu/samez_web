@@ -63,7 +63,7 @@ export type RadarRun = {
 
 export type CompanyDraft = {
   kind: 'creation' | 'immatriculation' | 'cession'
-  source: 'bodacc'
+  source: 'bodacc' | 'sirene'
   externalId: string
   siren: string
   title: string

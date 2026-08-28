@@ -20,6 +20,7 @@ Règles :
 - nogo si SCI, micro, holding vide, coiffeur/tabac, ou besoin grand compte.
 - go seulement si un freelance peut vendre un kit lancement, une app, une automatisation ou un partenariat cabinet.
 - approach_body : vouvoiement, 6-8 lignes, ancré dans L'ACTIVITÉ fournie, CTA https://samez.fr/reserver. Interdit : "j'ai visité votre site" si aucun site n'est fourni.
+- Si consigneUtilisateur est fournie, elle prime sur les filtres par défaut (sans inventer de faits).
 - next_action : une action humaine concrète (LinkedIn, BODACC, appeler le greffe, etc.).`
 
 const TENDER_SYSTEM = `Tu es le filtre go/no-go marchés publics de same'z (freelance solo).
@@ -32,12 +33,14 @@ N'invente aucun budget.`
 
 export async function refineCompanyScore(
   company: EnrichedCompany,
-  baseline: RadarScore
+  baseline: RadarScore,
+  instruction?: string
 ): Promise<RadarScore> {
   if (!isNimConfigured()) return baseline
   const raw = await completeJson(
       COMPANY_SYSTEM,
       JSON.stringify({
+        consigneUtilisateur: instruction || null,
         baseline,
         cible: {
           nom: company.title,
@@ -57,11 +60,16 @@ export async function refineCompanyScore(
   return mergeAi(baseline, parsed.data)
 }
 
-export async function refineTenderScore(tender: TenderDraft, baseline: RadarScore): Promise<RadarScore> {
+export async function refineTenderScore(
+  tender: TenderDraft,
+  baseline: RadarScore,
+  instruction?: string
+): Promise<RadarScore> {
   if (!isNimConfigured()) return baseline
   const raw = await completeJson(
       TENDER_SYSTEM,
       JSON.stringify({
+        consigneUtilisateur: instruction || null,
         baseline,
         avis: {
           objet: tender.title,

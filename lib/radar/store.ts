@@ -71,13 +71,12 @@ export async function upsertRadarItem(
   supabase: SupabaseClient,
   row: Record<string, unknown>
 ): Promise<'inserted' | 'updated' | 'skipped'> {
-  const source = String(row.source)
   const externalId = String(row.external_id)
   const { data: existing } = await supabase
     .from('radar_items')
     .select('id, status, scored_at')
-    .eq('source', source)
     .eq('external_id', externalId)
+    .limit(1)
     .maybeSingle()
 
   if (existing?.status && ['contacte', 'converti', 'ecarte'].includes(String(existing.status))) {
@@ -157,4 +156,46 @@ export async function radarGoCount(supabase: SupabaseClient) {
     .eq('fit', 'go')
     .in('status', ['nouveau', 'a_contacter'])
   return count ?? 0
+}
+
+export type RadarMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  brief: Record<string, unknown> | null
+  created_at: string
+}
+
+export async function listRadarMessages(supabase: SupabaseClient, limit = 40) {
+  const { data, error } = await supabase
+    .from('radar_messages')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as RadarMessage[]).reverse()
+}
+
+export async function insertRadarMessage(
+  supabase: SupabaseClient,
+  role: 'user' | 'assistant',
+  content: string,
+  brief?: Record<string, unknown> | null
+) {
+  const { error } = await supabase.from('radar_messages').insert({
+    role,
+    content,
+    brief: brief ?? null,
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function listRadarContext(supabase: SupabaseClient, limit = 15) {
+  const { data } = await supabase
+    .from('radar_items')
+    .select('id, kind, title, city, department, score, pre_score, fit, offer, status, reasons, next_action, contact_name, subtitle')
+    .neq('status', 'ecarte')
+    .order('pre_score', { ascending: false })
+    .limit(limit)
+  return data ?? []
 }

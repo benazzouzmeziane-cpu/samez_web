@@ -1,15 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { refineCompanyScore, refineTenderScore } from '@/lib/radar/ai'
+import type { RadarBrief } from '@/lib/radar/brief'
 import { fetchRecentCompanies } from '@/lib/radar/bodacc'
 import { fetchItTenders } from '@/lib/radar/boamp'
 import {
   cheapCompanyKeep,
+  matchesBrief,
+  matchesDraft,
   scoreCompanyDeterministic,
   scoreTenderDeterministic,
   shouldKeepCompany,
   shouldKeepTender,
 } from '@/lib/radar/score'
-import { enrichCompanies } from '@/lib/radar/sirene'
+import { enrichCompanies, searchSirene } from '@/lib/radar/sirene'
 import {
   finishRadarRun,
   listUnscored,
@@ -27,7 +30,10 @@ export type RadarSyncSummary = {
   tendersKept: number
 }
 
-export async function runRadarSync(supabase: SupabaseClient, options?: { digest?: boolean }) {
+export async function runRadarSync(
+  supabase: SupabaseClient,
+  options?: { digest?: boolean; brief?: RadarBrief }
+) {
   const runId = await startRadarRun(supabase)
   let fetched = 0
   let kept = 0
@@ -37,40 +43,65 @@ export async function runRadarSync(supabase: SupabaseClient, options?: { digest?
   const goTitles: string[] = []
 
   try {
-    const drafts = await fetchRecentCompanies(3)
-    const cheap = drafts.filter(item => cheapCompanyKeep(item.activity, item.legalFormLabel))
-    fetched += drafts.length
-    const enriched = await enrichCompanies(cheap, 36)
+    const brief = options?.brief
+    const instruction = brief?.notes || brief?.query || ''
 
-    for (const company of enriched) {
-      const baseline = scoreCompanyDeterministic(company)
-      if (!shouldKeepCompany(company, baseline)) continue
-      const result = await upsertRadarItem(supabase, companyRow(company, baseline))
-      if (result !== 'skipped') {
-        kept += 1
-        companiesKept += 1
+    if (!brief || brief.includeCompanies) {
+      if (brief?.keywords.length) {
+        const searched = await searchSirene(brief, 30)
+        fetched += searched.length
+        for (const company of searched) {
+          if (!matchesBrief(company, brief)) continue
+          const baseline = scoreCompanyDeterministic(company)
+          if (!shouldKeepCompany(company, baseline, brief)) continue
+          const result = await upsertRadarItem(supabase, companyRow(company, baseline))
+          if (result !== 'skipped') {
+            kept += 1
+            companiesKept += 1
+          }
+        }
+      }
+
+      const drafts = await fetchRecentCompanies(brief?.days ?? 3)
+      const cheap = drafts.filter(item =>
+        brief ? matchesDraft(item, brief) : cheapCompanyKeep(item.activity, item.legalFormLabel)
+      )
+      fetched += drafts.length
+      const enriched = await enrichCompanies(cheap, brief ? 24 : 36)
+
+      for (const company of enriched) {
+        if (brief && !matchesBrief(company, brief)) continue
+        const baseline = scoreCompanyDeterministic(company)
+        if (!shouldKeepCompany(company, baseline, brief)) continue
+        const result = await upsertRadarItem(supabase, companyRow(company, baseline))
+        if (result !== 'skipped') {
+          kept += 1
+          companiesKept += 1
+        }
       }
     }
 
-    const tenders = await fetchItTenders(10, 40).catch(error => {
-      console.error('[radar] BOAMP skipped', error)
-      return [] as Awaited<ReturnType<typeof fetchItTenders>>
-    })
-    fetched += tenders.length
-    for (const tender of tenders) {
-      const baseline = scoreTenderDeterministic(tender)
-      if (!shouldKeepTender(baseline)) continue
-      const result = await upsertRadarItem(supabase, tenderRow(tender, baseline))
-      if (result !== 'skipped') {
-        kept += 1
-        tendersKept += 1
+    if (!brief || brief.includeTenders) {
+      const tenders = await fetchItTenders(brief?.days ?? 10, 40, brief?.keywords ?? []).catch(error => {
+        console.error('[radar] BOAMP skipped', error)
+        return [] as Awaited<ReturnType<typeof fetchItTenders>>
+      })
+      fetched += tenders.length
+      for (const tender of tenders) {
+        const baseline = scoreTenderDeterministic(tender)
+        if (!shouldKeepTender(baseline)) continue
+        const result = await upsertRadarItem(supabase, tenderRow(tender, baseline))
+        if (result !== 'skipped') {
+          kept += 1
+          tendersKept += 1
+        }
       }
     }
 
     const pending = await listUnscored(supabase, 10)
     for (const item of pending) {
       try {
-        const refined = await refineItem(item)
+        const refined = await refineItem(item, instruction)
         const status = refined.fit === 'go' ? 'a_contacter' : item.status
         await supabase
           .from('radar_items')
@@ -128,7 +159,7 @@ export async function runRadarSync(supabase: SupabaseClient, options?: { digest?
   }
 }
 
-async function refineItem(item: RadarItem): Promise<RadarScore> {
+async function refineItem(item: RadarItem, instruction?: string): Promise<RadarScore> {
   const baseline: RadarScore = {
     preScore: item.pre_score,
     score: item.score ?? item.pre_score,
@@ -154,7 +185,7 @@ async function refineItem(item: RadarItem): Promise<RadarScore> {
       url: item.url,
       payload: item.payload,
     }
-    return refineTenderScore(tender, baseline)
+    return refineTenderScore(tender, baseline, instruction)
   }
 
   const company = {
@@ -181,7 +212,7 @@ async function refineItem(item: RadarItem): Promise<RadarScore> {
     sireneName: item.title,
     address: (item.payload.address as string | null) ?? null,
   }
-  return refineCompanyScore(company, baseline)
+  return refineCompanyScore(company, baseline, instruction)
 }
 
 function companyRow(company: EnrichedCompany, score: RadarScore) {

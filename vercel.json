@@ -6,6 +6,9 @@
     "app/api/admin/radar/sync/route.ts": {
       "maxDuration": 60
     },
+    "app/api/admin/radar/chat/route.ts": {
+      "maxDuration": 60
+    },
     "app/api/cron/radar/route.ts": {
       "maxDuration": 60
     }
