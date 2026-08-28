@@ -36,12 +36,14 @@ export default async function AdminRadarPage({
     loadError = error instanceof Error ? error.message : 'Radar indisponible'
   }
 
-  const qs = (next: Record<string, string>) => {
-    const merged = { tab, fit, status, ...next }
+  const qs = (next: { tab?: string; fit?: string; status?: string }) => {
+    const nextTab = next.tab ?? tab
+    const nextFit = next.fit ?? (next.status !== undefined ? 'all' : fit)
+    const nextStatus = next.status ?? (next.fit !== undefined ? 'all' : status)
     const search = new URLSearchParams()
-    if (merged.tab !== 'entreprises') search.set('tab', merged.tab)
-    if (merged.fit !== 'all') search.set('fit', merged.fit)
-    if (merged.status !== 'all') search.set('status', merged.status)
+    if (nextTab !== 'entreprises') search.set('tab', nextTab)
+    if (nextFit !== 'all') search.set('fit', nextFit)
+    if (nextStatus !== 'all') search.set('status', nextStatus)
     const value = search.toString()
     return value ? `/admin/radar?${value}` : '/admin/radar'
   }
@@ -70,7 +72,7 @@ export default async function AdminRadarPage({
         />
       ) : (
         <>
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-3">
             <AdminChip href={qs({ tab: 'entreprises' })} active={tab === 'entreprises'}>
               Entreprises
             </AdminChip>
@@ -78,9 +80,10 @@ export default async function AdminRadarPage({
               Marchés publics
             </AdminChip>
           </div>
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="text-[11px] uppercase tracking-[0.08em] text-slate-400 w-14">Score</span>
             <AdminChip href={qs({ fit: 'all' })} active={fit === 'all'}>
-              Tous scores
+              Tous
             </AdminChip>
             <AdminChip href={qs({ fit: 'go' })} active={fit === 'go'}>
               Go
@@ -88,8 +91,20 @@ export default async function AdminRadarPage({
             <AdminChip href={qs({ fit: 'possible' })} active={fit === 'possible'}>
               Possible
             </AdminChip>
+            <AdminChip href={qs({ fit: 'nogo' })} active={fit === 'nogo'}>
+              No-go
+            </AdminChip>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <span className="text-[11px] uppercase tracking-[0.08em] text-slate-400 w-14">Statut</span>
+            <AdminChip href={qs({ status: 'all' })} active={status === 'all'}>
+              Tous
+            </AdminChip>
             <AdminChip href={qs({ status: 'a_contacter' })} active={status === 'a_contacter'}>
               À contacter
+            </AdminChip>
+            <AdminChip href={qs({ status: 'contacte' })} active={status === 'contacte'}>
+              Contacté
             </AdminChip>
             <AdminChip href={qs({ status: 'ecarte' })} active={status === 'ecarte'}>
               Écartés
@@ -98,8 +113,8 @@ export default async function AdminRadarPage({
 
           {items.length === 0 ? (
             <AdminEmptyState
-              title="Aucune piste"
-              body="Lance le radar pour tirer les créations BODACC, enrichir via Sirene et scorer les avis BOAMP."
+              title="Aucune piste avec ces filtres"
+              body="Change de score ou de statut, ou relance le radar."
             />
           ) : (
             <div className="space-y-3">

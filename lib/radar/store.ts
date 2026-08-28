@@ -126,14 +126,28 @@ export async function listRadarItems(
     .limit(80)
   if (filter.fit && filter.fit !== 'all') query = query.eq('fit', filter.fit)
   if (filter.status && filter.status !== 'all') query = query.eq('status', filter.status)
+  else query = query.neq('status', 'ecarte')
   const { data, error } = await query
   if (error) throw new Error(error.message)
   return (data ?? []).map(row => mapRadarItem(row as Record<string, unknown>))
 }
 
 export async function latestRadarRun(supabase: SupabaseClient) {
-  const { data } = await supabase.from('radar_runs').select('*').order('started_at', { ascending: false }).limit(1).maybeSingle()
-  return data as RadarRun | null
+  const { data } = await supabase
+    .from('radar_runs')
+    .select('*')
+    .neq('status', 'running')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (data) return data as RadarRun
+  const { data: current } = await supabase
+    .from('radar_runs')
+    .select('*')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return current as RadarRun | null
 }
 
 export async function radarGoCount(supabase: SupabaseClient) {
