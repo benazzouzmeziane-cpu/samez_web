@@ -94,6 +94,20 @@ export async function getAgentMissionStatus(runId: string) {
         blockers?: string[]
         corrections?: string[]
         finalSummary?: string
+        actions?: Array<{
+          rank: number
+          domain: AgentDomain
+          title: string
+          target: string
+          rationale: string
+          evidence: Array<{ source: string; reference: string; fact: string }>
+          deadline: string
+          metric: string
+          expectedImpact: string
+          ownerAgent: string
+          requiresApproval: boolean
+        }>
+        approvedMemoryKeys?: string[]
         model?: string
       }
       usage?: { prompt: number; completion: number }

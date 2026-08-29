@@ -178,6 +178,15 @@ export default function AgentControlCenter({
                 score?: number
                 finalSummary?: string
                 blockers?: string[]
+                actions?: Array<{
+                  rank: number
+                  title: string
+                  target: string
+                  deadline: string
+                  metric: string
+                  expectedImpact: string
+                  evidence: Array<{ source: string; reference: string }>
+                }>
               }
               const attempts = Number(run.result?.attempts ?? 1)
               const rejected = run.status === 'done' && Boolean(run.error)
@@ -194,6 +203,35 @@ export default function AgentControlCenter({
                   </div>
                   {review.finalSummary ? (
                     <p className="text-sm text-slate-600 mt-3">{review.finalSummary}</p>
+                  ) : null}
+                  {review.actions?.length ? (
+                    <ol className="grid gap-2 mt-4">
+                      {[...review.actions]
+                        .sort((left, right) => left.rank - right.rank)
+                        .map(action => (
+                          <li
+                            key={`${run.id}-${action.rank}`}
+                            className="rounded-lg border border-black/[0.06] bg-slate-50 p-3"
+                          >
+                            <p className="text-sm font-medium">
+                              {action.rank}. {action.title}
+                            </p>
+                            <p className="text-xs text-slate-600 mt-1">Cible : {action.target}</p>
+                            <p className="text-xs text-slate-600 mt-1">
+                              Échéance : {action.deadline} · Mesure : {action.metric}
+                            </p>
+                            <p className="text-xs text-slate-600 mt-1">
+                              Impact attendu : {action.expectedImpact}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-2">
+                              Preuves :{' '}
+                              {action.evidence
+                                .map(item => `${item.source} → ${item.reference}`)
+                                .join(' · ')}
+                            </p>
+                          </li>
+                        ))}
+                    </ol>
                   ) : null}
                   <div className="flex flex-wrap gap-2 mt-3 text-xs text-slate-500">
                     {review.score != null ? <span>Critique : {Math.round(review.score)}/100</span> : null}

@@ -24,6 +24,16 @@ function hasApprovedReview(result: unknown) {
   )
 }
 
+function approvedMemoryKeys(result: unknown) {
+  if (!hasApprovedReview(result)) return new Set<string>()
+  const review = (result as { review?: { approvedMemoryKeys?: unknown } }).review
+  return new Set(
+    Array.isArray(review?.approvedMemoryKeys)
+      ? review.approvedMemoryKeys.filter((key): key is string => typeof key === 'string')
+      : []
+  )
+}
+
 export async function listAgentMemories(
   supabase: SupabaseClient,
   options?: { domain?: AgentDomain; status?: AgentMemory['status']; limit?: number }
@@ -50,7 +60,7 @@ export async function memoryContext(supabase: SupabaseClient, domain: AgentDomai
         .filter((id): id is string => Boolean(id))
     ),
   ]
-  const approvedRunIds = new Set<string>()
+  const approvedKeysByRun = new Map<string, Set<string>>()
   if (sourceRunIds.length) {
     const { data: runs, error } = await supabase
       .from('agent_runs')
@@ -58,7 +68,7 @@ export async function memoryContext(supabase: SupabaseClient, domain: AgentDomai
       .in('id', sourceRunIds)
     if (error) throw new Error(error.message)
     for (const run of runs ?? []) {
-      if (hasApprovedReview(run.result)) approvedRunIds.add(String(run.id))
+      approvedKeysByRun.set(String(run.id), approvedMemoryKeys(run.result))
     }
   }
   return memories
@@ -66,7 +76,7 @@ export async function memoryContext(supabase: SupabaseClient, domain: AgentDomai
       item =>
         item.source_type !== 'agent' ||
         item.source_ref_type !== 'agent_run' ||
-        (item.source_ref_id != null && approvedRunIds.has(item.source_ref_id))
+        (item.source_ref_id != null && approvedKeysByRun.get(item.source_ref_id)?.has(item.key) === true)
     )
     .filter(item => !item.expires_at || new Date(item.expires_at).getTime() > Date.now())
     .map(item => ({
@@ -139,7 +149,7 @@ export async function decideAgentMemory(
   if (decision === 'validated') {
     const { data: memory, error: memoryError } = await supabase
       .from('agent_memories')
-      .select('source_type, source_ref_type, source_ref_id')
+      .select('key, source_type, source_ref_type, source_ref_id')
       .eq('id', id)
       .eq('status', 'proposed')
       .single()
@@ -151,8 +161,8 @@ export async function decideAgentMemory(
         .select('result')
         .eq('id', memory.source_ref_id)
         .single()
-      if (runError || !run || !hasApprovedReview(run.result)) {
-        throw new Error('Cette mémoire provient d’une analyse rejetée par le critique')
+      if (runError || !run || !approvedMemoryKeys(run.result).has(memory.key)) {
+        throw new Error('Cette mémoire n’a pas été explicitement validée par le critique')
       }
     }
   }

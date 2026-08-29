@@ -166,7 +166,9 @@ export async function refreshAgentMission(supabase: SupabaseClient, runId: strin
       summary: report.summary,
     })
 
+    const approvedMemoryKeys = new Set(review.approvedMemoryKeys ?? [])
     for (const memory of approved ? (report.proposedMemories ?? []) : []) {
+      if (!approvedMemoryKeys.has(memory.key)) continue
       await proposeAgentMemory(supabase, {
         ...memory,
         sourceAgent: report.agent,

@@ -46,12 +46,43 @@ type SpecialistResult = {
   usage: { prompt: number; completion: number }
 }
 
+type ActionEvidence = {
+  source:
+    | 'seo.gscPages'
+    | 'seo.gscQueries'
+    | 'seo.candidateVersions'
+    | 'radar.items'
+    | 'crm.clients'
+    | 'crm.activities'
+    | 'crm.contacts'
+    | 'crm.bookings'
+    | 'validatedMemory'
+  reference: string
+  fact: string
+}
+
+type RecommendedAction = {
+  rank: number
+  domain: PlatformDomain
+  title: string
+  target: string
+  rationale: string
+  evidence: ActionEvidence[]
+  deadline: string
+  metric: string
+  expectedImpact: string
+  ownerAgent: string
+  requiresApproval: boolean
+}
+
 type CriticResult = {
   approved: boolean
   score: number
   blockers: string[]
   corrections: string[]
   finalSummary: string
+  actions: RecommendedAction[]
+  approvedMemoryKeys: string[]
   model: string
   usage: { prompt: number; completion: number }
 }
@@ -125,8 +156,84 @@ const CRITIC_SCHEMA = {
     blockers: { type: 'array', items: { type: 'string' } },
     corrections: { type: 'array', items: { type: 'string' } },
     finalSummary: { type: 'string' },
+    actions: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          rank: { type: 'number', minimum: 1, maximum: 3 },
+          domain: { type: 'string', enum: ['global', 'radar', 'seo', 'crm', 'analytics'] },
+          title: { type: 'string' },
+          target: { type: 'string' },
+          rationale: { type: 'string' },
+          evidence: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                source: {
+                  type: 'string',
+                  enum: [
+                    'seo.gscPages',
+                    'seo.gscQueries',
+                    'seo.candidateVersions',
+                    'radar.items',
+                    'crm.clients',
+                    'crm.activities',
+                    'crm.contacts',
+                    'crm.bookings',
+                    'validatedMemory',
+                  ],
+                },
+                reference: { type: 'string' },
+                fact: { type: 'string' },
+              },
+              required: ['source', 'reference', 'fact'],
+            },
+          },
+          deadline: { type: 'string' },
+          metric: { type: 'string' },
+          expectedImpact: { type: 'string' },
+          ownerAgent: {
+            type: 'string',
+            enum: ['seo-strategist-agent', 'radar-agent', 'crm-agent', 'analyst-agent'],
+          },
+          requiresApproval: { type: 'boolean' },
+        },
+        required: [
+          'rank',
+          'domain',
+          'title',
+          'target',
+          'rationale',
+          'evidence',
+          'deadline',
+          'metric',
+          'expectedImpact',
+          'ownerAgent',
+          'requiresApproval',
+        ],
+      },
+    },
+    approvedMemoryKeys: {
+      type: 'array',
+      items: { type: 'string' },
+    },
   },
-  required: ['approved', 'score', 'blockers', 'corrections', 'finalSummary'],
+  required: [
+    'approved',
+    'score',
+    'blockers',
+    'corrections',
+    'finalSummary',
+    'actions',
+    'approvedMemoryKeys',
+  ],
 }
 
 const ROLE_PROMPTS: Record<string, string> = {
@@ -211,7 +318,10 @@ export class CriticAgent extends Agent<Env, { last: Record<string, unknown> | nu
           content: `Tu es le contrôleur qualité indépendant de same'z.
 Vérifie fidélité aux données, contradictions avec les mémoires validées, sécurité, pertinence commerciale et mesurabilité.
 Bloque toute invention, toute action externe sans approbation, et toute promesse de classement SEO.
-Un résultat n'est approuvé que s'il est concret, sourcé par les données fournies et sans risque non traité.
+Produis exactement trois actions classées, concrètes et réalisables. Chaque action doit citer au moins une donnée réelle avec son chemin source et sa référence exacte (id, query, page_path ou key), une cible précise, une échéance ISO YYYY-MM-DD, un responsable, une métrique et un impact attendu sans chiffre inventé.
+N'utilise jamais comme cible Radar/CRM une agence web, une ESN, un programmeur, une entreprise de services informatiques ou une société NAF 62.
+Dans approvedMemoryKeys, conserve uniquement les clés des mémoires proposées qui sont stables et directement prouvées par le contexte. Exclue les généralités, prévisions, suppositions commerciales et affirmations sans mesure.
+Un résultat n'est approuvé que si les trois actions respectent intégralement ces règles et sont fondées sur le contexte fourni.
 Le score est impérativement une note comprise entre 0 et 100. En dessous de 70, approved doit être false et tu dois fournir des corrections précises.
 Réponds uniquement en JSON.`,
         },
@@ -220,24 +330,38 @@ Réponds uniquement en JSON.`,
           content: JSON.stringify({
             objective: input.objective,
             domain: input.domain,
+            context: input.context,
             memories: input.memories,
             reports,
           }),
         },
       ],
       CRITIC_SCHEMA,
-      1400,
+      2200,
       0.1
     )
     const parsed = extractJson(ai.content) as Omit<CriticResult, 'model' | 'usage'>
+    const proposedMemoryKeys = new Set(
+      reports.flatMap(report => report.proposedMemories.map(memory => memory.key))
+    )
     const result: CriticResult = {
       approved: parsed.approved === true,
       score: Math.max(0, Math.min(100, Number(parsed.score) || 0)),
       blockers: Array.isArray(parsed.blockers) ? parsed.blockers : [],
       corrections: Array.isArray(parsed.corrections) ? parsed.corrections : [],
       finalSummary: String(parsed.finalSummary || 'Contrôle terminé'),
+      actions: Array.isArray(parsed.actions) ? parsed.actions : [],
+      approvedMemoryKeys: Array.isArray(parsed.approvedMemoryKeys)
+        ? parsed.approvedMemoryKeys.filter(key => proposedMemoryKeys.has(key))
+        : [],
       model: ai.model,
       usage: ai.usage,
+    }
+    const defects = reviewDefects(result, input)
+    if (defects.length) {
+      result.approved = false
+      result.score = Math.min(result.score, 69)
+      result.blockers = [...new Set([...result.blockers, ...defects])]
     }
     this.setState({ last: result })
     return result
@@ -379,6 +503,68 @@ export class SamezOrchestrator extends Agent<Env, PlatformState> {
 
 function reviewIsApproved(review: CriticResult) {
   return review.approved && review.score >= 70 && review.blockers.length === 0
+}
+
+function reviewDefects(review: CriticResult, input: PlatformInput) {
+  const defects: string[] = []
+  if (review.actions.length !== 3) defects.push('Exactement trois actions sont requises.')
+  const ranks = new Set(review.actions.map(action => action.rank))
+  if (ranks.size !== 3 || ![1, 2, 3].every(rank => ranks.has(rank))) {
+    defects.push('Les actions doivent être classées de 1 à 3 sans doublon.')
+  }
+  for (const action of review.actions) {
+    if (
+      !action.title?.trim() ||
+      !action.target?.trim() ||
+      !action.rationale?.trim() ||
+      !action.metric?.trim() ||
+      !action.expectedImpact?.trim()
+    ) {
+      defects.push(`L’action ${action.rank || '?'} contient un champ opérationnel vide.`)
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(action.deadline || '')) {
+      defects.push(`L’action ${action.rank || '?'} doit avoir une échéance ISO YYYY-MM-DD.`)
+    } else {
+      const capturedAt = new Date(String(input.context.capturedAt || Date.now()))
+      const deadline = new Date(`${action.deadline}T23:59:59Z`)
+      const maximumDays = /\bsemaine\b/i.test(input.objective) ? 8 : 90
+      if (
+        Number.isNaN(deadline.getTime()) ||
+        deadline.getTime() < capturedAt.getTime() ||
+        deadline.getTime() > capturedAt.getTime() + maximumDays * 86_400_000
+      ) {
+        defects.push(`L’échéance de l’action ${action.rank || '?'} ne respecte pas l’horizon demandé.`)
+      }
+    }
+    if (!action.evidence?.length || action.evidence.some(item => !evidenceExists(item, input))) {
+      defects.push(`L’action ${action.rank || '?'} cite une preuve absente des données fournies.`)
+    }
+    if (
+      ['radar', 'crm'].includes(action.domain) &&
+      /\b(naf\s*62|agence web|esn|programmeu\w*|services? informatiques?)\b/i.test(action.target)
+    ) {
+      defects.push(`L’action ${action.rank || '?'} cible un concurrent informatique interdit.`)
+    }
+  }
+  return [...new Set(defects)]
+}
+
+function evidenceExists(evidence: ActionEvidence, input: PlatformInput) {
+  if (!evidence?.reference?.trim() || !evidence?.fact?.trim()) return false
+  if (evidence.source === 'validatedMemory') {
+    return input.memories.some(memory => memory.key === evidence.reference)
+  }
+  const [section, collection] = evidence.source.split('.')
+  const contextSection = input.context[section]
+  if (!contextSection || typeof contextSection !== 'object') return false
+  const records = (contextSection as Record<string, unknown>)[collection]
+  if (!Array.isArray(records)) return false
+  if (evidence.reference === 'collection') {
+    const statedCount = evidence.fact.match(/\b\d+\b/)?.[0]
+    return statedCount != null && Number(statedCount) === records.length
+  }
+  const reference = evidence.reference.toLowerCase()
+  return records.some(record => JSON.stringify(record).toLowerCase().includes(reference))
 }
 
 function buildPlan(domain: PlatformDomain, objective: string) {
