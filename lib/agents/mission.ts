@@ -221,6 +221,43 @@ export async function refreshAgentMission(supabase: SupabaseClient, runId: strin
     }
   }
 
+  if (approved) {
+    const externalTypes = new Set([
+      'publish_seo',
+      'send_email',
+      'convert_crm',
+      'change_stage',
+      'redirect',
+      'external_write',
+    ])
+    const { data: existingApprovals } = await supabase
+      .from('agent_approvals')
+      .select('action_type, title')
+      .eq('run_id', runId)
+    for (const action of review.actions ?? []) {
+      if (!action.requiresApproval || !externalTypes.has(action.actionType)) continue
+      const duplicate = (existingApprovals ?? []).some(
+        item => item.action_type === action.actionType && item.title === action.title
+      )
+      if (duplicate) continue
+      await supabase.from('agent_approvals').insert({
+        run_id: runId,
+        action_type: action.actionType,
+        risk: action.actionType === 'send_email' ? 'medium' : 'low',
+        title: action.title.slice(0, 160),
+        summary: [
+          action.rationale,
+          `Cible : ${action.target}`,
+          `Échéance : ${action.deadline}`,
+          `Mesure : ${action.metric}`,
+          `Impact attendu : ${action.expectedImpact}`,
+        ].join('\n'),
+        payload: { action },
+        status: 'pending',
+      })
+    }
+  }
+
   for (const event of remote.events ?? []) {
     const source = isAgentName(event.source) ? event.source : 'samez-orchestrator'
     await addAgentEvent(supabase, {

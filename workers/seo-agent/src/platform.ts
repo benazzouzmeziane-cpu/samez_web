@@ -64,6 +64,14 @@ type ActionEvidence = {
 type RecommendedAction = {
   rank: number
   domain: PlatformDomain
+  actionType:
+    | 'analysis'
+    | 'publish_seo'
+    | 'send_email'
+    | 'convert_crm'
+    | 'change_stage'
+    | 'redirect'
+    | 'external_write'
   title: string
   target: string
   rationale: string
@@ -85,6 +93,11 @@ type CriticResult = {
   approvedMemoryKeys: string[]
   model: string
   usage: { prompt: number; completion: number }
+}
+
+type ReviewFeedback = {
+  previousActions: RecommendedAction[]
+  defects: string[]
 }
 
 type PlatformState = {
@@ -166,6 +179,18 @@ const CRITIC_SCHEMA = {
         properties: {
           rank: { type: 'number', minimum: 1, maximum: 3 },
           domain: { type: 'string', enum: ['global', 'radar', 'seo', 'crm', 'analytics'] },
+          actionType: {
+            type: 'string',
+            enum: [
+              'analysis',
+              'publish_seo',
+              'send_email',
+              'convert_crm',
+              'change_stage',
+              'redirect',
+              'external_write',
+            ],
+          },
           title: { type: 'string' },
           target: { type: 'string' },
           rationale: { type: 'string' },
@@ -208,6 +233,7 @@ const CRITIC_SCHEMA = {
         required: [
           'rank',
           'domain',
+          'actionType',
           'title',
           'target',
           'rationale',
@@ -309,7 +335,8 @@ export class CriticAgent extends Agent<Env, { last: Record<string, unknown> | nu
   initialState = { last: null as Record<string, unknown> | null }
 
   @callable()
-  async review(input: PlatformInput, reports: SpecialistResult[]) {
+  async review(input: PlatformInput, reports: SpecialistResult[], feedback?: ReviewFeedback) {
+    const evidenceCatalog = buildEvidenceCatalog(input)
     const ai = await runStructured(
       this.env,
       [
@@ -318,7 +345,8 @@ export class CriticAgent extends Agent<Env, { last: Record<string, unknown> | nu
           content: `Tu es le contrôleur qualité indépendant de same'z.
 Vérifie fidélité aux données, contradictions avec les mémoires validées, sécurité, pertinence commerciale et mesurabilité.
 Bloque toute invention, toute action externe sans approbation, et toute promesse de classement SEO.
-Produis exactement trois actions classées, concrètes et réalisables. Chaque action doit citer au moins une donnée réelle avec son chemin source et sa référence exacte (id, query, page_path ou key), une cible précise, une échéance ISO YYYY-MM-DD, un responsable, une métrique et un impact attendu sans chiffre inventé.
+Produis exactement trois actions classées, concrètes et réalisables. Chaque action doit citer au moins une donnée réelle avec son chemin source et sa référence exacte (id, query, page_path ou key), une cible précise, une échéance ISO YYYY-MM-DD, un responsable, une métrique et un impact attendu sans chiffre inventé. Utilise actionType=analysis seulement si l'action ne modifie rien hors du système ; toute publication, communication ou mutation doit utiliser son type externe et requiresApproval=true.
+Pour chaque preuve, recopie EXACTEMENT source et reference depuis evidenceCatalog. N'invente jamais une référence. Le champ fact sera remplacé par la donnée fiable du catalogue.
 N'utilise jamais comme cible Radar/CRM une agence web, une ESN, un programmeur, une entreprise de services informatiques ou une société NAF 62.
 Dans approvedMemoryKeys, conserve uniquement les clés des mémoires proposées qui sont stables et directement prouvées par le contexte. Exclue les généralités, prévisions, suppositions commerciales et affirmations sans mesure.
 Un résultat n'est approuvé que si les trois actions respectent intégralement ces règles et sont fondées sur le contexte fourni.
@@ -330,9 +358,11 @@ Réponds uniquement en JSON.`,
           content: JSON.stringify({
             objective: input.objective,
             domain: input.domain,
-            context: input.context,
+            capturedAt: input.context.capturedAt,
+            evidenceCatalog,
             memories: input.memories,
             reports,
+            correction: feedback,
           }),
         },
       ],
@@ -344,13 +374,22 @@ Réponds uniquement en JSON.`,
     const proposedMemoryKeys = new Set(
       reports.flatMap(report => report.proposedMemories.map(memory => memory.key))
     )
+    const actions = (Array.isArray(parsed.actions) ? parsed.actions : []).map(action => ({
+      ...action,
+      evidence: (Array.isArray(action.evidence) ? action.evidence : []).map(evidence => {
+        const trusted = evidenceCatalog.find(
+          item => item.source === evidence.source && item.reference === evidence.reference
+        )
+        return trusted ? { ...evidence, fact: trusted.fact } : evidence
+      }),
+    }))
     const result: CriticResult = {
       approved: parsed.approved === true,
       score: Math.max(0, Math.min(100, Number(parsed.score) || 0)),
       blockers: Array.isArray(parsed.blockers) ? parsed.blockers : [],
       corrections: Array.isArray(parsed.corrections) ? parsed.corrections : [],
       finalSummary: String(parsed.finalSummary || 'Contrôle terminé'),
-      actions: Array.isArray(parsed.actions) ? parsed.actions : [],
+      actions,
       approvedMemoryKeys: Array.isArray(parsed.approvedMemoryKeys)
         ? parsed.approvedMemoryKeys.filter(key => proposedMemoryKeys.has(key))
         : [],
@@ -415,52 +454,54 @@ export class SamezOrchestrator extends Agent<Env, PlatformState> {
   private async execute(input: PlatformInput, plan: Array<{ agent: string; task: string }>) {
     try {
       const critic = await getAgentByName(this.env.CriticAgent, input.runId)
-      let activePlan = plan
-      let reports: SpecialistResult[] = []
+      const reports: SpecialistResult[] = await Promise.all(
+        plan.map(async step => {
+          this.addEvent('samez-orchestrator', 'delegated', step.task, step.agent)
+          const agent = await this.specialist(step.agent, input.runId)
+          const report = await agent.execute({ ...input, ...step })
+          this.addEvent(step.agent, 'completed', report.summary, 'samez-orchestrator')
+          return report
+        })
+      )
       let review: CriticResult | null = null
       let attempts = 0
-      const usage = { prompt: 0, completion: 0 }
+      const usage = reports.reduce(
+        (total, report) => ({
+          prompt: total.prompt + report.usage.prompt,
+          completion: total.completion + report.usage.completion,
+        }),
+        { prompt: 0, completion: 0 }
+      )
 
-      while (attempts < 2) {
+      while (attempts < 3) {
         attempts += 1
-        reports = await Promise.all(
-          activePlan.map(async step => {
-            this.addEvent('samez-orchestrator', 'delegated', step.task, step.agent)
-            const agent = await this.specialist(step.agent, input.runId)
-            const report = await agent.execute({ ...input, ...step })
-            this.addEvent(step.agent, 'completed', report.summary, 'samez-orchestrator')
-            return report
-          })
-        )
         this.addEvent(
           'samez-orchestrator',
           'delegated',
           `Contrôle croisé des rapports — passe ${attempts}`,
           'critic-agent'
         )
-        const currentReview = await critic.review(input, reports)
+        const currentReview: CriticResult = await critic.review(
+          input,
+          reports,
+          review
+            ? {
+                previousActions: review.actions,
+                defects: [...review.blockers, ...review.corrections],
+              }
+            : undefined
+        )
         review = currentReview
-        for (const report of reports) {
-          usage.prompt += report.usage.prompt
-          usage.completion += report.usage.completion
-        }
         usage.prompt += currentReview.usage.prompt
         usage.completion += currentReview.usage.completion
         this.addEvent('critic-agent', 'completed', currentReview.finalSummary, 'samez-orchestrator')
-        if (reviewIsApproved(currentReview) || attempts >= 2) break
+        if (reviewIsApproved(currentReview) || attempts >= 3) break
 
-        const feedback = [...currentReview.blockers, ...currentReview.corrections].filter(Boolean).join(' ')
         this.addEvent(
           'samez-orchestrator',
           'message',
-          `Correction automatique demandée après un contrôle à ${Math.round(currentReview.score)}/100.`
+          `Autocorrection ciblée du critique après un contrôle à ${Math.round(currentReview.score)}/100.`
         )
-        activePlan = plan.map(step => ({
-          ...step,
-          task: `${step.task}\nCORRECTION OBLIGATOIRE DU CRITIQUE : ${
-            feedback || 'Rendre les conclusions concrètes, vérifiables et strictement fondées sur les données fournies.'
-          }`,
-        }))
       }
       if (!review) throw new Error('Contrôle critique absent')
       this.setState({
@@ -539,6 +580,9 @@ function reviewDefects(review: CriticResult, input: PlatformInput) {
     if (!action.evidence?.length || action.evidence.some(item => !evidenceExists(item, input))) {
       defects.push(`L’action ${action.rank || '?'} cite une preuve absente des données fournies.`)
     }
+    if ((action.actionType === 'analysis') === action.requiresApproval) {
+      defects.push(`L’action ${action.rank || '?'} déclare un niveau d’approbation incohérent.`)
+    }
     if (
       ['radar', 'crm'].includes(action.domain) &&
       /\b(naf\s*62|agence web|esn|programmeu\w*|services? informatiques?)\b/i.test(action.target)
@@ -551,20 +595,57 @@ function reviewDefects(review: CriticResult, input: PlatformInput) {
 
 function evidenceExists(evidence: ActionEvidence, input: PlatformInput) {
   if (!evidence?.reference?.trim() || !evidence?.fact?.trim()) return false
-  if (evidence.source === 'validatedMemory') {
-    return input.memories.some(memory => memory.key === evidence.reference)
+  return buildEvidenceCatalog(input).some(
+    item => item.source === evidence.source && item.reference === evidence.reference
+  )
+}
+
+function buildEvidenceCatalog(input: PlatformInput): ActionEvidence[] {
+  const catalog: ActionEvidence[] = input.memories.map(memory => ({
+    source: 'validatedMemory',
+    reference: memory.key,
+    fact: memory.content.slice(0, 600),
+  }))
+  const sources: ActionEvidence['source'][] = [
+    'seo.gscPages',
+    'seo.gscQueries',
+    'seo.candidateVersions',
+    'radar.items',
+    'crm.clients',
+    'crm.activities',
+    'crm.contacts',
+    'crm.bookings',
+  ]
+  for (const source of sources) {
+    const [section, collection] = source.split('.')
+    const contextSection = input.context[section]
+    if (!contextSection || typeof contextSection !== 'object') continue
+    const records = (contextSection as Record<string, unknown>)[collection]
+    if (!Array.isArray(records)) continue
+    catalog.push({
+      source,
+      reference: 'collection',
+      fact: `${records.length} enregistrement(s) disponible(s) dans ${source}.`,
+    })
+    records.slice(0, 40).forEach((record, index) => {
+      catalog.push({
+        source,
+        reference: evidenceReference(source, record, index),
+        fact: JSON.stringify(record).slice(0, 600),
+      })
+    })
   }
-  const [section, collection] = evidence.source.split('.')
-  const contextSection = input.context[section]
-  if (!contextSection || typeof contextSection !== 'object') return false
-  const records = (contextSection as Record<string, unknown>)[collection]
-  if (!Array.isArray(records)) return false
-  if (evidence.reference === 'collection') {
-    const statedCount = evidence.fact.match(/\b\d+\b/)?.[0]
-    return statedCount != null && Number(statedCount) === records.length
+  return catalog
+}
+
+function evidenceReference(source: ActionEvidence['source'], record: unknown, index: number) {
+  if (!record || typeof record !== 'object') return `index:${index}`
+  const value = record as Record<string, unknown>
+  if (source === 'seo.gscQueries') return `${String(value.query || 'query')}@${String(value.period_end || index)}`
+  if (source === 'seo.gscPages') {
+    return `${String(value.page_path || 'page')}@${String(value.period_end || index)}`
   }
-  const reference = evidence.reference.toLowerCase()
-  return records.some(record => JSON.stringify(record).toLowerCase().includes(reference))
+  return typeof value.id === 'string' && value.id ? value.id : `index:${index}`
 }
 
 function buildPlan(domain: PlatformDomain, objective: string) {

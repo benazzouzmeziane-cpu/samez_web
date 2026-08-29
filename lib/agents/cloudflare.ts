@@ -97,6 +97,14 @@ export async function getAgentMissionStatus(runId: string) {
         actions?: Array<{
           rank: number
           domain: AgentDomain
+          actionType:
+            | 'analysis'
+            | 'publish_seo'
+            | 'send_email'
+            | 'convert_crm'
+            | 'change_stage'
+            | 'redirect'
+            | 'external_write'
           title: string
           target: string
           rationale: string

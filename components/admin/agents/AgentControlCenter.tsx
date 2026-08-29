@@ -180,12 +180,14 @@ export default function AgentControlCenter({
                 blockers?: string[]
                 actions?: Array<{
                   rank: number
+                  actionType: string
                   title: string
                   target: string
                   deadline: string
                   metric: string
                   expectedImpact: string
                   evidence: Array<{ source: string; reference: string }>
+                  requiresApproval: boolean
                 }>
               }
               const attempts = Number(run.result?.attempts ?? 1)
@@ -222,6 +224,11 @@ export default function AgentControlCenter({
                             </p>
                             <p className="text-xs text-slate-600 mt-1">
                               Impact attendu : {action.expectedImpact}
+                            </p>
+                            <p className="text-[11px] text-slate-500 mt-1">
+                              {action.requiresApproval
+                                ? `Validation humaine requise · ${action.actionType}`
+                                : 'Action interne sans écriture externe'}
                             </p>
                             <p className="text-[11px] text-slate-400 mt-2">
                               Preuves :{' '}
