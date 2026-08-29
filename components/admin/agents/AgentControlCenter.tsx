@@ -344,12 +344,16 @@ export default function AgentControlCenter({
                     </DecisionButton>
                   </div>
                 ) : null}
-                {approval.status === 'approved' || approval.status === 'failed' ? (
+                {approval.status === 'approved' ||
+                (approval.status === 'failed' && approval.execution_attempts < 3) ? (
                   <div className="flex gap-2 mt-3">
                     <DecisionButton onClick={() => decide('approval', approval.id, 'execute')}>
                       {approval.status === 'failed' ? 'Réessayer' : 'Exécuter'}
                     </DecisionButton>
                   </div>
+                ) : null}
+                {approval.status === 'failed' && approval.execution_attempts >= 3 ? (
+                  <p className="text-xs text-red-700 mt-2">Trois tentatives effectuées — intervention manuelle requise.</p>
                 ) : null}
               </article>
             ))

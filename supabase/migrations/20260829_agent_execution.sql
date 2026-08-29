@@ -11,7 +11,12 @@ ALTER TABLE agent_approvals
   ADD COLUMN IF NOT EXISTS execution_started_at timestamptz,
   ADD COLUMN IF NOT EXISTS executed_at timestamptz,
   ADD COLUMN IF NOT EXISTS execution_result jsonb,
-  ADD COLUMN IF NOT EXISTS execution_error text;
+  ADD COLUMN IF NOT EXISTS execution_error text,
+  ADD COLUMN IF NOT EXISTS execution_attempts integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS idempotency_key text;
+
+CREATE UNIQUE INDEX IF NOT EXISTS agent_approvals_idempotency_key_idx
+  ON agent_approvals (idempotency_key);
 
 CREATE INDEX IF NOT EXISTS agent_approvals_execution_idx
   ON agent_approvals (status, execution_started_at)

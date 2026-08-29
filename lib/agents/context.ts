@@ -29,7 +29,7 @@ export async function buildAgentContext(supabase: SupabaseClient, domain: AgentD
         .limit(30),
       supabase
         .from('client_activities')
-        .select('id, client_id, type, status, due_at, created_at')
+        .select('id, client_id, kind, status, due_at, created_at')
         .order('created_at', { ascending: false })
         .limit(40),
       supabase

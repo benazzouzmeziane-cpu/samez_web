@@ -297,7 +297,7 @@ export async function decideAgentApproval(
   userId: string,
   notes?: string
 ) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('agent_approvals')
     .update({
       status: decision,
@@ -307,7 +307,17 @@ export async function decideAgentApproval(
     })
     .eq('id', id)
     .eq('status', 'pending')
+    .select('run_id, action_type')
+    .maybeSingle()
   if (error) throw new Error(error.message)
+  if (!data) throw new Error('Cette approbation a déjà été traitée')
+  await addAgentEvent(supabase, {
+    runId: data.run_id,
+    sourceAgent: 'samez-orchestrator',
+    type: 'approval',
+    summary: decision === 'approved' ? 'Action approuvée par un administrateur' : 'Action refusée',
+    payload: { approvalId: id, phase: 'decided', decision, actionType: data.action_type, userId },
+  })
 }
 
 export async function agentDashboard(supabase: SupabaseClient): Promise<AgentDashboard> {

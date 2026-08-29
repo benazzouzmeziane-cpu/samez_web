@@ -197,21 +197,27 @@ export async function refreshAgentMission(supabase: SupabaseClient, runId: strin
         item => item.action_type === action.actionType && item.title === action.title
       )
       if (duplicate) continue
-      await supabase.from('agent_approvals').insert({
-        run_id: runId,
-        action_type: action.actionType,
-        risk: action.actionType === 'send_email' ? 'medium' : 'low',
-        title: action.title.slice(0, 160),
-        summary: [
-          action.rationale,
-          `Cible : ${action.target}`,
-          `Échéance : ${action.deadline}`,
-          `Mesure : ${action.metric}`,
-          `Impact attendu : ${action.expectedImpact}`,
-        ].join('\n'),
-        payload: { action },
-        status: 'pending',
-      })
+      await supabase
+        .from('agent_approvals')
+        .upsert(
+          {
+            run_id: runId,
+            action_type: action.actionType,
+            risk: action.actionType === 'send_email' ? 'medium' : 'low',
+            title: action.title.slice(0, 160),
+            summary: [
+              action.rationale,
+              `Cible : ${action.target}`,
+              `Échéance : ${action.deadline}`,
+              `Mesure : ${action.metric}`,
+              `Impact attendu : ${action.expectedImpact}`,
+            ].join('\n'),
+            payload: { action },
+            status: 'pending',
+            idempotency_key: `${runId}:${action.rank}:${action.actionType}`,
+          },
+          { onConflict: 'idempotency_key', ignoreDuplicates: true }
+        )
     }
   }
 

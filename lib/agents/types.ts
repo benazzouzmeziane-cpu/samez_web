@@ -101,6 +101,8 @@ export type AgentApproval = {
   executed_at: string | null
   execution_result: Record<string, unknown> | null
   execution_error: string | null
+  execution_attempts: number
+  idempotency_key: string | null
   created_at: string
   updated_at: string
 }

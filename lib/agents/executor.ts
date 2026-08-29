@@ -48,9 +48,26 @@ type ApprovalRow = {
   status: string
   payload: Record<string, unknown>
   execution_result: Record<string, unknown> | null
+  execution_attempts: number
 }
 
 export async function executeAgentApproval(supabase: SupabaseClient, id: string) {
+  const { data: current, error: currentError } = await supabase
+    .from('agent_approvals')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (currentError || !current) throw new Error(currentError?.message || 'Approbation introuvable')
+  const existing = current as ApprovalRow
+  if (existing.status === 'executed') return existing.execution_result ?? { alreadyExecuted: true }
+  if (existing.status === 'executing') throw new Error('Cette action est déjà en cours d’exécution')
+  if (!['approved', 'failed'].includes(existing.status)) {
+    throw new Error('Cette action doit être approuvée avant son exécution')
+  }
+  if (existing.execution_attempts >= 3) {
+    throw new Error('Nombre maximal de tentatives atteint')
+  }
+
   const now = new Date().toISOString()
   const { data: claimed, error: claimError } = await supabase
     .from('agent_approvals')
@@ -59,28 +76,31 @@ export async function executeAgentApproval(supabase: SupabaseClient, id: string)
       execution_started_at: now,
       executed_at: null,
       execution_error: null,
+      execution_attempts: existing.execution_attempts + 1,
     })
     .eq('id', id)
-    .in('status', ['approved', 'failed'])
+    .eq('status', existing.status)
+    .eq('execution_attempts', existing.execution_attempts)
     .select('*')
     .maybeSingle()
   if (claimError) throw new Error(claimError.message)
-
-  if (!claimed) {
-    const { data: existing, error } = await supabase
-      .from('agent_approvals')
-      .select('status, execution_result')
-      .eq('id', id)
-      .single()
-    if (error || !existing) throw new Error(error?.message || 'Approbation introuvable')
-    if (existing.status === 'executed') return existing.execution_result ?? { alreadyExecuted: true }
-    if (existing.status === 'executing') throw new Error('Cette action est déjà en cours d’exécution')
-    throw new Error('Cette action doit être approuvée avant son exécution')
-  }
+  if (!claimed) throw new Error('Cette action vient d’être réclamée par une autre exécution')
 
   const approval = claimed as ApprovalRow
   try {
     const action = readAction(approval)
+    await addAgentEvent(supabase, {
+      runId: approval.run_id,
+      sourceAgent: 'samez-orchestrator',
+      type: 'approval',
+      summary: `Exécution démarrée : ${action.title}`,
+      payload: {
+        approvalId: id,
+        phase: 'executing',
+        actionType: action.actionType,
+        attempt: approval.execution_attempts,
+      },
+    })
     const result = await dispatch(supabase, approval, action)
     const { error } = await supabase
       .from('agent_approvals')
@@ -96,9 +116,9 @@ export async function executeAgentApproval(supabase: SupabaseClient, id: string)
     await addAgentEvent(supabase, {
       runId: approval.run_id,
       sourceAgent: 'samez-orchestrator',
-      type: 'completed',
+      type: 'approval',
       summary: `Action exécutée : ${action.title}`,
-      payload: { approvalId: id, actionType: action.actionType, result },
+      payload: { approvalId: id, phase: 'executed', actionType: action.actionType, result },
     })
     return result
   } catch (error) {
@@ -115,9 +135,9 @@ export async function executeAgentApproval(supabase: SupabaseClient, id: string)
     await addAgentEvent(supabase, {
       runId: approval.run_id,
       sourceAgent: 'samez-orchestrator',
-      type: 'failed',
+      type: 'approval',
       summary: `Échec d’exécution : ${message}`,
-      payload: { approvalId: id, actionType: approval.action_type },
+      payload: { approvalId: id, phase: 'failed', actionType: approval.action_type },
     }).catch(() => undefined)
     throw new Error(message)
   }
