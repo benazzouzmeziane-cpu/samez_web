@@ -160,7 +160,7 @@ Réponds uniquement en JSON.`
       0.25
     )
     const parsed = extractJson(ai.content) as Omit<SpecialistResult, 'agent' | 'model' | 'usage'>
-    if (!parsed.summary) throw new Error('Réponse spécialiste invalide')
+    if (!parsed.summary) throw new Error(`Réponse invalide de ${this.role} (${ai.model})`)
     const result: SpecialistResult = {
       ...parsed,
       agent: this.role,
@@ -365,15 +365,101 @@ function buildPlan(domain: PlatformDomain, objective: string) {
 }
 
 function extractJson(text: string): Record<string, unknown> {
-  const stripped = text.replace(/```(?:json)?/g, '').trim()
-  const start = stripped.indexOf('{')
-  const end = stripped.lastIndexOf('}')
-  if (start === -1 || end <= start) return {}
-  try {
-    return JSON.parse(stripped.slice(start, end + 1)) as Record<string, unknown>
-  } catch {
-    return {}
+  const results = extractJsonObjects(text)
+  return results[results.length - 1] ?? {}
+}
+
+function extractJsonObjects(text: string): Record<string, unknown>[] {
+  const results: Record<string, unknown>[] = []
+  let start = -1
+  let depth = 0
+  let inString = false
+  let escaped = false
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (character === '\\') escaped = true
+      else if (character === '"') inString = false
+      continue
+    }
+    if (character === '"') {
+      inString = true
+      continue
+    }
+    if (character === '{') {
+      if (depth === 0) start = index
+      depth += 1
+      continue
+    }
+    if (character !== '}' || depth === 0) continue
+    depth -= 1
+    if (depth !== 0 || start < 0) continue
+    try {
+      const parsed = JSON.parse(text.slice(start, index + 1)) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        results.push(parsed as Record<string, unknown>)
+      }
+    } catch {
+      // Continue: model reasoning can contain non-JSON braces before the final response.
+    }
+    start = -1
   }
+  return results
+}
+
+function conformsToSchema(value: unknown, rawSchema: unknown): boolean {
+  if (!rawSchema || typeof rawSchema !== 'object') return true
+  const schema = rawSchema as {
+    type?: string
+    enum?: unknown[]
+    required?: string[]
+    properties?: Record<string, unknown>
+    items?: unknown
+  }
+  if (schema.enum && !schema.enum.includes(value)) return false
+  if (schema.type === 'object') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const object = value as Record<string, unknown>
+    if (schema.required?.some(key => !(key in object))) return false
+    return Object.entries(schema.properties ?? {}).every(
+      ([key, propertySchema]) => !(key in object) || conformsToSchema(object[key], propertySchema)
+    )
+  }
+  if (schema.type === 'array') {
+    return Array.isArray(value) && value.every(item => conformsToSchema(item, schema.items))
+  }
+  if (schema.type === 'string') return typeof value === 'string'
+  if (schema.type === 'number') return typeof value === 'number' && Number.isFinite(value)
+  if (schema.type === 'boolean') return typeof value === 'boolean'
+  return true
+}
+
+function parseStructuredResponse(content: string, schema: Record<string, unknown>) {
+  return extractJsonObjects(content)
+    .reverse()
+    .find(candidate => conformsToSchema(candidate, schema))
+}
+
+function parseStructuredValue(value: unknown, schema: Record<string, unknown>) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const candidate = value as Record<string, unknown>
+    return conformsToSchema(candidate, schema) ? candidate : undefined
+  }
+  return typeof value === 'string' ? parseStructuredResponse(value, schema) : undefined
+}
+
+function structuredMessages(
+  messages: Array<{ role: string; content: string }>,
+  schema: Record<string, unknown>
+) {
+  const constraint = `La réponse doit respecter exactement ce JSON Schema : ${JSON.stringify(schema)}`
+  const [first, ...rest] = messages
+  if (first?.role === 'system') {
+    return [{ ...first, content: `${first.content}\n${constraint}` }, ...rest]
+  }
+  return [{ role: 'system', content: constraint }, ...messages]
 }
 
 async function runStructured(
@@ -383,9 +469,13 @@ async function runStructured(
   maxTokens: number,
   temperature: number
 ) {
+  const constrainedMessages = structuredMessages(messages, schema)
   if (env.NVIDIA_API_KEY) {
     try {
-      return await runNvidia(env, messages, maxTokens, temperature)
+      const ai = await runNvidia(env, constrainedMessages, maxTokens, temperature)
+      const parsed = parseStructuredResponse(ai.content, schema)
+      if (!parsed) throw new Error('NVIDIA a renvoyé une structure JSON non conforme')
+      return { ...ai, content: JSON.stringify(parsed) }
     } catch (error) {
       console.error('[agent-platform] NVIDIA fallback Workers AI', error)
     }
@@ -394,15 +484,18 @@ async function runStructured(
   for (const model of [FAST_MODEL, FALLBACK_MODEL]) {
     try {
       const ai = await env.AI.run(model, {
-        messages,
+        messages: constrainedMessages,
         max_tokens: maxTokens,
         temperature,
-        guided_json: schema,
+        response_format: {
+          type: 'json_schema',
+          json_schema: schema,
+        },
       })
-      const content = String(ai.response || '').trim()
-      if (!content) throw new Error('Réponse vide')
+      const parsed = parseStructuredValue(ai.response, schema)
+      if (!parsed) throw new Error(`${model} a renvoyé une structure JSON non conforme`)
       return {
-        content,
+        content: JSON.stringify(parsed),
         model,
         usage: {
           prompt: ai.usage?.prompt_tokens ?? 0,

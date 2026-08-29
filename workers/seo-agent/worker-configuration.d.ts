@@ -6,8 +6,12 @@ interface Ai {
       max_tokens?: number
       temperature?: number
       guided_json?: Record<string, unknown>
+      response_format?: {
+        type: 'json_object' | 'json_schema'
+        json_schema?: Record<string, unknown>
+      }
     }
-  ): Promise<{ response?: string; usage?: { prompt_tokens?: number; completion_tokens?: number } }>
+  ): Promise<{ response?: unknown; usage?: { prompt_tokens?: number; completion_tokens?: number } }>
 }
 
 interface BrowserRun {
