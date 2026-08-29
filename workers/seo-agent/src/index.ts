@@ -1,4 +1,22 @@
 import { Agent, callable, getAgentByName, routeAgentRequest } from 'agents'
+import {
+  AnalystAgent,
+  CriticAgent,
+  CrmAgent,
+  RadarAgent,
+  SamezOrchestrator,
+  SeoStrategistAgent,
+  type PlatformInput,
+} from './platform'
+
+export {
+  AnalystAgent,
+  CriticAgent,
+  CrmAgent,
+  RadarAgent,
+  SamezOrchestrator,
+  SeoStrategistAgent,
+}
 
 type Brief = {
   type?: string
@@ -762,6 +780,24 @@ const worker = {
       }
       if (request.method === 'GET') {
         return Response.json(await agent.getResearchStatus())
+      }
+    }
+
+    const orchestratorMatch = url.pathname.match(/^\/agents\/orchestrator\/([^/]+)$/)
+    if (orchestratorMatch) {
+      const agent = await getAgentByName(
+        env.SamezOrchestrator,
+        decodeURIComponent(orchestratorMatch[1])
+      )
+      if (request.method === 'POST') {
+        const input = (await request.json()) as PlatformInput
+        if (!input.runId || !input.objective || !input.domain || !input.context) {
+          return Response.json({ error: 'Mission orchestrateur invalide' }, { status: 400 })
+        }
+        return Response.json(await agent.start(input), { status: 202 })
+      }
+      if (request.method === 'GET') {
+        return Response.json(await agent.getStatus())
       }
     }
 

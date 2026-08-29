@@ -59,6 +59,16 @@ export function IconRadar({ className = 'w-4 h-4' }: { className?: string }) {
   )
 }
 
+export function IconAgents({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 8l-2-2m10 2l2-2M8 16l-2 2m10-2l2 2" />
+      <circle cx="12" cy="12" r="4" />
+    </svg>
+  )
+}
+
 export function IconBriefcase({ className = 'w-4 h-4' }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>

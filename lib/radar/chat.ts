@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { completeJson, isNimConfigured } from '@/lib/ai/complete-json'
+import { memoryContext, proposeAgentMemory } from '@/lib/agents/store'
 import {
   briefsEqual,
   inferBriefFromConversation,
@@ -136,9 +137,10 @@ export async function chatRadar(supabase: SupabaseClient, message: string, conve
 
   await insertRadarMessage(supabase, conversation.id, 'user', text)
 
-  const [history, pistes] = await Promise.all([
+  const [history, pistes, memories] = await Promise.all([
     listRadarMessages(supabase, conversation.id, 24).catch(() => [] as RadarMessage[]),
     listRadarContext(supabase, 20).catch(() => []),
+    memoryContext(supabase, 'radar').catch(() => []),
   ])
   let list = pistes as Piste[]
   const userTurns = history.filter(item => item.role === 'user').map(item => item.content)
@@ -167,6 +169,22 @@ export async function chatRadar(supabase: SupabaseClient, message: string, conve
     await discardRadarItems(supabase, discardIds, 'Écarté : concurrent / même métier que same’z').catch(error =>
       console.error('[radar-chat] discard', error)
     )
+    for (const item of discarded) {
+      await proposeAgentMemory(supabase, {
+        domain: 'radar',
+        kind: 'experience',
+        key: `radar.rejected.${item.id}`,
+        title: `Piste concurrente écartée : ${item.title}`,
+        content: `${item.title} a été écartée après correction humaine : même métier que same’z.`,
+        payload: { itemId: item.id, title: item.title, activity: item.subtitle },
+        sourceAgent: 'radar-agent',
+        sourceRefType: 'radar_item',
+        sourceRefId: item.id,
+        confidence: 1,
+        tags: ['radar', 'correction-humaine', 'concurrent'],
+        expiresAt: new Date(Date.now() + 180 * 86_400_000).toISOString(),
+      }).catch(error => console.error('[radar-chat] learn', error))
+    }
     reply = competitorReply(discarded, list)
   } else {
     const brief = inferBriefFromConversation(userTurns)
@@ -196,6 +214,7 @@ export async function chatRadar(supabase: SupabaseClient, message: string, conve
             JSON.stringify({
               dernierMessage: text,
               cible: search || brief,
+              memoiresValidees: memories,
               rechercheLancee: Boolean(search),
               dejaFaite: skippedDuplicate,
               resultats: summary,

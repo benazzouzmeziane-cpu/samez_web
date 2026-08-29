@@ -14,11 +14,28 @@
   "durable_objects": {
     "bindings": [
       { "name": "SeoWriter", "class_name": "SeoWriter" },
-      { "name": "SeoStrategist", "class_name": "SeoStrategist" }
+      { "name": "SeoStrategist", "class_name": "SeoStrategist" },
+      { "name": "SamezOrchestrator", "class_name": "SamezOrchestrator" },
+      { "name": "SeoStrategistAgent", "class_name": "SeoStrategistAgent" },
+      { "name": "RadarAgent", "class_name": "RadarAgent" },
+      { "name": "CrmAgent", "class_name": "CrmAgent" },
+      { "name": "AnalystAgent", "class_name": "AnalystAgent" },
+      { "name": "CriticAgent", "class_name": "CriticAgent" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["SeoWriter"] },
-    { "tag": "v2", "new_sqlite_classes": ["SeoStrategist"] }
+    { "tag": "v2", "new_sqlite_classes": ["SeoStrategist"] },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": [
+        "SamezOrchestrator",
+        "SeoStrategistAgent",
+        "RadarAgent",
+        "CrmAgent",
+        "AnalystAgent",
+        "CriticAgent"
+      ]
+    }
   ]
 }

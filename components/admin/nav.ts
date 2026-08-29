@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import {
+  IconAgents,
   IconBriefcase,
   IconCalendar,
   IconGauge,
@@ -19,6 +20,7 @@ export type AdminNavItem = {
 
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Accueil', icon: IconGauge, exact: true },
+  { href: '/admin/agents', label: 'Agents', icon: IconAgents },
   { href: '/admin/radar', label: 'Radar', icon: IconRadar },
   { href: '/admin/clients', label: 'Comptes', icon: IconPeople },
   { href: '/admin/seo', label: 'SEO', icon: IconSeo },

@@ -19,6 +19,15 @@ interface Env {
   BROWSER: BrowserRun
   BRAVE_SEARCH_API_KEY: string
   SEO_AGENT_SECRET: string
+  NVIDIA_API_KEY?: string
+  NVIDIA_NIM_MODEL?: string
+  NVIDIA_NIM_BASE_URL?: string
   SeoWriter: DurableObjectNamespace
   SeoStrategist: DurableObjectNamespace
+  SamezOrchestrator: DurableObjectNamespace
+  SeoStrategistAgent: DurableObjectNamespace
+  RadarAgent: DurableObjectNamespace
+  CrmAgent: DurableObjectNamespace
+  AnalystAgent: DurableObjectNamespace
+  CriticAgent: DurableObjectNamespace
 }

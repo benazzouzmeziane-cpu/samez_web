@@ -11,12 +11,19 @@
     },
     "app/api/cron/radar/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/cron/intelligence/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
     {
       "path": "/api/cron/radar",
       "schedule": "0 5 * * 1-5"
+    },
+    {
+      "path": "/api/cron/intelligence",
+      "schedule": "0 6 * * 1"
     }
   ]
 }
