@@ -46,6 +46,16 @@ type SpecialistResult = {
   usage: { prompt: number; completion: number }
 }
 
+type CriticResult = {
+  approved: boolean
+  score: number
+  blockers: string[]
+  corrections: string[]
+  finalSummary: string
+  model: string
+  usage: { prompt: number; completion: number }
+}
+
 type PlatformState = {
   status: 'idle' | 'pending' | 'done' | 'error'
   runId: string | null
@@ -111,7 +121,7 @@ const CRITIC_SCHEMA = {
   additionalProperties: false,
   properties: {
     approved: { type: 'boolean' },
-    score: { type: 'number' },
+    score: { type: 'number', minimum: 0, maximum: 100 },
     blockers: { type: 'array', items: { type: 'string' } },
     corrections: { type: 'array', items: { type: 'string' } },
     finalSummary: { type: 'string' },
@@ -202,6 +212,7 @@ export class CriticAgent extends Agent<Env, { last: Record<string, unknown> | nu
 Vérifie fidélité aux données, contradictions avec les mémoires validées, sécurité, pertinence commerciale et mesurabilité.
 Bloque toute invention, toute action externe sans approbation, et toute promesse de classement SEO.
 Un résultat n'est approuvé que s'il est concret, sourcé par les données fournies et sans risque non traité.
+Le score est impérativement une note comprise entre 0 et 100. En dessous de 70, approved doit être false et tu dois fournir des corrections précises.
 Réponds uniquement en JSON.`,
         },
         {
@@ -218,13 +229,18 @@ Réponds uniquement en JSON.`,
       1400,
       0.1
     )
-    const result = extractJson(ai.content) as Record<string, unknown>
-    this.setState({ last: result })
-    return {
-      ...result,
+    const parsed = extractJson(ai.content) as Omit<CriticResult, 'model' | 'usage'>
+    const result: CriticResult = {
+      approved: parsed.approved === true,
+      score: Math.max(0, Math.min(100, Number(parsed.score) || 0)),
+      blockers: Array.isArray(parsed.blockers) ? parsed.blockers : [],
+      corrections: Array.isArray(parsed.corrections) ? parsed.corrections : [],
+      finalSummary: String(parsed.finalSummary || 'Contrôle terminé'),
       model: ai.model,
       usage: ai.usage,
     }
+    this.setState({ last: result })
+    return result
   }
 }
 
@@ -274,30 +290,59 @@ export class SamezOrchestrator extends Agent<Env, PlatformState> {
 
   private async execute(input: PlatformInput, plan: Array<{ agent: string; task: string }>) {
     try {
-      const reports = await Promise.all(
-        plan.map(async step => {
-          this.addEvent('samez-orchestrator', 'delegated', step.task, step.agent)
-          const agent = await this.specialist(step.agent, input.runId)
-          const report = await agent.execute({ ...input, ...step })
-          this.addEvent(step.agent, 'completed', report.summary, 'samez-orchestrator')
-          return report
-        })
-      )
-      this.addEvent('samez-orchestrator', 'delegated', 'Contrôle croisé des rapports', 'critic-agent')
       const critic = await getAgentByName(this.env.CriticAgent, input.runId)
-      const review = await critic.review(input, reports)
-      const usage = reports.reduce(
-        (sum, report) => ({
-          prompt: sum.prompt + report.usage.prompt,
-          completion: sum.completion + report.usage.completion,
-        }),
-        { prompt: Number(review.usage?.prompt ?? 0), completion: Number(review.usage?.completion ?? 0) }
-      )
-      this.addEvent('critic-agent', 'completed', String(review.finalSummary || 'Contrôle terminé'))
+      let activePlan = plan
+      let reports: SpecialistResult[] = []
+      let review: CriticResult | null = null
+      let attempts = 0
+      const usage = { prompt: 0, completion: 0 }
+
+      while (attempts < 2) {
+        attempts += 1
+        reports = await Promise.all(
+          activePlan.map(async step => {
+            this.addEvent('samez-orchestrator', 'delegated', step.task, step.agent)
+            const agent = await this.specialist(step.agent, input.runId)
+            const report = await agent.execute({ ...input, ...step })
+            this.addEvent(step.agent, 'completed', report.summary, 'samez-orchestrator')
+            return report
+          })
+        )
+        this.addEvent(
+          'samez-orchestrator',
+          'delegated',
+          `Contrôle croisé des rapports — passe ${attempts}`,
+          'critic-agent'
+        )
+        const currentReview = await critic.review(input, reports)
+        review = currentReview
+        for (const report of reports) {
+          usage.prompt += report.usage.prompt
+          usage.completion += report.usage.completion
+        }
+        usage.prompt += currentReview.usage.prompt
+        usage.completion += currentReview.usage.completion
+        this.addEvent('critic-agent', 'completed', currentReview.finalSummary, 'samez-orchestrator')
+        if (reviewIsApproved(currentReview) || attempts >= 2) break
+
+        const feedback = [...currentReview.blockers, ...currentReview.corrections].filter(Boolean).join(' ')
+        this.addEvent(
+          'samez-orchestrator',
+          'message',
+          `Correction automatique demandée après un contrôle à ${Math.round(currentReview.score)}/100.`
+        )
+        activePlan = plan.map(step => ({
+          ...step,
+          task: `${step.task}\nCORRECTION OBLIGATOIRE DU CRITIQUE : ${
+            feedback || 'Rendre les conclusions concrètes, vérifiables et strictement fondées sur les données fournies.'
+          }`,
+        }))
+      }
+      if (!review) throw new Error('Contrôle critique absent')
       this.setState({
         ...this.state,
         status: 'done',
-        result: { reports, review, usage },
+        result: { reports, review, usage, attempts },
         error: null,
         updatedAt: new Date().toISOString(),
       })
@@ -330,6 +375,10 @@ export class SamezOrchestrator extends Agent<Env, PlatformState> {
       updatedAt: new Date().toISOString(),
     })
   }
+}
+
+function reviewIsApproved(review: CriticResult) {
+  return review.approved && review.score >= 70 && review.blockers.length === 0
 }
 
 function buildPlan(domain: PlatformDomain, objective: string) {

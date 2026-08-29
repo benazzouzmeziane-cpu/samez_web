@@ -133,6 +133,7 @@ export async function refreshAgentMission(supabase: SupabaseClient, runId: strin
     reports,
     review,
     events: remote.events ?? [],
+    attempts: remote.result?.attempts ?? 1,
   }
 
   const { data: tasks } = await supabase
@@ -165,7 +166,7 @@ export async function refreshAgentMission(supabase: SupabaseClient, runId: strin
       summary: report.summary,
     })
 
-    for (const memory of report.proposedMemories ?? []) {
+    for (const memory of approved ? (report.proposedMemories ?? []) : []) {
       await proposeAgentMemory(supabase, {
         ...memory,
         sourceAgent: report.agent,
@@ -174,7 +175,7 @@ export async function refreshAgentMission(supabase: SupabaseClient, runId: strin
       }).catch(memoryError => console.error('[agents] memory', memoryError))
     }
 
-    for (const request of report.approvalRequests ?? []) {
+    for (const request of approved ? (report.approvalRequests ?? []) : []) {
       if (
         !['publish_seo', 'send_email', 'convert_crm', 'change_stage', 'redirect', 'external_write'].includes(
           request.actionType

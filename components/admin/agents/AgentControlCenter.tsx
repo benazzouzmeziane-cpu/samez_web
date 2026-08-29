@@ -17,6 +17,7 @@ const STATUS_LABELS: Record<string, string> = {
   running: 'En cours',
   waiting_approval: 'Validation requise',
   done: 'Terminé',
+  review_rejected: 'Analyse rejetée',
   error: 'Erreur',
   cancelled: 'Annulé',
   proposed: 'À valider',
@@ -178,6 +179,8 @@ export default function AgentControlCenter({
                 finalSummary?: string
                 blockers?: string[]
               }
+              const attempts = Number(run.result?.attempts ?? 1)
+              const rejected = run.status === 'done' && Boolean(run.error)
               return (
                 <article key={run.id} className="rounded-xl border border-black/[0.06] bg-white p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -187,13 +190,14 @@ export default function AgentControlCenter({
                         {DOMAIN_LABELS[run.domain]} · {new Date(run.created_at).toLocaleString('fr-FR')}
                       </p>
                     </div>
-                    <Status value={run.status} />
+                    <Status value={rejected ? 'review_rejected' : run.status} />
                   </div>
                   {review.finalSummary ? (
                     <p className="text-sm text-slate-600 mt-3">{review.finalSummary}</p>
                   ) : null}
                   <div className="flex flex-wrap gap-2 mt-3 text-xs text-slate-500">
                     {review.score != null ? <span>Critique : {Math.round(review.score)}/100</span> : null}
+                    {attempts > 1 ? <span>· {attempts} passes</span> : null}
                     <span>
                       Tokens : {run.prompt_tokens + run.completion_tokens}
                     </span>
@@ -323,7 +327,7 @@ function Metric({
 
 function Status({ value }: { value: string }) {
   const warning = ['pending', 'proposed', 'waiting_approval'].includes(value)
-  const failed = ['error', 'rejected', 'cancelled'].includes(value)
+  const failed = ['error', 'rejected', 'review_rejected', 'cancelled'].includes(value)
   return (
     <span
       className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${

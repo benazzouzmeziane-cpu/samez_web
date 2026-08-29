@@ -11,6 +11,19 @@ import type {
   AgentTask,
 } from '@/lib/agents/types'
 
+function hasApprovedReview(result: unknown) {
+  if (!result || typeof result !== 'object') return false
+  const review = (result as { review?: unknown }).review
+  if (!review || typeof review !== 'object') return false
+  const value = review as { approved?: unknown; score?: unknown; blockers?: unknown }
+  return (
+    value.approved === true &&
+    Number(value.score ?? 0) >= 70 &&
+    Array.isArray(value.blockers) &&
+    value.blockers.length === 0
+  )
+}
+
 export async function listAgentMemories(
   supabase: SupabaseClient,
   options?: { domain?: AgentDomain; status?: AgentMemory['status']; limit?: number }
@@ -29,7 +42,32 @@ export async function listAgentMemories(
 
 export async function memoryContext(supabase: SupabaseClient, domain: AgentDomain, limit = 24) {
   const memories = await listAgentMemories(supabase, { domain, status: 'validated', limit })
+  const sourceRunIds = [
+    ...new Set(
+      memories
+        .filter(item => item.source_type === 'agent' && item.source_ref_type === 'agent_run')
+        .map(item => item.source_ref_id)
+        .filter((id): id is string => Boolean(id))
+    ),
+  ]
+  const approvedRunIds = new Set<string>()
+  if (sourceRunIds.length) {
+    const { data: runs, error } = await supabase
+      .from('agent_runs')
+      .select('id, result')
+      .in('id', sourceRunIds)
+    if (error) throw new Error(error.message)
+    for (const run of runs ?? []) {
+      if (hasApprovedReview(run.result)) approvedRunIds.add(String(run.id))
+    }
+  }
   return memories
+    .filter(
+      item =>
+        item.source_type !== 'agent' ||
+        item.source_ref_type !== 'agent_run' ||
+        (item.source_ref_id != null && approvedRunIds.has(item.source_ref_id))
+    )
     .filter(item => !item.expires_at || new Date(item.expires_at).getTime() > Date.now())
     .map(item => ({
       key: item.key,
@@ -98,6 +136,26 @@ export async function decideAgentMemory(
   userId: string,
   notes?: string
 ) {
+  if (decision === 'validated') {
+    const { data: memory, error: memoryError } = await supabase
+      .from('agent_memories')
+      .select('source_type, source_ref_type, source_ref_id')
+      .eq('id', id)
+      .eq('status', 'proposed')
+      .single()
+    if (memoryError || !memory) throw new Error(memoryError?.message || 'Mémoire introuvable')
+    if (memory.source_type === 'agent' && memory.source_ref_type === 'agent_run') {
+      if (!memory.source_ref_id) throw new Error('Mission source introuvable')
+      const { data: run, error: runError } = await supabase
+        .from('agent_runs')
+        .select('result')
+        .eq('id', memory.source_ref_id)
+        .single()
+      if (runError || !run || !hasApprovedReview(run.result)) {
+        throw new Error('Cette mémoire provient d’une analyse rejetée par le critique')
+      }
+    }
+  }
   const { error } = await supabase
     .from('agent_memories')
     .update({

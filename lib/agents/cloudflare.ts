@@ -97,6 +97,7 @@ export async function getAgentMissionStatus(runId: string) {
         model?: string
       }
       usage?: { prompt: number; completion: number }
+      attempts?: number
     }
     error?: string | null
   }
