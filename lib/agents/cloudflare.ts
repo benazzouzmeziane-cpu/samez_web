@@ -114,6 +114,16 @@ export async function getAgentMissionStatus(runId: string) {
           expectedImpact: string
           ownerAgent: string
           requiresApproval: boolean
+          execution: {
+            versionId: string
+            clientId: string
+            radarItemId: string
+            subject: string
+            body: string
+            stage: string
+            fromPath: string
+            toPath: string
+          }
         }>
         approvedMemoryKeys?: string[]
         model?: string

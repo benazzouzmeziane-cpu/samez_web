@@ -81,6 +81,16 @@ type RecommendedAction = {
   expectedImpact: string
   ownerAgent: string
   requiresApproval: boolean
+  execution: {
+    versionId: string
+    clientId: string
+    radarItemId: string
+    subject: string
+    body: string
+    stage: string
+    fromPath: string
+    toPath: string
+  }
 }
 
 type CriticResult = {
@@ -229,6 +239,30 @@ const CRITIC_SCHEMA = {
             enum: ['seo-strategist-agent', 'radar-agent', 'crm-agent', 'analyst-agent'],
           },
           requiresApproval: { type: 'boolean' },
+          execution: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              versionId: { type: 'string' },
+              clientId: { type: 'string' },
+              radarItemId: { type: 'string' },
+              subject: { type: 'string' },
+              body: { type: 'string' },
+              stage: { type: 'string' },
+              fromPath: { type: 'string' },
+              toPath: { type: 'string' },
+            },
+            required: [
+              'versionId',
+              'clientId',
+              'radarItemId',
+              'subject',
+              'body',
+              'stage',
+              'fromPath',
+              'toPath',
+            ],
+          },
         },
         required: [
           'rank',
@@ -243,6 +277,7 @@ const CRITIC_SCHEMA = {
           'expectedImpact',
           'ownerAgent',
           'requiresApproval',
+          'execution',
         ],
       },
     },
@@ -345,7 +380,7 @@ export class CriticAgent extends Agent<Env, { last: Record<string, unknown> | nu
           content: `Tu es le contrôleur qualité indépendant de same'z.
 Vérifie fidélité aux données, contradictions avec les mémoires validées, sécurité, pertinence commerciale et mesurabilité.
 Bloque toute invention, toute action externe sans approbation, et toute promesse de classement SEO.
-Produis exactement trois actions classées, concrètes et réalisables. Chaque action doit citer au moins une donnée réelle avec son chemin source et sa référence exacte (id, query, page_path ou key), une cible précise, une échéance ISO YYYY-MM-DD, un responsable, une métrique et un impact attendu sans chiffre inventé. Utilise actionType=analysis seulement si l'action ne modifie rien hors du système ; toute publication, communication ou mutation doit utiliser son type externe et requiresApproval=true.
+Produis exactement trois actions classées, concrètes et réalisables. Chaque action doit citer au moins une donnée réelle avec son chemin source et sa référence exacte (id, query, page_path ou key), une cible précise, une échéance ISO YYYY-MM-DD, un responsable, une métrique et un impact attendu sans chiffre inventé. Utilise actionType=analysis seulement si l'action ne modifie rien hors du système ; toute publication, communication ou mutation doit utiliser son type externe et requiresApproval=true. Renseigne execution avec les identifiants exacts nécessaires : versionId pour publish_seo, clientId/subject/body pour send_email, radarItemId pour convert_crm, clientId/stage pour change_stage, fromPath/toPath pour redirect. Laisse les champs non pertinents en chaîne vide.
 Pour chaque preuve, recopie EXACTEMENT source et reference depuis evidenceCatalog. N'invente jamais une référence. Le champ fact sera remplacé par la donnée fiable du catalogue.
 N'utilise jamais comme cible Radar/CRM une agence web, une ESN, un programmeur, une entreprise de services informatiques ou une société NAF 62.
 Dans approvedMemoryKeys, conserve uniquement les clés des mémoires proposées qui sont stables et directement prouvées par le contexte. Exclue les généralités, prévisions, suppositions commerciales et affirmations sans mesure.
@@ -583,6 +618,62 @@ function reviewDefects(review: CriticResult, input: PlatformInput) {
     if ((action.actionType === 'analysis') === action.requiresApproval) {
       defects.push(`L’action ${action.rank || '?'} déclare un niveau d’approbation incohérent.`)
     }
+    const execution = action.execution
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    const seoVersion = contextRecord(input, 'seo', 'candidateVersions', execution?.versionId)
+    const crmClient = contextRecord(input, 'crm', 'clients', execution?.clientId)
+    const radarItem = contextRecord(input, 'radar', 'items', execution?.radarItemId)
+    if (
+      action.actionType === 'publish_seo' &&
+      (!uuid.test(execution?.versionId || '') ||
+        seoVersion?.status !== 'in_review' ||
+        seoVersion?.ai_generated !== true ||
+        !Array.isArray(seoVersion?.sources) ||
+        seoVersion.sources.length === 0 ||
+        !action.evidence.some(
+          item => item.source === 'seo.candidateVersions' && item.reference === execution.versionId
+        ))
+    ) {
+      defects.push(`L’action ${action.rank || '?'} ne référence pas une version SEO exécutable.`)
+    }
+    if (
+      action.actionType === 'send_email' &&
+      (!uuid.test(execution?.clientId || '') ||
+        crmClient?.has_email !== true ||
+        execution.subject.trim().length < 5 ||
+        execution.body.trim().length < 80 ||
+        !action.evidence.some(item => item.source === 'crm.clients' && item.reference === execution.clientId))
+    ) {
+      defects.push(`L’action ${action.rank || '?'} ne contient pas un email CRM exécutable.`)
+    }
+    if (
+      action.actionType === 'convert_crm' &&
+      (!uuid.test(execution?.radarItemId || '') ||
+        radarItem?.fit === 'nogo' ||
+        radarItem?.status === 'ecarte' ||
+        !action.evidence.some(
+          item => item.source === 'radar.items' && item.reference === execution.radarItemId
+        ))
+    ) {
+      defects.push(`L’action ${action.rank || '?'} ne référence pas une piste Radar exécutable.`)
+    }
+    if (
+      action.actionType === 'change_stage' &&
+      (!uuid.test(execution?.clientId || '') ||
+        !crmClient ||
+        !['prospect', 'qualifié', 'proposition', 'client', 'inactif'].includes(execution.stage) ||
+        !action.evidence.some(item => item.source === 'crm.clients' && item.reference === execution.clientId))
+    ) {
+      defects.push(`L’action ${action.rank || '?'} ne contient pas un changement CRM exécutable.`)
+    }
+    if (
+      action.actionType === 'redirect' &&
+      (!validInternalPath(execution?.fromPath) ||
+        !validInternalPath(execution?.toPath) ||
+        execution.fromPath === execution.toPath)
+    ) {
+      defects.push(`L’action ${action.rank || '?'} ne contient pas une redirection interne valide.`)
+    }
     if (
       ['radar', 'crm'].includes(action.domain) &&
       /\b(naf\s*62|agence web|esn|programmeu\w*|services? informatiques?)\b/i.test(action.target)
@@ -591,6 +682,29 @@ function reviewDefects(review: CriticResult, input: PlatformInput) {
     }
   }
   return [...new Set(defects)]
+}
+
+function validInternalPath(value: string | undefined) {
+  return Boolean(value && /^\/(?!\/)[^\s?#]*$/.test(value))
+}
+
+function contextRecord(
+  input: PlatformInput,
+  section: string,
+  collection: string,
+  id: string | undefined
+) {
+  if (!id) return undefined
+  const sectionValue = input.context[section]
+  if (!sectionValue || typeof sectionValue !== 'object') return undefined
+  const records = (sectionValue as Record<string, unknown>)[collection]
+  if (!Array.isArray(records)) return undefined
+  return records.find(
+    record =>
+      record != null &&
+      typeof record === 'object' &&
+      String((record as Record<string, unknown>).id || '') === id
+  ) as Record<string, unknown> | undefined
 }
 
 function evidenceExists(evidence: ActionEvidence, input: PlatformInput) {

@@ -239,15 +239,17 @@ export async function sendClientFollowUpEmail(data: {
   email: string
   subject: string
   body: string
+  messageId?: string
 }) {
   const name = escapeHtml(data.name)
   const subject = data.subject.replace(/[\r\n]/g, ' ').slice(0, 120)
   const body = escapeHtml(data.body)
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: `same'z <${process.env.SMTP_USER}>`,
     to: data.email,
     replyTo: process.env.SMTP_USER || 'contact@samez.fr',
+    messageId: data.messageId,
     subject,
     text: [`Bonjour ${data.name},`, '', data.body, '', "same'z — contact@samez.fr — 07 52 08 74 16"].join('\n'),
     html: `
@@ -266,6 +268,7 @@ export async function sendClientFollowUpEmail(data: {
       </div>
     `,
   })
+  return { messageId: info.messageId }
 }
 
 export async function sendPasswordResetEmail(data: {

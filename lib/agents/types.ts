@@ -95,8 +95,12 @@ export type AgentApproval = {
   title: string
   summary: string
   payload: Record<string, unknown>
-  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'executed'
+  status: 'pending' | 'approved' | 'executing' | 'rejected' | 'expired' | 'executed' | 'failed'
   decision_notes: string | null
+  execution_started_at: string | null
+  executed_at: string | null
+  execution_result: Record<string, unknown> | null
+  execution_error: string | null
   created_at: string
   updated_at: string
 }

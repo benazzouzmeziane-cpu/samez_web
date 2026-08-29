@@ -252,6 +252,10 @@ export type Database = {
         Args: Record<string, never>
         Returns: boolean
       }
+      agent_convert_radar_item: {
+        Args: { p_item_id: string }
+        Returns: string
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

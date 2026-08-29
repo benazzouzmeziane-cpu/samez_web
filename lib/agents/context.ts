@@ -24,7 +24,7 @@ export async function buildAgentContext(supabase: SupabaseClient, domain: AgentD
         .limit(40),
       supabase
         .from('clients')
-        .select('id, name, stage, source, created_at, last_contacted_at')
+        .select('id, name, email, stage, source, created_at, last_contacted_at')
         .order('created_at', { ascending: false })
         .limit(30),
       supabase
@@ -55,6 +55,10 @@ export async function buildAgentContext(supabase: SupabaseClient, domain: AgentD
     ])
 
   const safe = <T>(result: { data: T | null; error: unknown }) => (result.error ? [] : result.data ?? [])
+  const crmClients = safe(clients).map(client => {
+    const { email, ...safeClient } = client
+    return { ...safeClient, has_email: Boolean(email) }
+  })
   const all = {
     capturedAt: new Date().toISOString(),
     seo: {
@@ -65,7 +69,7 @@ export async function buildAgentContext(supabase: SupabaseClient, domain: AgentD
     },
     radar: { items: safe(radar) },
     crm: {
-      clients: safe(clients),
+      clients: crmClients,
       activities: safe(activities),
       contacts: safe(contacts),
       bookings: safe(bookings),

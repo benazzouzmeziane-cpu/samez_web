@@ -24,6 +24,9 @@ const STATUS_LABELS: Record<string, string> = {
   validated: 'Validée',
   rejected: 'Rejetée',
   approved: 'Approuvée',
+  executing: 'Exécution…',
+  executed: 'Exécutée',
+  failed: 'Échec',
   pending: 'À valider',
 }
 
@@ -82,7 +85,11 @@ export default function AgentControlCenter({
     }
   }
 
-  async function decide(target: 'memory' | 'approval', id: string, decision: 'approve' | 'reject') {
+  async function decide(
+    target: 'memory' | 'approval',
+    id: string,
+    decision: 'approve' | 'reject' | 'execute'
+  ) {
     setError(null)
     const response = await fetch('/api/admin/agents/decide', {
       method: 'POST',
@@ -90,25 +97,12 @@ export default function AgentControlCenter({
       body: JSON.stringify({ target, id, decision }),
     })
     const json = (await response.json()) as { error?: string }
+    const refreshed = await fetch('/api/admin/agents', { cache: 'no-store' })
+    if (refreshed.ok) setData((await refreshed.json()) as AgentDashboard)
     if (!response.ok) {
       setError(json.error || 'Décision impossible')
       return
     }
-    setData(current => ({
-      ...current,
-      memories:
-        target === 'memory'
-          ? current.memories.map(item =>
-              item.id === id ? { ...item, status: decision === 'approve' ? 'validated' : 'rejected' } : item
-            )
-          : current.memories,
-      approvals:
-        target === 'approval'
-          ? current.approvals.map(item =>
-              item.id === id ? { ...item, status: decision === 'approve' ? 'approved' : 'rejected' } : item
-            )
-          : current.approvals,
-    }))
     router.refresh()
   }
 
@@ -332,6 +326,14 @@ export default function AgentControlCenter({
                   <Status value={approval.status} />
                 </div>
                 <p className="text-sm text-slate-600 mt-3">{approval.summary}</p>
+                {approval.execution_error ? (
+                  <p className="text-xs text-red-600 mt-2">{approval.execution_error}</p>
+                ) : null}
+                {approval.status === 'executed' && approval.executed_at ? (
+                  <p className="text-xs text-emerald-700 mt-2">
+                    Exécutée le {new Date(approval.executed_at).toLocaleString('fr-FR')}
+                  </p>
+                ) : null}
                 {approval.status === 'pending' ? (
                   <div className="flex gap-2 mt-3">
                     <DecisionButton onClick={() => decide('approval', approval.id, 'approve')}>
@@ -339,6 +341,13 @@ export default function AgentControlCenter({
                     </DecisionButton>
                     <DecisionButton danger onClick={() => decide('approval', approval.id, 'reject')}>
                       Refuser
+                    </DecisionButton>
+                  </div>
+                ) : null}
+                {approval.status === 'approved' || approval.status === 'failed' ? (
+                  <div className="flex gap-2 mt-3">
+                    <DecisionButton onClick={() => decide('approval', approval.id, 'execute')}>
+                      {approval.status === 'failed' ? 'Réessayer' : 'Exécuter'}
                     </DecisionButton>
                   </div>
                 ) : null}
@@ -371,8 +380,8 @@ function Metric({
 }
 
 function Status({ value }: { value: string }) {
-  const warning = ['pending', 'proposed', 'waiting_approval'].includes(value)
-  const failed = ['error', 'rejected', 'review_rejected', 'cancelled'].includes(value)
+  const warning = ['pending', 'proposed', 'waiting_approval', 'executing'].includes(value)
+  const failed = ['error', 'failed', 'rejected', 'review_rejected', 'cancelled'].includes(value)
   return (
     <span
       className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { isAdminUser } from '@/lib/admin'
+import { executeAgentApproval } from '@/lib/agents/executor'
 import { decideAgentApproval, decideAgentMemory } from '@/lib/agents/store'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic'
 const schema = z.object({
   target: z.enum(['memory', 'approval']),
   id: z.string().uuid(),
-  decision: z.enum(['approve', 'reject']),
+  decision: z.enum(['approve', 'reject', 'execute']),
   notes: z.string().trim().max(1000).optional(),
 })
 
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
     }
     const supabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : auth
     if (parsed.data.target === 'memory') {
+      if (parsed.data.decision === 'execute') {
+        return NextResponse.json({ error: 'Une mémoire ne peut pas être exécutée' }, { status: 400 })
+      }
       await decideAgentMemory(
         supabase,
         parsed.data.id,
@@ -37,13 +41,15 @@ export async function POST(request: Request) {
         parsed.data.notes
       )
     } else {
-      await decideAgentApproval(
-        supabase,
-        parsed.data.id,
-        parsed.data.decision === 'approve' ? 'approved' : 'rejected',
-        user.id,
-        parsed.data.notes
-      )
+      if (parsed.data.decision === 'reject') {
+        await decideAgentApproval(supabase, parsed.data.id, 'rejected', user.id, parsed.data.notes)
+      } else {
+        if (parsed.data.decision === 'approve') {
+          await decideAgentApproval(supabase, parsed.data.id, 'approved', user.id, parsed.data.notes)
+        }
+        const result = await executeAgentApproval(supabase, parsed.data.id)
+        return NextResponse.json({ ok: true, status: 'executed', result })
+      }
     }
     return NextResponse.json({ ok: true })
   } catch (error) {

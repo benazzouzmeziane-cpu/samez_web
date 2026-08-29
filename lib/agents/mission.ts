@@ -1,5 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { autoPublishSeoVersion } from '@/lib/agents/auto-publish'
 import { buildAgentContext } from '@/lib/agents/context'
 import { getAgentMissionStatus, startAgentMission } from '@/lib/agents/cloudflare'
 import {
@@ -177,48 +176,6 @@ export async function refreshAgentMission(supabase: SupabaseClient, runId: strin
       }).catch(memoryError => console.error('[agents] memory', memoryError))
     }
 
-    for (const request of approved ? (report.approvalRequests ?? []) : []) {
-      if (
-        !['publish_seo', 'send_email', 'convert_crm', 'change_stage', 'redirect', 'external_write'].includes(
-          request.actionType
-        )
-      ) {
-        continue
-      }
-      const versionId =
-        request.actionType === 'publish_seo' && typeof request.payload?.versionId === 'string'
-          ? request.payload.versionId
-          : null
-      let approvalStatus: 'pending' | 'executed' = 'pending'
-      let approvalSummary = request.summary.slice(0, 2000)
-      if (
-        versionId &&
-        review.approved === true &&
-        Number(review.score ?? 0) >= 90 &&
-        (review.blockers ?? []).length === 0
-      ) {
-        try {
-          const published = await autoPublishSeoVersion(supabase, versionId, runId)
-          approvalStatus = 'executed'
-          approvalSummary = `${approvalSummary}\nPublié automatiquement : ${published.path} (qualité ${published.score}/100).`
-        } catch (publishError) {
-          approvalSummary = `${approvalSummary}\nPublication automatique bloquée : ${
-            publishError instanceof Error ? publishError.message : 'contrôle échoué'
-          }`.slice(0, 2000)
-        }
-      }
-      await supabase.from('agent_approvals').insert({
-        run_id: runId,
-        task_id: task?.id ?? null,
-        action_type: request.actionType,
-        risk: ['low', 'medium', 'high'].includes(request.risk) ? request.risk : 'medium',
-        title: request.title.slice(0, 160),
-        summary: approvalSummary,
-        payload: request.payload ?? {},
-        status: approvalStatus,
-        decided_at: approvalStatus === 'executed' ? new Date().toISOString() : null,
-      })
-    }
   }
 
   if (approved) {
