@@ -59,11 +59,20 @@ export async function buildAgentContext(supabase: SupabaseClient, domain: AgentD
     const { email, ...safeClient } = client
     return { ...safeClient, has_email: Boolean(email) }
   })
+  const candidateVersions = safe(versions).map(version => ({
+    ...version,
+    source_count: Array.isArray(version.sources) ? version.sources.length : 0,
+    publishable:
+      version.status === 'in_review' &&
+      version.ai_generated === true &&
+      Array.isArray(version.sources) &&
+      version.sources.length > 0,
+  }))
   const all = {
     capturedAt: new Date().toISOString(),
     seo: {
       documents: safe(seo),
-      candidateVersions: safe(versions),
+      candidateVersions,
       gscPages: safe(gscPages),
       gscQueries: safe(gscQueries),
     },

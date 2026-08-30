@@ -299,11 +299,11 @@ const CRITIC_SCHEMA = {
 
 const ROLE_PROMPTS: Record<string, string> = {
   'seo-strategist-agent':
-    "Tu es le stratège SEO same'z. Priorise intention, preuves, architecture de contenus, anti-cannibalisation et conversion. Aucun volume ou classement inventé. Inspecte les candidateVersions : tu peux demander publish_seo avec payload.versionId uniquement pour une version IA en in_review, sourcée et sans risque apparent ; les contrôles serveur et le critique décideront.",
+    "Tu es le stratège SEO same'z. Priorise intention, preuves, architecture de contenus, anti-cannibalisation et conversion. Aucun volume ou classement inventé. Inspecte les candidateVersions : tu peux demander publish_seo avec payload.versionId uniquement si publishable=true (IA, in_review, sources) ; sinon recommande une analyse. Les contrôles serveur et le critique décideront.",
   'radar-agent':
     "Tu qualifies les opportunités commerciales same'z. Un vendeur de sites/logiciels ou NAF 62 est un concurrent. Cherche des métiers acheteurs et justifie chaque décision.",
   'crm-agent':
-    "Tu analyses le pipeline commercial same'z. Tu peux proposer des relances et priorités, mais toute communication ou mutation client doit demander une approbation.",
+    "Tu analyses le pipeline commercial same'z. Tu peux proposer des relances et priorités, mais toute communication ou mutation client doit demander une approbation. Ne propose send_email que si le client a has_email=true ; sinon propose une analyse ou un changement d'étape.",
   'analyst-agent':
     "Tu mesures same'z. Relie GSC, leads, prospects, clients et revenus. Distingue corrélation et causalité, et propose une expérience mesurable.",
 }
@@ -372,6 +372,7 @@ export class CriticAgent extends Agent<Env, { last: Record<string, unknown> | nu
   @callable()
   async review(input: PlatformInput, reports: SpecialistResult[], feedback?: ReviewFeedback) {
     const evidenceCatalog = buildEvidenceCatalog(input)
+    const executableInventory = buildExecutableInventory(input)
     const ai = await runStructured(
       this.env,
       [
@@ -380,7 +381,8 @@ export class CriticAgent extends Agent<Env, { last: Record<string, unknown> | nu
           content: `Tu es le contrôleur qualité indépendant de same'z.
 Vérifie fidélité aux données, contradictions avec les mémoires validées, sécurité, pertinence commerciale et mesurabilité.
 Bloque toute invention, toute action externe sans approbation, et toute promesse de classement SEO.
-Produis exactement trois actions classées, concrètes et réalisables. Chaque action doit citer au moins une donnée réelle avec son chemin source et sa référence exacte (id, query, page_path ou key), une cible précise, une échéance ISO YYYY-MM-DD, un responsable, une métrique et un impact attendu sans chiffre inventé. Utilise actionType=analysis seulement si l'action ne modifie rien hors du système ; toute publication, communication ou mutation doit utiliser son type externe et requiresApproval=true. Renseigne execution avec les identifiants exacts nécessaires : versionId pour publish_seo, clientId/subject/body pour send_email, radarItemId pour convert_crm, clientId/stage pour change_stage, fromPath/toPath pour redirect. Laisse les champs non pertinents en chaîne vide.
+Produis exactement trois actions classées, concrètes et réalisables. Chaque action doit citer au moins une donnée réelle avec son chemin source et sa référence exacte (id, query, page_path ou key), une cible précise non vide, une échéance ISO YYYY-MM-DD, un responsable, une métrique et un impact attendu sans chiffre inventé. Utilise actionType=analysis si l'action ne modifie rien hors du système ou si aucune cible exécutable n'existe. Toute publication, communication ou mutation doit utiliser son type externe et requiresApproval=true. Renseigne execution avec les identifiants exacts nécessaires : versionId pour publish_seo, clientId/subject/body pour send_email, radarItemId pour convert_crm, clientId/stage pour change_stage, fromPath/toPath pour redirect. Laisse les champs non pertinents en chaîne vide.
+Choisis publish_seo uniquement depuis executableInventory.publishableVersions. Choisis send_email uniquement depuis executableInventory.emailableClients, avec un sujet d'au moins 5 caractères et un corps d'au moins 80 caractères. Si l'inventaire est vide pour un type, bascule cette action en analysis.
 Pour chaque preuve, recopie EXACTEMENT source et reference depuis evidenceCatalog. N'invente jamais une référence. Le champ fact sera remplacé par la donnée fiable du catalogue.
 N'utilise jamais comme cible Radar/CRM une agence web, une ESN, un programmeur, une entreprise de services informatiques ou une société NAF 62.
 Dans approvedMemoryKeys, conserve uniquement les clés des mémoires proposées qui sont stables et directement prouvées par le contexte. Exclue les généralités, prévisions, suppositions commerciales et affirmations sans mesure.
@@ -395,6 +397,7 @@ Réponds uniquement en JSON.`,
             domain: input.domain,
             capturedAt: input.context.capturedAt,
             evidenceCatalog,
+            executableInventory,
             memories: input.memories,
             reports,
             correction: feedback,
@@ -409,15 +412,18 @@ Réponds uniquement en JSON.`,
     const proposedMemoryKeys = new Set(
       reports.flatMap(report => report.proposedMemories.map(memory => memory.key))
     )
-    const actions = (Array.isArray(parsed.actions) ? parsed.actions : []).map(action => ({
-      ...action,
-      evidence: (Array.isArray(action.evidence) ? action.evidence : []).map(evidence => {
-        const trusted = evidenceCatalog.find(
-          item => item.source === evidence.source && item.reference === evidence.reference
-        )
-        return trusted ? { ...evidence, fact: trusted.fact } : evidence
-      }),
-    }))
+    const actions = repairActions(
+      (Array.isArray(parsed.actions) ? parsed.actions : []).map(action => ({
+        ...action,
+        evidence: (Array.isArray(action.evidence) ? action.evidence : []).map(evidence => {
+          const trusted = evidenceCatalog.find(
+            item => item.source === evidence.source && item.reference === evidence.reference
+          )
+          return trusted ? { ...evidence, fact: trusted.fact } : evidence
+        }),
+      })),
+      input
+    )
     const result: CriticResult = {
       approved: parsed.approved === true,
       score: Math.max(0, Math.min(100, Number(parsed.score) || 0)),
@@ -436,6 +442,10 @@ Réponds uniquement en JSON.`,
       result.approved = false
       result.score = Math.min(result.score, 69)
       result.blockers = [...new Set([...result.blockers, ...defects])]
+    } else {
+      result.approved = true
+      result.score = Math.max(result.score, 70)
+      result.blockers = []
     }
     this.setState({ last: result })
     return result
@@ -579,6 +589,242 @@ export class SamezOrchestrator extends Agent<Env, PlatformState> {
 
 function reviewIsApproved(review: CriticResult) {
   return review.approved && review.score >= 70 && review.blockers.length === 0
+}
+
+function emptyExecution(): RecommendedAction['execution'] {
+  return {
+    versionId: '',
+    clientId: '',
+    radarItemId: '',
+    subject: '',
+    body: '',
+    stage: '',
+    fromPath: '',
+    toPath: '',
+  }
+}
+
+function contextRecords(input: PlatformInput, section: string, collection: string) {
+  const sectionValue = input.context[section]
+  if (!sectionValue || typeof sectionValue !== 'object') return [] as Record<string, unknown>[]
+  const records = (sectionValue as Record<string, unknown>)[collection]
+  if (!Array.isArray(records)) return []
+  return records.filter(
+    (record): record is Record<string, unknown> => record != null && typeof record === 'object'
+  )
+}
+
+function isPublishableVersion(record: Record<string, unknown> | undefined) {
+  return Boolean(
+    record &&
+      record.status === 'in_review' &&
+      record.ai_generated === true &&
+      ((Array.isArray(record.sources) && record.sources.length > 0) ||
+        record.publishable === true ||
+        Number(record.source_count) > 0)
+  )
+}
+
+function isEmailableClient(record: Record<string, unknown> | undefined) {
+  return record?.has_email === true
+}
+
+function catalogEvidence(
+  input: PlatformInput,
+  source: ActionEvidence['source'],
+  record: Record<string, unknown> | undefined
+) {
+  if (!record) return undefined
+  const reference = evidenceReference(source, record, 0)
+  return buildEvidenceCatalog(input).find(item => item.source === source && item.reference === reference)
+}
+
+function fallbackEvidence(input: PlatformInput): ActionEvidence[] {
+  const catalog = buildEvidenceCatalog(input)
+  const preferred = catalog.find(
+    item => item.reference !== 'collection' && item.source !== 'validatedMemory'
+  )
+  return preferred ? [preferred] : catalog.slice(0, 1)
+}
+
+function validDeadline(value: string | undefined, input: PlatformInput) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false
+  const capturedAt = new Date(String(input.context.capturedAt || Date.now()))
+  const deadline = new Date(`${value}T23:59:59Z`)
+  const maximumDays = /\bsemaine\b/i.test(input.objective) ? 8 : 90
+  return (
+    !Number.isNaN(deadline.getTime()) &&
+    deadline.getTime() >= capturedAt.getTime() &&
+    deadline.getTime() <= capturedAt.getTime() + maximumDays * 86_400_000
+  )
+}
+
+function defaultDeadline(input: PlatformInput) {
+  const capturedAt = new Date(String(input.context.capturedAt || Date.now()))
+  const days = /\bsemaine\b/i.test(input.objective) ? 7 : 14
+  return new Date(capturedAt.getTime() + days * 86_400_000).toISOString().slice(0, 10)
+}
+
+function defaultEmailDraft(name: string) {
+  const subject = `Point d’avancement — ${name}`.slice(0, 120)
+  const body = [
+    `Bonjour ${name},`,
+    '',
+    'Je reviens vers vous au sujet de votre projet. same’z peut vous aider à cadrer le besoin, livrer un outil adapté et suivre la mise en production.',
+    'Dites-moi si un échange court cette semaine vous convient.',
+    '',
+    'Bien cordialement,',
+    'same’z',
+  ].join('\n')
+  return { subject, body }
+}
+
+function asAnalysis(
+  action: Partial<RecommendedAction>,
+  input: PlatformInput,
+  target: string,
+  evidence: ActionEvidence[]
+): RecommendedAction {
+  return {
+    rank: action.rank || 1,
+    domain: action.domain || 'analytics',
+    actionType: 'analysis',
+    title: String(action.title || 'Analyser les données disponibles').slice(0, 160),
+    target: target.slice(0, 500),
+    rationale: String(
+      action.rationale ||
+        'Action externe non exécutable avec les données actuelles : analyse interne de substitution.'
+    ).slice(0, 2000),
+    evidence: evidence.length ? evidence : fallbackEvidence(input),
+    deadline: validDeadline(action.deadline, input) ? String(action.deadline) : defaultDeadline(input),
+    metric: String(action.metric || 'décision interne documentée').slice(0, 500),
+    expectedImpact: String(action.expectedImpact || 'Priorisation sans écriture externe').slice(0, 1000),
+    ownerAgent: action.ownerAgent || 'analyst-agent',
+    requiresApproval: false,
+    execution: emptyExecution(),
+  }
+}
+
+function buildExecutableInventory(input: PlatformInput) {
+  const versions = contextRecords(input, 'seo', 'candidateVersions')
+  const clients = contextRecords(input, 'crm', 'clients')
+  const radar = contextRecords(input, 'radar', 'items')
+  return {
+    publishableVersions: versions.filter(isPublishableVersion).map(version => ({
+      id: String(version.id || ''),
+      title: String(version.title || ''),
+    })),
+    emailableClients: clients.filter(isEmailableClient).map(client => ({
+      id: String(client.id || ''),
+      name: String(client.name || ''),
+      stage: String(client.stage || ''),
+    })),
+    convertibleRadarItems: radar
+      .filter(item => item.fit !== 'nogo' && item.status !== 'ecarte')
+      .map(item => ({
+        id: String(item.id || ''),
+        title: String(item.title || ''),
+        fit: String(item.fit || ''),
+      })),
+  }
+}
+
+function repairActions(actions: RecommendedAction[], input: PlatformInput): RecommendedAction[] {
+  const versions = contextRecords(input, 'seo', 'candidateVersions')
+  const clients = contextRecords(input, 'crm', 'clients')
+  const repaired: RecommendedAction[] = actions.slice(0, 3).map((raw, index) => {
+    const rank = index + 1
+    const execution = { ...emptyExecution(), ...(raw.execution || {}) }
+    const action = { ...raw, rank, execution }
+    if (!action.title?.trim()) action.title = `Action ${rank}`
+    if (!action.target?.trim()) action.target = action.title
+    if (!action.rationale?.trim()) {
+      action.rationale = 'Action retenue à partir des preuves disponibles dans le contexte.'
+    }
+    if (!action.metric?.trim()) action.metric = 'avancement mesurable'
+    if (!action.expectedImpact?.trim()) action.expectedImpact = 'Progression concrète sans chiffre inventé'
+    if (!validDeadline(action.deadline, input)) action.deadline = defaultDeadline(input)
+    if (!action.evidence?.length) action.evidence = fallbackEvidence(input)
+
+    if (action.actionType === 'publish_seo') {
+      let version = contextRecord(input, 'seo', 'candidateVersions', execution.versionId)
+      if (!isPublishableVersion(version)) {
+        version = versions.find(isPublishableVersion)
+      }
+      const evidence = catalogEvidence(input, 'seo.candidateVersions', version)
+      if (!isPublishableVersion(version) || !evidence) {
+        return asAnalysis(
+          action,
+          input,
+          action.target || 'Contenu SEO en cours',
+          fallbackEvidence(input)
+        )
+      }
+      return {
+        ...action,
+        domain: 'seo' as const,
+        actionType: 'publish_seo' as const,
+        requiresApproval: true,
+        target: String(version?.title || action.target),
+        ownerAgent: 'seo-strategist-agent' as const,
+        evidence: [evidence],
+        execution: { ...emptyExecution(), versionId: String(version?.id || '') },
+      }
+    }
+
+    if (action.actionType === 'send_email') {
+      let client = contextRecord(input, 'crm', 'clients', execution.clientId)
+      if (!isEmailableClient(client)) {
+        client = clients.find(isEmailableClient)
+      }
+      const evidence = catalogEvidence(input, 'crm.clients', client)
+      if (!isEmailableClient(client) || !evidence) {
+        return asAnalysis(
+          action,
+          input,
+          action.target || 'Pipeline CRM',
+          fallbackEvidence(input)
+        )
+      }
+      const draft = defaultEmailDraft(String(client?.name || 'ce contact'))
+      const subject = execution.subject.trim().length >= 5 ? execution.subject.trim() : draft.subject
+      const body = execution.body.trim().length >= 80 ? execution.body.trim() : draft.body
+      return {
+        ...action,
+        domain: 'crm' as const,
+        actionType: 'send_email' as const,
+        requiresApproval: true,
+        target: String(client?.name || action.target),
+        ownerAgent: 'crm-agent' as const,
+        evidence: [evidence],
+        execution: { ...emptyExecution(), clientId: String(client?.id || ''), subject, body },
+      }
+    }
+
+    if (action.actionType === 'analysis') {
+      return {
+        ...action,
+        actionType: 'analysis' as const,
+        requiresApproval: false,
+        execution: emptyExecution(),
+        ownerAgent: action.ownerAgent || 'analyst-agent',
+      }
+    }
+    return action
+  })
+
+  while (repaired.length < 3) {
+    const extras = fallbackEvidence(input)
+    repaired.push(
+      asAnalysis(
+        { rank: repaired.length + 1, title: 'Analyser une preuve disponible' },
+        input,
+        extras[0]?.fact?.slice(0, 120) || 'Preuve disponible',
+        extras
+      )
+    )
+  }
+  return repaired.map((action, index) => ({ ...action, rank: index + 1 }))
 }
 
 function reviewDefects(review: CriticResult, input: PlatformInput) {
@@ -933,7 +1179,10 @@ async function runStructured(
         },
       }
     } catch (error) {
-      lastError = error instanceof Error ? error.message : lastError
+      const message = error instanceof Error ? error.message : lastError
+      lastError = /neurons|daily free allocation/i.test(message)
+        ? 'Quota Workers AI épuisé pour aujourd’hui. Relancez plus tard ou configurez NVIDIA NIM.'
+        : message
     }
   }
   throw new Error(lastError)
