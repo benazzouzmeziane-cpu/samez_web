@@ -23,7 +23,7 @@ export default async function AgentsPage() {
     <div>
       <AdminPageHeader
         title="Agents"
-        description="Orchestrez les spécialistes SEO, Radar, CRM et Analytics. Les apprentissages restent proposés jusqu’à validation."
+        description="Une mission en haut. Missions, journal, mémoire et validations dans les onglets."
       />
       <AgentControlCenter initial={dashboard} configured={isAgentPlatformConfigured()} />
     </div>
