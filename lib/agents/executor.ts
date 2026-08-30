@@ -88,7 +88,12 @@ export async function executeAgentApproval(supabase: SupabaseClient, id: string)
 
   const approval = claimed as ApprovalRow
   try {
-    const action = readAction(approval)
+    const action = await hydrateAction(supabase, approval)
+    await supabase
+      .from('agent_approvals')
+      .update({ payload: { ...approval.payload, action } })
+      .eq('id', id)
+      .eq('status', 'executing')
     await addAgentEvent(supabase, {
       runId: approval.run_id,
       sourceAgent: 'samez-orchestrator',
@@ -143,10 +148,155 @@ export async function executeAgentApproval(supabase: SupabaseClient, id: string)
   }
 }
 
-function readAction(approval: ApprovalRow): Action {
-  const parsed = actionSchema.safeParse(approval.payload?.action)
-  if (!parsed.success) throw new Error('Payload d’exécution incomplet : relancez une mission récente')
-  if (!parsed.data.requiresApproval || parsed.data.actionType !== approval.action_type) {
+function asRecord(value: unknown) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function text(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function evidenceList(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(item => asRecord(item))
+    .map(item => ({
+      source: text(item.source),
+      reference: text(item.reference),
+      fact: text(item.fact) || text(item.reference),
+    }))
+    .filter(item => item.source && item.reference)
+}
+
+function emptyExecution() {
+  return {
+    versionId: '',
+    clientId: '',
+    radarItemId: '',
+    subject: '',
+    body: '',
+    stage: '',
+    fromPath: '',
+    toPath: '',
+  }
+}
+
+function emailDraft(name: string) {
+  const safeName = name.trim() || 'ce contact'
+  return {
+    subject: `Point d’avancement — ${safeName}`.slice(0, 120),
+    body: [
+      `Bonjour ${safeName},`,
+      '',
+      'Je reviens vers vous au sujet de votre projet. same’z peut vous aider à cadrer le besoin, livrer un outil adapté et suivre la mise en production.',
+      'Dites-moi si un échange court cette semaine vous convient.',
+      '',
+      'Bien cordialement,',
+      'same’z',
+    ].join('\n'),
+  }
+}
+
+async function hydrateAction(supabase: SupabaseClient, approval: ApprovalRow): Promise<Action> {
+  const payload = asRecord(approval.payload)
+  const raw = { ...asRecord(payload.action), ...payload }
+  const execution = { ...emptyExecution(), ...asRecord(raw.execution) }
+  const evidence = evidenceList(raw.evidence)
+  const actionType = text(raw.actionType) || approval.action_type
+  const target = text(raw.target) || text(raw.title) || 'Cible à préciser'
+  const title = text(raw.title) || approval.action_type
+
+  if (actionType === 'publish_seo') {
+    const fromEvidence = evidence.find(item => item.source === 'seo.candidateVersions')?.reference
+    execution.versionId =
+      text(execution.versionId) || text(raw.versionId) || text(payload.versionId) || fromEvidence || ''
+    if (!uuid.safeParse(execution.versionId).success) {
+      const { data } = await supabase
+        .from('seo_document_versions')
+        .select('id, title, status, ai_generated, sources')
+        .in('status', ['in_review', 'draft', 'scheduled'])
+        .order('updated_at', { ascending: false })
+        .limit(20)
+      const match = (data ?? []).find(version => {
+        const label = `${version.title ?? ''}`.toLowerCase()
+        return (
+          version.status === 'in_review' &&
+          version.ai_generated === true &&
+          Array.isArray(version.sources) &&
+          version.sources.length > 0 &&
+          (label.includes(target.toLowerCase().slice(0, 24)) ||
+            title.toLowerCase().includes(label.slice(0, 24)))
+        )
+      })
+      if (match) execution.versionId = match.id
+    }
+  }
+
+  if (actionType === 'send_email' || actionType === 'change_stage') {
+    const fromEvidence = evidence.find(item => item.source === 'crm.clients')?.reference
+    execution.clientId =
+      text(execution.clientId) || text(raw.clientId) || text(payload.clientId) || fromEvidence || ''
+    if (!uuid.safeParse(execution.clientId).success) {
+      const { data } = await supabase
+        .from('clients')
+        .select('id, name, email, company')
+        .order('updated_at', { ascending: false })
+        .limit(40)
+      const needle = target.toLowerCase()
+      const match = (data ?? []).find(client => {
+        const haystack = `${client.name ?? ''} ${client.company ?? ''}`.toLowerCase()
+        return needle.length >= 4 && haystack.includes(needle.slice(0, 40))
+      })
+      if (match) execution.clientId = match.id
+    }
+    if (actionType === 'send_email') {
+      const { data: client } = uuid.safeParse(execution.clientId).success
+        ? await supabase.from('clients').select('name, email').eq('id', execution.clientId).maybeSingle()
+        : { data: null }
+      if (!client?.email) throw new Error('Email vérifié absent de la fiche CRM')
+      const draft = emailDraft(client.name || target)
+      execution.subject = text(execution.subject) || text(raw.subject) || draft.subject
+      execution.body = text(execution.body) || text(raw.body) || draft.body
+    }
+    if (actionType === 'change_stage') {
+      execution.stage = text(execution.stage) || text(raw.stage) || 'qualifié'
+    }
+  }
+
+  if (actionType === 'convert_crm') {
+    execution.radarItemId =
+      text(execution.radarItemId) ||
+      text(raw.radarItemId) ||
+      evidence.find(item => item.source === 'radar.items')?.reference ||
+      ''
+  }
+
+  if (actionType === 'redirect') {
+    execution.fromPath = text(execution.fromPath) || text(raw.fromPath)
+    execution.toPath = text(execution.toPath) || text(raw.toPath)
+  }
+
+  const parsed = actionSchema.safeParse({
+    rank: Number(raw.rank) || 1,
+    actionType,
+    title: title.slice(0, 160),
+    target: target.slice(0, 500),
+    rationale: (text(raw.rationale) || text(payload.summary) || title).slice(0, 2000),
+    deadline: text(raw.deadline) || new Date().toISOString().slice(0, 10),
+    metric: (text(raw.metric) || 'exécution validée').slice(0, 500),
+    expectedImpact: (text(raw.expectedImpact) || 'Action approuvée par un administrateur').slice(0, 1000),
+    evidence: evidence.length
+      ? evidence
+      : [{ source: 'crm.clients', reference: execution.clientId || 'collection', fact: target }],
+    requiresApproval: true,
+    execution,
+  })
+  if (!parsed.success) {
+    throw new Error('Impossible de reconstruire un payload exécutable pour cette approbation')
+  }
+  if (parsed.data.actionType !== approval.action_type) {
     throw new Error('Le type de l’action ne correspond pas à son approbation')
   }
   if (parsed.data.actionType === 'analysis') throw new Error('Une analyse interne ne nécessite pas d’exécution')
